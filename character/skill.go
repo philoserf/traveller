@@ -3,6 +3,7 @@ package character
 // SkillKind categorizes an acquired skill entry.
 type SkillKind int
 
+// SkillKind values.
 const (
 	Skill SkillKind = iota
 	Knowledge

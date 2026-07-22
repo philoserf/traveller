@@ -3,6 +3,8 @@ package starship
 // CrewPosition is a shipboard crew role.
 type CrewPosition string
 
+// CrewPosition values, grouped by department (Bridge, Sensors/Comms,
+// Weapons, Operations, Payload, Staff).
 const (
 	Captain       CrewPosition = "Captain"
 	Exec          CrewPosition = "Exec"
@@ -38,6 +40,7 @@ const (
 // StaffingLevel is the crew multiplier applied per staffed console.
 type StaffingLevel int
 
+// StaffingLevel values.
 const (
 	StaffingMinimal     StaffingLevel = iota // 1/3
 	StaffingOneShift                         // 1x

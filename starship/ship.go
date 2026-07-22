@@ -1,3 +1,5 @@
+// Package starship models Traveller5 starship designs: hulls, drives,
+// power plants, computers, fuel, hardpoints, and crew.
 package starship
 
 // Cargo is a ship's cargo capacity, broken down by hold type.

@@ -24,6 +24,7 @@ type Cultural struct {
 // TravelZone is a world's danger/restriction rating.
 type TravelZone byte
 
+// TravelZone values.
 const (
 	ZoneGreen TravelZone = 'G'
 	ZoneAmber TravelZone = 'A'

@@ -9,6 +9,7 @@ import (
 // Starport is a world's starport quality code.
 type Starport byte
 
+// Starport values.
 const (
 	StarportA    Starport = 'A'
 	StarportB    Starport = 'B'

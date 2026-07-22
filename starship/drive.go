@@ -3,6 +3,7 @@ package starship
 // DriveCategory is the functional role a drive fills aboard ship.
 type DriveCategory int
 
+// DriveCategory values.
 const (
 	DriveManeuver DriveCategory = iota
 	DriveJump
@@ -13,6 +14,7 @@ const (
 // DriveType is the specific technology used by a drive.
 type DriveType string
 
+// DriveType values, grouped by DriveCategory (Maneuver, Interstellar, Power, Supplemental).
 const (
 	DriveGravitic DriveType = "G" // Maneuver
 	DriveRocket   DriveType = "R" // Maneuver
@@ -37,6 +39,7 @@ const (
 // fuel use, and tonnage relative to the standard baseline.
 type StageEffect int
 
+// StageEffect values.
 const (
 	StageExperimental StageEffect = iota
 	StagePrototype

@@ -3,6 +3,7 @@ package starship
 // Mount is the physical installation a weapon or other item occupies.
 type Mount string
 
+// Mount values.
 const (
 	MountTurretSingle Mount = "TurretSingle"
 	MountTurretDual   Mount = "TurretDual"
@@ -30,6 +31,7 @@ type Hardpoint struct {
 // SensorType is the functional category of a sensor installation.
 type SensorType string
 
+// SensorType values.
 const (
 	SensorCommVisual  SensorType = "CommVisual"
 	SensorSpace       SensorType = "Space"

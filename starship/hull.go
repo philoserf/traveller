@@ -4,6 +4,7 @@ package starship
 // agility, max G, stability, and land-capability.
 type Configuration byte
 
+// Configuration values.
 const (
 	ConfigCluster       Configuration = 'C'
 	ConfigBracedCluster Configuration = 'B'
@@ -18,6 +19,7 @@ const (
 // Armor Value formula and required Tech Level.
 type Structure byte
 
+// Structure values.
 const (
 	StructurePlate   Structure = 'A'
 	StructureShell   Structure = 'S'
@@ -30,6 +32,7 @@ const (
 // JumpFieldType affects safe jump distance, armor modifier, and jump flash size.
 type JumpFieldType int
 
+// JumpFieldType values.
 const (
 	JumpFieldBubble JumpFieldType = iota
 	JumpFieldGrid
@@ -39,6 +42,7 @@ const (
 // Fitting is an optional hull add-on.
 type Fitting string
 
+// Fitting values.
 const (
 	FlotationHull   Fitting = "FlotationHull"
 	SubmergenceHull Fitting = "SubmergenceHull"

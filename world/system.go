@@ -3,6 +3,7 @@ package world
 // SpectralType is a star's spectral classification.
 type SpectralType byte
 
+// SpectralType values.
 const (
 	SpectralO          SpectralType = 'O'
 	SpectralB          SpectralType = 'B'
@@ -17,6 +18,7 @@ const (
 // StellarRole is a star's position within a multiple-star system.
 type StellarRole int
 
+// StellarRole values.
 const (
 	Primary StellarRole = iota
 	Close

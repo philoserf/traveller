@@ -3,6 +3,8 @@ package world
 // TradeCode is a standard T5 trade classification abbreviation.
 type TradeCode string
 
+// TradeCode values, grouped by category (Planetary, Population, Economic,
+// Climate, Secondary, Political, Special).
 const (
 	AsteroidBelt TradeCode = "As"
 	Desert       TradeCode = "De"

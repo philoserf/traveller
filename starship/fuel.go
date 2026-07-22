@@ -3,6 +3,7 @@ package starship
 // FuelType is the commodity a power or drive system consumes.
 type FuelType string
 
+// FuelType values.
 const (
 	FuelLiquidHydrogen  FuelType = "LiquidHydrogen"  // Power Plant
 	FuelRadioactiveRods FuelType = "RadioactiveRods" // Fission
@@ -13,6 +14,7 @@ const (
 // FuelFitting is equipment for collecting, processing, or storing fuel.
 type FuelFitting string
 
+// FuelFitting values.
 const (
 	FuelScoop    FuelFitting = "FuelScoop"
 	FuelIntake   FuelFitting = "FuelIntake"

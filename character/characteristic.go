@@ -8,6 +8,7 @@ import "github.com/philoserf/traveller/ehex"
 // Character.GeneticProfile.
 type Position int
 
+// Position values, in UPP string order.
 const (
 	C1 Position = iota // Strength or analog
 	C2                 // Dexterity, Agility, or Grace
@@ -30,5 +31,6 @@ func (u UPP) String() string {
 	for _, c := range u.Characteristics {
 		s = append(s, c.String()[0])
 	}
+
 	return string(s)
 }

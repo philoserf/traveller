@@ -20,6 +20,7 @@ func (v Value) String() string {
 	if v > Max {
 		return fmt.Sprintf("<invalid ehex %d>", uint8(v))
 	}
+
 	return string(alphabet[v])
 }
 
@@ -28,11 +29,13 @@ func Parse(s string) (Value, error) {
 	if len(s) != 1 {
 		return 0, fmt.Errorf("ehex: %q is not a single character", s)
 	}
+
 	c := s[0]
-	for i := 0; i < len(alphabet); i++ {
+	for i := range len(alphabet) {
 		if alphabet[i] == c {
 			return Value(i), nil
 		}
 	}
+
 	return 0, fmt.Errorf("ehex: %q is not a valid extended-hex digit", s)
 }

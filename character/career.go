@@ -3,6 +3,7 @@ package character
 // RiskResult is the outcome of a term's Risk roll.
 type RiskResult int
 
+// RiskResult values, from best to worst outcome.
 const (
 	Unharmed RiskResult = iota
 	Wounded

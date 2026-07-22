@@ -1,3 +1,5 @@
+// Package character models Traveller5 player and non-player characters:
+// characteristics, careers, skills, and combat-relevant stats.
 package character
 
 // Character is a full player or non-player character.

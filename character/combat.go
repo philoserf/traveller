@@ -7,6 +7,7 @@ import "github.com/philoserf/traveller/ehex"
 // characteristics.
 type DamageType int
 
+// DamageType values, each naming the characteristics it reduces.
 const (
 	Hit         DamageType = iota // C1 C2 C3
 	Cut                           // C1 C2 C3, per round
