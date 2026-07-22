@@ -29,9 +29,19 @@ var digits = func() [Max + 1]string {
 	return d
 }()
 
+// Valid reports whether v is within the representable extended-hex range.
+// Callers building a composite string from several Values should check this
+// first: Byte, unlike String, has no room to signal an invalid digit and
+// falls back to '?', which would otherwise hide corrupt data.
+func (v Value) Valid() bool {
+	return v <= Max
+}
+
 // Byte returns the single-character extended-hex representation as a byte.
+// For an invalid Value it returns '?' — callers that need to detect and
+// report invalid digits should check Valid first and use String instead.
 func (v Value) Byte() byte {
-	if v > Max {
+	if !v.Valid() {
 		return '?'
 	}
 
@@ -40,7 +50,7 @@ func (v Value) Byte() byte {
 
 // String returns the single-character extended-hex representation.
 func (v Value) String() string {
-	if v > Max {
+	if !v.Valid() {
 		return fmt.Sprintf("<invalid ehex %d>", uint8(v))
 	}
 
@@ -54,9 +64,11 @@ func Parse(s string) (Value, error) {
 	}
 
 	i := strings.IndexByte(alphabet, s[0])
-	if i < 0 || i > int(Max) {
+	if i < 0 {
 		return 0, fmt.Errorf("ehex: %q is not a valid extended-hex digit", s)
 	}
 
-	return Value(i), nil
+	// i is in [0, len(alphabet)-1] by IndexByte's contract on a fixed 34-byte
+	// alphabet, so this always fits in Value (uint8); gosec can't see that.
+	return Value(i), nil //nolint:gosec // bounded by len(alphabet)==34, see comment above
 }

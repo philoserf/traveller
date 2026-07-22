@@ -1,6 +1,10 @@
 package character
 
-import "github.com/philoserf/traveller/ehex"
+import (
+	"strings"
+
+	"github.com/philoserf/traveller/ehex"
+)
 
 // Position identifies one of the six characteristic slots every sophont
 // species has. Which trait each position represents varies by species
@@ -26,7 +30,21 @@ type UPP struct {
 	Psionics        ehex.Value
 }
 
+// String renders the UPP as its 6-character code. If any characteristic is
+// out of range, it falls back to ehex.Value's descriptive form for that
+// digit (e.g. "<invalid ehex 99>") instead of silently emitting '?'.
 func (u UPP) String() string {
+	for _, c := range u.Characteristics {
+		if !c.Valid() {
+			var sb strings.Builder
+			for _, c := range u.Characteristics {
+				sb.WriteString(c.String())
+			}
+
+			return sb.String()
+		}
+	}
+
 	var s [6]byte
 	for i, c := range u.Characteristics {
 		s[i] = c.Byte()

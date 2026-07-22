@@ -1,6 +1,10 @@
 package world
 
-import "github.com/philoserf/traveller/ehex"
+import (
+	"fmt"
+
+	"github.com/philoserf/traveller/ehex"
+)
 
 // Starport is a world's starport quality code.
 type Starport byte
@@ -30,7 +34,23 @@ type UWP struct {
 	TechLevel     ehex.Value
 }
 
+// String renders the UWP as its StSAHPGL-T code. If any field is out of
+// range, it falls back to ehex.Value's descriptive form for that digit
+// (e.g. "<invalid ehex 99>") instead of silently emitting '?'.
 func (u UWP) String() string {
+	fields := [7]ehex.Value{
+		u.Size, u.Atmosphere, u.Hydrographics,
+		u.Population, u.Government, u.Law, u.TechLevel,
+	}
+
+	for _, f := range fields {
+		if !f.Valid() {
+			return fmt.Sprintf("%s%s%s%s%s%s%s-%s",
+				u.Starport, u.Size, u.Atmosphere, u.Hydrographics,
+				u.Population, u.Government, u.Law, u.TechLevel)
+		}
+	}
+
 	s := [9]byte{
 		byte(u.Starport), u.Size.Byte(), u.Atmosphere.Byte(), u.Hydrographics.Byte(),
 		u.Population.Byte(), u.Government.Byte(), u.Law.Byte(), '-', u.TechLevel.Byte(),
