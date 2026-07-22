@@ -2,3 +2,7 @@
 *.test
 *.out
 .DS_Store
+
+# Copyrighted rulebook reference material — not for redistribution.
+/docs/pdf/
+/docs/reference/
