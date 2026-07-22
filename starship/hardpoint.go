@@ -1,0 +1,47 @@
+package starship
+
+// Mount is the physical installation a weapon or other item occupies.
+type Mount string
+
+const (
+	MountTurretSingle Mount = "TurretSingle"
+	MountTurretDual   Mount = "TurretDual"
+	MountTurretTriple Mount = "TurretTriple"
+	MountTurretQuad   Mount = "TurretQuad"
+	MountBarbette     Mount = "Barbette"
+	MountDualBarbette Mount = "DualBarbette"
+	MountBay          Mount = "Bay"
+	MountLargeBay     Mount = "LargeBay"
+	MountMain         Mount = "Main"
+)
+
+// Hardpoint is one of a hull's weapon/installation slots (HullTons/100 of
+// them are available).
+type Hardpoint struct {
+	Number       int
+	Mount        Mount
+	WeaponCode   string
+	TechLevel    int
+	Cost         float64 // MCr
+	Firmpoints   []string
+	SurfaceMount bool // mounted on hull surface, doesn't consume a hardpoint
+}
+
+// SensorType is the functional category of a sensor installation.
+type SensorType string
+
+const (
+	SensorCommVisual  SensorType = "CommVisual"
+	SensorSpace       SensorType = "Space"
+	SensorWorld       SensorType = "World"
+	SensorSpecialized SensorType = "Specialized"
+	SensorDeception   SensorType = "Deception"
+)
+
+// Sensor is one shipboard sensor installation.
+type Sensor struct {
+	Type   SensorType
+	Range  int // R= rating
+	Signal int // S= rating
+	Mount  string
+}
