@@ -1,12 +1,11 @@
 version: "3"
 
 vars:
-  PDF_DIR: docs/pdf
-  TXT_DIR: docs/reference
+  REFERENCE_DIR: reference
 
 tasks:
   default:
-    desc: Generate docs/reference/*.txt from docs/pdf/*.pdf
+    desc: Generate reference/*.txt from reference/*.pdf
     cmds:
       - task: text
 
@@ -16,15 +15,15 @@ tasks:
       - brew bundle install --file=Brewfile
 
   text:
-    desc: Convert docs/pdf/*.pdf to docs/reference/*.txt via pdftotext -layout
+    desc: Convert reference/*.pdf to reference/*.txt via pdftotext -layout
     preconditions:
       - sh: command -v pdftotext >/dev/null
         msg: "pdftotext not found — run `task brew` first"
     sources:
-      - "{{.PDF_DIR}}/*.pdf"
+      - "{{.REFERENCE_DIR}}/*.pdf"
     generates:
-      - "{{.TXT_DIR}}/*.txt"
+      - "{{.REFERENCE_DIR}}/*.txt"
     cmds:
-      - mkdir -p {{.TXT_DIR}}
+      - mkdir -p {{.REFERENCE_DIR}}
       - for: sources
-        cmd: pdftotext -layout "{{.ITEM}}" "{{.TXT_DIR}}/$(basename "{{.ITEM}}" .pdf).txt"
+        cmd: pdftotext -layout "{{.ITEM}}" "{{.REFERENCE_DIR}}/$(basename "{{.ITEM}}" .pdf).txt"
