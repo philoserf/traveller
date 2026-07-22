@@ -35,6 +35,6 @@ const (
 // PBG encodes a system's Population digit, Belts, and Gas Giants.
 type PBG struct {
 	PopulationDigit ehex.Value
-	Belts           int
-	GasGiants       int
+	Belts           ehex.Value
+	GasGiants       ehex.Value
 }

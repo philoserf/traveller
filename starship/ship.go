@@ -2,6 +2,8 @@
 // power plants, computers, fuel, hardpoints, and crew.
 package starship
 
+import "github.com/philoserf/traveller/ehex"
+
 // Cargo is a ship's cargo capacity, broken down by hold type.
 type Cargo struct {
 	GeneralTons   float64
@@ -27,7 +29,7 @@ type Ship struct {
 	Mission   string // 6-part mission code: Service/Activity/Type/Qualifier/Mission/Modifier
 	QSP       string // Quick Ship Profile summary code
 	HullTons  int
-	TechLevel int
+	TechLevel ehex.Value
 	Cost      float64 // MCr
 
 	Hull               Hull

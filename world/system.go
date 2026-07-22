@@ -47,12 +47,37 @@ type Orbit struct {
 	World  *World
 }
 
-// StarSystem is a full system: its stars, orbits, and worlds.
+// StarSystem is a full system. Orbits is the single source of truth for
+// its stars and worlds; use the Stars and Worlds methods to collect them.
 type StarSystem struct {
 	Sector         string
 	Hex            string
-	Stars          []Star
 	Orbits         []Orbit
-	Worlds         []World
-	MainworldIndex int
+	MainworldOrbit int // index into Orbits; Orbits[MainworldOrbit].World is the mainworld
+}
+
+// Stars returns every star in the system, collected from Orbits.
+func (s StarSystem) Stars() []*Star {
+	var stars []*Star
+
+	for i := range s.Orbits {
+		if s.Orbits[i].Star != nil {
+			stars = append(stars, s.Orbits[i].Star)
+		}
+	}
+
+	return stars
+}
+
+// Worlds returns every world in the system, collected from Orbits.
+func (s StarSystem) Worlds() []*World {
+	var worlds []*World
+
+	for i := range s.Orbits {
+		if s.Orbits[i].World != nil {
+			worlds = append(worlds, s.Orbits[i].World)
+		}
+	}
+
+	return worlds
 }

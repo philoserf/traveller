@@ -1,5 +1,7 @@
 package starship
 
+import "github.com/philoserf/traveller/ehex"
+
 // DriveCategory is the functional role a drive fills aboard ship.
 type DriveCategory int
 
@@ -37,6 +39,21 @@ const (
 	DriveFusionPlus DriveType = "F+"
 )
 
+// Category returns the DriveCategory this DriveType belongs to, per the
+// grouping documented on the DriveType const block above.
+func (t DriveType) Category() DriveCategory {
+	switch t {
+	case DriveJumpJ, DriveHop, DriveSkip, DriveNAFAL:
+		return DriveJump
+	case DrivePowerPlant, DriveFission, DriveAntiMatter, DriveCollector:
+		return DrivePower
+	case DriveBattery, DriveFuelCell, DriveFusionPlus:
+		return DriveSupplemental
+	default: // DriveGravitic, DriveRocket, DriveHEPlaR
+		return DriveManeuver
+	}
+}
+
 // StageEffect modifies a drive's TL offset, cost multiplier, efficiency,
 // fuel use, and tonnage relative to the standard baseline.
 type StageEffect int
@@ -58,15 +75,15 @@ const (
 )
 
 // Drive is one installed drive: maneuver, jump/hop/skip/NAFAL, power plant,
-// or a supplemental power source.
+// or a supplemental power source. Its DriveCategory is derivable from Type
+// via Type.Category() and so isn't stored separately.
 type Drive struct {
-	Category     DriveCategory
 	Type         DriveType
-	Letter       string // size code, e.g. "A".."Z"
+	Letter       string // size code, e.g. "A".."Z", "N2".."Z2" for oversize
 	Tons         float64
 	EnergyPoints int
 	Potential    int // performance rating: Maneuver-Potential-N = N Gs, Jump-Potential-N = Jump-N
-	TechLevel    int
+	TechLevel    ehex.Value
 	Stage        StageEffect
 	Efficiency   int     // percent
 	Cost         float64 // MCr

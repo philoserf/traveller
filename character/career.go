@@ -11,6 +11,11 @@ const (
 	Dead
 )
 
+// Survived reports whether this RiskResult left the character alive.
+func (r RiskResult) Survived() bool {
+	return r != Dead
+}
+
 // Term is a single term (typically 4 years) served within a career.
 type Term struct {
 	Length                    int
@@ -22,7 +27,6 @@ type Term struct {
 	RiskResult                RiskResult
 	RewardResult              string
 	SkillsAwarded             []SkillLevel
-	Survived                  bool
 	Promoted                  bool
 }
 

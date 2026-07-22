@@ -3,7 +3,10 @@
 // characteristics, armor ratings, and drive/component sizes.
 package ehex
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Value is an extended-hex digit in the range 0-33.
 type Value uint8
@@ -15,13 +18,33 @@ const alphabet = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 // Max is the highest value a single extended-hex digit can represent.
 const Max = Value(len(alphabet) - 1)
 
+// digits precomputes each valid Value's single-character string, so String
+// returns a cached string instead of allocating one on every call.
+var digits = func() [Max + 1]string {
+	var d [Max + 1]string
+	for i := range d {
+		d[i] = string(alphabet[i])
+	}
+
+	return d
+}()
+
+// Byte returns the single-character extended-hex representation as a byte.
+func (v Value) Byte() byte {
+	if v > Max {
+		return '?'
+	}
+
+	return alphabet[v]
+}
+
 // String returns the single-character extended-hex representation.
 func (v Value) String() string {
 	if v > Max {
 		return fmt.Sprintf("<invalid ehex %d>", uint8(v))
 	}
 
-	return string(alphabet[v])
+	return digits[v]
 }
 
 // Parse converts a single extended-hex character into its Value.
@@ -30,12 +53,10 @@ func Parse(s string) (Value, error) {
 		return 0, fmt.Errorf("ehex: %q is not a single character", s)
 	}
 
-	c := s[0]
-	for i := range len(alphabet) {
-		if alphabet[i] == c {
-			return Value(i), nil
-		}
+	i := strings.IndexByte(alphabet, s[0])
+	if i < 0 || i > int(Max) {
+		return 0, fmt.Errorf("ehex: %q is not a valid extended-hex digit", s)
 	}
 
-	return 0, fmt.Errorf("ehex: %q is not a valid extended-hex digit", s)
+	return Value(i), nil
 }

@@ -1,10 +1,6 @@
 package world
 
-import (
-	"fmt"
-
-	"github.com/philoserf/traveller/ehex"
-)
+import "github.com/philoserf/traveller/ehex"
 
 // Starport is a world's starport quality code.
 type Starport byte
@@ -35,7 +31,10 @@ type UWP struct {
 }
 
 func (u UWP) String() string {
-	return fmt.Sprintf("%s%s%s%s%s%s%s-%s",
-		u.Starport, u.Size, u.Atmosphere, u.Hydrographics,
-		u.Population, u.Government, u.Law, u.TechLevel)
+	s := [9]byte{
+		byte(u.Starport), u.Size.Byte(), u.Atmosphere.Byte(), u.Hydrographics.Byte(),
+		u.Population.Byte(), u.Government.Byte(), u.Law.Byte(), '-', u.TechLevel.Byte(),
+	}
+
+	return string(s[:])
 }

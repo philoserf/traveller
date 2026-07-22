@@ -1,5 +1,7 @@
 package starship
 
+import "github.com/philoserf/traveller/ehex"
+
 // Mount is the physical installation a weapon or other item occupies.
 type Mount string
 
@@ -23,7 +25,7 @@ type Hardpoint struct {
 	Number       int
 	Mount        Mount
 	WeaponCode   string
-	TechLevel    int
+	TechLevel    ehex.Value
 	Cost         float64 // MCr
 	Firmpoints   []string
 	SurfaceMount bool // mounted on hull surface, doesn't consume a hardpoint

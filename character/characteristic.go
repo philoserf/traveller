@@ -27,10 +27,10 @@ type UPP struct {
 }
 
 func (u UPP) String() string {
-	s := make([]byte, 0, 6)
-	for _, c := range u.Characteristics {
-		s = append(s, c.String()[0])
+	var s [6]byte
+	for i, c := range u.Characteristics {
+		s[i] = c.Byte()
 	}
 
-	return string(s)
+	return string(s[:])
 }
