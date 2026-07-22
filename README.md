@@ -19,3 +19,24 @@ authoritative text of the Fair Use Policy.
 This repository does not redistribute the T5 rulebook PDFs or any
 extracted rules text — `docs/pdf/` and `docs/reference/` are local
 reference material only and are git-ignored.
+
+## Contributing: rulebook reference material
+
+Code and rules discussions assume you have the T5 core rulebooks on
+hand, but this repo can't ship them for you. To reproduce the local
+reference material:
+
+1. Buy/obtain your own copy of the three T5 core rulebook PDFs from
+   Far Future Enterprises and place them, with these exact filenames,
+   in `docs/pdf/`:
+   - `Traveller5 Core Rules Book 1 Characters and Combat.pdf`
+   - `Traveller5 Core Rules Book 2 Starships.pdf`
+   - `Traveller5 Core Rules Book 3 Worlds and Adventures.pdf`
+2. Run `task brew` once to install `pdftotext` (via the `poppler`
+   Homebrew formula listed in `Brewfile`).
+3. Run `task text` (or just `task`) to extract `docs/reference/*.txt`
+   from those PDFs. The task is a no-op / skips when the PDFs haven't
+   changed, so it's safe to re-run.
+
+Both `docs/pdf/` and `docs/reference/` stay untracked — only your
+local copies exist, and they aren't committed.

@@ -1,0 +1,30 @@
+version: "3"
+
+vars:
+  PDF_DIR: docs/pdf
+  TXT_DIR: docs/reference
+
+tasks:
+  default:
+    desc: Generate docs/reference/*.txt from docs/pdf/*.pdf
+    cmds:
+      - task: text
+
+  brew:
+    desc: Install tools this Taskfile needs (pdftotext, via poppler)
+    cmds:
+      - brew bundle install --file=Brewfile
+
+  text:
+    desc: Convert docs/pdf/*.pdf to docs/reference/*.txt via pdftotext -layout
+    preconditions:
+      - sh: command -v pdftotext >/dev/null
+        msg: "pdftotext not found — run `task brew` first"
+    sources:
+      - "{{.PDF_DIR}}/*.pdf"
+    generates:
+      - "{{.TXT_DIR}}/*.txt"
+    cmds:
+      - mkdir -p {{.TXT_DIR}}
+      - for: sources
+        cmd: pdftotext -layout "{{.ITEM}}" "{{.TXT_DIR}}/$(basename "{{.ITEM}}" .pdf).txt"
