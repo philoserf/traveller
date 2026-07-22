@@ -9,7 +9,8 @@ import (
 // Starport is a world's starport quality code.
 type Starport byte
 
-// Starport values.
+// Starport values, ranked from best (A: Excellent) to worst (E: Frontier);
+// StarportNone means no starport exists, not merely a poor one.
 const (
 	StarportA    Starport = 'A'
 	StarportB    Starport = 'B'

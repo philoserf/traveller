@@ -3,7 +3,9 @@ package starship
 // DriveCategory is the functional role a drive fills aboard ship.
 type DriveCategory int
 
-// DriveCategory values.
+// DriveCategory values. Note these are distinct from, and easily confused
+// with, the similarly-named DriveType constants below (e.g. DriveJump here
+// is a category; DriveJumpJ there is a specific jump-drive technology).
 const (
 	DriveManeuver DriveCategory = iota
 	DriveJump
@@ -39,7 +41,8 @@ const (
 // fuel use, and tonnage relative to the standard baseline.
 type StageEffect int
 
-// StageEffect values.
+// StageEffect values, ordered from least refined (Experimental) to most
+// refined (Ultimate).
 const (
 	StageExperimental StageEffect = iota
 	StagePrototype

@@ -3,7 +3,8 @@ package starship
 // Mount is the physical installation a weapon or other item occupies.
 type Mount string
 
-// Mount values.
+// Mount values, ordered from smallest to largest tonnage footprint
+// (turrets take ~1 ton, barbettes ~3-5 tons, bays ~50 tons).
 const (
 	MountTurretSingle Mount = "TurretSingle"
 	MountTurretDual   Mount = "TurretDual"
@@ -31,7 +32,9 @@ type Hardpoint struct {
 // SensorType is the functional category of a sensor installation.
 type SensorType string
 
-// SensorType values.
+// SensorType values, by target: CommVisual/Space detect other ships and
+// objects, World scans planetary/system bodies, Specialized covers
+// purpose-built roles, Deception is a countermeasure, not detection.
 const (
 	SensorCommVisual  SensorType = "CommVisual"
 	SensorSpace       SensorType = "Space"

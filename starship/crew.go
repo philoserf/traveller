@@ -40,7 +40,8 @@ const (
 // StaffingLevel is the crew multiplier applied per staffed console.
 type StaffingLevel int
 
-// StaffingLevel values.
+// StaffingLevel values, ordered from lightest to heaviest crewing; the
+// per-console multiplier is on each constant.
 const (
 	StaffingMinimal     StaffingLevel = iota // 1/3
 	StaffingOneShift                         // 1x

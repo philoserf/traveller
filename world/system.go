@@ -3,7 +3,9 @@ package world
 // SpectralType is a star's spectral classification.
 type SpectralType byte
 
-// SpectralType values.
+// SpectralType values, ordered hottest to coolest per the standard OBAFGKM
+// sequence; SpectralDegenerate is the odd one out, covering white dwarfs
+// and brown dwarfs rather than a point on that temperature scale.
 const (
 	SpectralO          SpectralType = 'O'
 	SpectralB          SpectralType = 'B'
@@ -18,7 +20,8 @@ const (
 // StellarRole is a star's position within a multiple-star system.
 type StellarRole int
 
-// StellarRole values.
+// StellarRole values, ordered by increasing distance from the system's
+// center: Close stars orbit nearest the primary, Near and Far further out.
 const (
 	Primary StellarRole = iota
 	Close

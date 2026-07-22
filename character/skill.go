@@ -3,7 +3,8 @@ package character
 // SkillKind categorizes an acquired skill entry.
 type SkillKind int
 
-// SkillKind values.
+// SkillKind values. Skill, Personal, and Intuition come from T5's closed
+// master list; Knowledge and Talent are open-ended/advisory categories.
 const (
 	Skill SkillKind = iota
 	Knowledge

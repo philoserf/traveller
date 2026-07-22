@@ -24,7 +24,8 @@ type Cultural struct {
 // TravelZone is a world's danger/restriction rating.
 type TravelZone byte
 
-// TravelZone values.
+// TravelZone values, from least to most restricted: Green is unrestricted,
+// Amber warns of danger (see TradeCode Puzzle/Dangerous), Red forbids entry.
 const (
 	ZoneGreen TravelZone = 'G'
 	ZoneAmber TravelZone = 'A'

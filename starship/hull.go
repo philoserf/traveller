@@ -4,7 +4,9 @@ package starship
 // agility, max G, stability, and land-capability.
 type Configuration byte
 
-// Configuration values.
+// Configuration values, roughly ordered from least to most
+// atmosphere-capable: Cluster/BracedCluster/Planetoid/Unstreamlined
+// generally can't fly in atmosphere; Streamlined through LiftingBody can.
 const (
 	ConfigCluster       Configuration = 'C'
 	ConfigBracedCluster Configuration = 'B'
@@ -19,7 +21,8 @@ const (
 // Armor Value formula and required Tech Level.
 type Structure byte
 
-// Structure values.
+// Structure values and their base Armor Value formula: Plate AV=TL,
+// Shell/Polymer/Organic AV=TL/2, FeNi AV=20, Charged AV=TL*2.
 const (
 	StructurePlate   Structure = 'A'
 	StructureShell   Structure = 'S'
@@ -32,7 +35,7 @@ const (
 // JumpFieldType affects safe jump distance, armor modifier, and jump flash size.
 type JumpFieldType int
 
-// JumpFieldType values.
+// JumpFieldType values; Bubble is the standard/default field type.
 const (
 	JumpFieldBubble JumpFieldType = iota
 	JumpFieldGrid
@@ -42,7 +45,9 @@ const (
 // Fitting is an optional hull add-on.
 type Fitting string
 
-// Fitting values.
+// Fitting values, grouped by function: Flotation/SubmergenceHull for water
+// operations, Fins/Wings (plus folding variants) for aerodynamic lift,
+// Landing* for touching down, Lifters for VTOL.
 const (
 	FlotationHull   Fitting = "FlotationHull"
 	SubmergenceHull Fitting = "SubmergenceHull"
