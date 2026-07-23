@@ -40,7 +40,7 @@ func TestDeriveTradeCodes(t *testing.T) {
 		{"PreRich", UWP{Atmosphere: 6, Population: 5}, PreRich},
 		{"Rich", UWP{Atmosphere: 6, Population: 7}, Rich},
 		{"Reserve", UWP{Population: 2, Government: 6, Law: 4}, Reserve},
-		{"Dangerous", UWP{Population: 3}, Dangerous},
+		{"Dangerous", UWP{Population: 3, Government: 10, Law: 10}, Dangerous}, // Gov+Law=20, Pop<=6
 		{"Puzzle", UWP{Population: 9, Government: 10, Law: 10}, Puzzle},       // Gov+Law=20
 		{"Forbidden", UWP{Population: 9, Government: 15, Law: 10}, Forbidden}, // Gov+Law=25
 	}

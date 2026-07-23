@@ -111,17 +111,15 @@ func TestComputeTravelZoneBoundaries(t *testing.T) {
 	}
 }
 
-// TestComputeTravelZonePopulationBoundary pins the Population<=6 Amber
-// trigger independent of Government+Law (held at 0 throughout).
-func TestComputeTravelZonePopulationBoundary(t *testing.T) {
+// TestComputeTravelZoneIgnoresPopulationAlone confirms low Population
+// alone (Government+Law both 0) does NOT trigger Amber — Book 3 p.28's
+// "Da if pop 0-6" line only picks Amber's own Trade Code label (see
+// travelZoneTradeCode), it doesn't set the zone itself.
+func TestComputeTravelZoneIgnoresPopulationAlone(t *testing.T) {
 	t.Parallel()
 
-	if got, want := computeTravelZone(UWP{Population: 6}), ZoneAmber; got != want {
-		t.Errorf("computeTravelZone(Population=6) = %v, want %v", got, want)
-	}
-
-	if got, want := computeTravelZone(UWP{Population: 7}), ZoneGreen; got != want {
-		t.Errorf("computeTravelZone(Population=7) = %v, want %v", got, want)
+	if got, want := computeTravelZone(UWP{Population: 0}), ZoneGreen; got != want {
+		t.Errorf("computeTravelZone(Population=0, Gov=0, Law=0) = %v, want %v", got, want)
 	}
 }
 

@@ -168,12 +168,14 @@ func (t tradeCodeTrigger) matches(u UWP) bool {
 
 // travelZoneTradeCode returns the trade code sub-label for a precomputed
 // Travel Zone, and whether one applies (Green has none). Takes the zone
-// (and the population that helped compute it) rather than a UWP, so a
-// caller that's already computed the zone doesn't redo that work — see
-// deriveTradeCodesForZone. This is a separate mechanism from
-// tradeCodeTriggers: Da/Pz/Fo's real predicate (a population threshold
-// OR'd with a two-field sum threshold) isn't expressible as
-// tradeCodeTrigger's per-field AND-of-sets shape.
+// (computed by computeTravelZone from Government+Law alone) and
+// Population separately, rather than a UWP, so a caller that's already
+// computed the zone doesn't redo that work — see deriveTradeCodesForZone.
+// Population only ever chooses Amber's own label here (Book 3 p.28: "Da
+// if pop 0-6 ... Pz if not") — it never promotes a Green world to Amber;
+// that's computeTravelZone's Government+Law-only job. This is a separate
+// mechanism from tradeCodeTriggers: Da/Pz/Fo's real predicate isn't
+// expressible as tradeCodeTrigger's per-field AND-of-sets shape.
 func travelZoneTradeCode(zone TravelZone, population ehex.Value) (TradeCode, bool) {
 	switch zone {
 	case ZoneRed:

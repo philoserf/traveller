@@ -76,9 +76,16 @@ func computeImportance(u UWP, tradeCodes []TradeCode, bases []Base) Importance {
 	return Importance(ix)
 }
 
-// computeTravelZone determines a world's Travel Zone from Population and
-// Government+Law, per Book 3 p.28's "Z Travel Zones" step. Dice-free, like
-// computeImportance — directly testable against fixed fixtures.
+// computeTravelZone determines a world's Travel Zone from Government+Law,
+// per Book 3 p.28's "Z Travel Zones" step ("Government and Law Level: If
+// Gov+LL is 20 or greater, impose Amber Zone. If Gov+LL is 22 or greater,
+// impose Red Zone"). Dice-free, like computeImportance — directly
+// testable against fixed fixtures.
+//
+// Population is NOT an independent trigger here — the same box's "Da if
+// (pop 0-6 or Gov+LL)... Pz if not" line determines which Trade Code an
+// ALREADY-Amber world gets (Dangerous vs Puzzling), not whether the zone
+// itself becomes Amber. See travelZoneTradeCode for that logic.
 //
 // Class X Starport being "almost always" Red Zone is worded as
 // non-deterministic (referee judgment), so it's deliberately not modeled
@@ -90,7 +97,7 @@ func computeTravelZone(u UWP) TravelZone {
 	switch {
 	case govLaw >= 22:
 		return ZoneRed
-	case int(u.Population) <= 6 || govLaw >= 20:
+	case govLaw >= 20:
 		return ZoneAmber
 	default:
 		return ZoneGreen
