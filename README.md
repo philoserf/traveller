@@ -1,9 +1,23 @@
 # traveller
 
+[![CI](https://github.com/philoserf/traveller/actions/workflows/ci.yml/badge.svg)](https://github.com/philoserf/traveller/actions/workflows/ci.yml)
+
 An API-first implementation of the Traveller5 (T5) tabletop RPG rules.
 Types first, then tools: domain types for worlds, characters, and
 starships live in the `world`, `character`, and `starship` packages,
 built on a shared `ehex` (extended-hex) primitive.
+
+## Development
+
+```sh
+task brew   # install go, golangci-lint, go-task, poppler (once)
+task        # fmt-check, vet, lint, test, build — same checks CI runs
+task fmt    # auto-format (mutates files; not run by `task`/CI)
+```
+
+`Taskfile.yml` is the single source of truth for what "passing" means —
+`.github/workflows/ci.yml` runs the same `task check` a contributor runs
+locally, nothing CI-only.
 
 ## Legal / trademark notice
 
@@ -34,9 +48,9 @@ reference material:
    - `Traveller5 Core Rules Book 3 Worlds and Adventures.pdf`
 2. Run `task brew` once to install `pdftotext` (via the `poppler`
    Homebrew formula listed in `Brewfile`).
-3. Run `task text` (or just `task`) to extract matching `reference/*.txt`
-   files from those PDFs. The task is a no-op / skips when the PDFs
-   haven't changed, so it's safe to re-run.
+3. Run `task text` to extract matching `reference/*.txt` files from
+   those PDFs. The task is a no-op / skips when the PDFs haven't
+   changed, so it's safe to re-run.
 
 `reference/` stays untracked — only your local copies exist, and they
 aren't committed.

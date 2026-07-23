@@ -5,14 +5,53 @@ vars:
 
 tasks:
   default:
-    desc: Generate reference/*.txt from reference/*.pdf
+    desc: Run the full local check suite (fmt check, vet, lint, test, build)
     cmds:
-      - task: text
+      - task: check
 
   brew:
-    desc: Install tools this Taskfile needs (pdftotext, via poppler)
+    desc: Install tools this project needs (see Brewfile)
     cmds:
       - brew bundle install --file=Brewfile
+
+  fmt:
+    desc: Auto-format code (gofumpt/goimports/golines/swaggo, via golangci-lint)
+    cmds:
+      - golangci-lint fmt ./...
+
+  fmt:check:
+    desc: Verify code is already formatted, without writing any files (used by `check` and CI)
+    cmds:
+      - golangci-lint fmt --diff ./...
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  test:
+    desc: Run the test suite
+    cmds:
+      - go test ./...
+
+  build:
+    desc: Build all packages and commands
+    cmds:
+      - go build ./...
+
+  check:
+    desc: Run every non-mutating check CI also runs — fmt:check, vet, lint, test, build
+    cmds:
+      - task: fmt:check
+      - task: vet
+      - task: lint
+      - task: test
+      - task: build
 
   text:
     desc: Convert reference/*.pdf to reference/*.txt via pdftotext -layout
