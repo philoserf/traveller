@@ -66,7 +66,7 @@ func handleSectorsRandom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	subsector := r.URL.Query().Get("subsector")
-	if subsector != "" && (len(subsector) != 1 || subsector[0] < 'A' || subsector[0] > 'P') {
+	if subsector != "" && (len(subsector) != 1 || !world.ValidSubsectorLetter(subsector[0])) {
 		writeJSONError(w, "subsector must be a single letter A-P")
 
 		return
@@ -78,8 +78,7 @@ func handleSectorsRandom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resolved := dice.ResolveSeed(seedPtr)
-	roller := dice.RollerFromSeed(resolved)
-	sector := world.GenerateSector(roller, name, density)
+	sector := world.GenerateSector(resolved, name, density)
 
 	hexes := sector.Hexes
 	if subsector != "" {
@@ -89,14 +88,22 @@ func handleSectorsRandom(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toSectorResponse(resolved, sector.Name, hexes))
 }
 
-func toSectorResponse(seed int64, name string, hexes []world.Hex) SectorResponse {
+// toSectorResponse builds the wire shape for hexes, generated under
+// sectorSeed. Each populated hex's own SystemResponse.Seed is
+// world.HexSeed(sectorSeed, hex.Location) — the same per-hex seed
+// GenerateSector itself derived to roll that hex — not sectorSeed
+// directly, so GET /systems/random?seed=<that value> actually reproduces
+// that specific hex's system (GenerateSector gives every hex its own
+// independent Roller rather than sharing one sequential stream across
+// the whole grid).
+func toSectorResponse(sectorSeed int64, name string, hexes []world.Hex) SectorResponse {
 	resp := SectorResponse{Name: name, Hexes: make([]HexResponse, 0, len(hexes))}
 
 	for _, hex := range hexes {
 		hr := HexResponse{Location: hex.Location}
 
 		if hex.System != nil {
-			sys := toSystemResponse(seed, *hex.System)
+			sys := toSystemResponse(world.HexSeed(sectorSeed, hex.Location), *hex.System)
 			hr.System = &sys
 		}
 

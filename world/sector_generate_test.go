@@ -74,8 +74,7 @@ func TestRollSystemPresentBoundaries(t *testing.T) {
 func TestGenerateSectorHexCount(t *testing.T) {
 	t.Parallel()
 
-	r := dice.RollerFromSeed(1)
-	sec := GenerateSector(r, "Test", DensityStandard)
+	sec := GenerateSector(1, "Test", DensityStandard)
 
 	if len(sec.Hexes) != sectorWidth*sectorHeight {
 		t.Fatalf("GenerateSector: len(Hexes) = %d, want %d", len(sec.Hexes), sectorWidth*sectorHeight)
@@ -89,8 +88,7 @@ func TestGenerateSectorHexCount(t *testing.T) {
 func TestGenerateSectorStampsSectorAndHex(t *testing.T) {
 	t.Parallel()
 
-	r := dice.RollerFromSeed(1)
-	sec := GenerateSector(r, "Spinward Marches", DensityStandard)
+	sec := GenerateSector(1, "Spinward Marches", DensityStandard)
 
 	checked := 0
 
@@ -121,14 +119,56 @@ func TestGenerateSectorStampsSectorAndHex(t *testing.T) {
 func TestGenerateSectorDeterminism(t *testing.T) {
 	t.Parallel()
 
-	r1 := dice.New(rand.NewPCG(55, 55))
-	r2 := dice.New(rand.NewPCG(55, 55))
-
-	sec1 := GenerateSector(r1, "Test", DensityStandard)
-	sec2 := GenerateSector(r2, "Test", DensityStandard)
+	sec1 := GenerateSector(55, "Test", DensityStandard)
+	sec2 := GenerateSector(55, "Test", DensityStandard)
 
 	if !reflect.DeepEqual(sec1, sec2) {
 		t.Error("identical seeds produced different sectors")
+	}
+}
+
+// TestGenerateSectorHexIsIndependentlyReproducible confirms a populated
+// hex's own system can be reproduced standalone from HexSeed(sectorSeed,
+// location) alone — the bug this guards against: GenerateSector once
+// shared one Roller sequentially across all 1280 hexes, so only the
+// first hex's system was ever actually reproducible by a seed; every
+// other hex's "own" seed (naively the whole sector's) reproduced a
+// different hex's system instead.
+func TestGenerateSectorHexIsIndependentlyReproducible(t *testing.T) {
+	t.Parallel()
+
+	const sectorSeed = 7
+
+	sec := GenerateSector(sectorSeed, "Test", DensityStandard)
+
+	checked := 0
+
+	for _, hex := range sec.Hexes {
+		if hex.System == nil {
+			continue
+		}
+
+		checked++
+
+		r := dice.RollerFromSeed(HexSeed(sectorSeed, hex.Location))
+		mw := Generate(r)
+		sys := GenerateSystem(r, mw)
+
+		if sys.Orbits[sys.MainworldOrbit].World.UWP != hex.System.Orbits[hex.System.MainworldOrbit].World.UWP {
+			t.Fatalf("hex %s: standalone regeneration from HexSeed produced a different mainworld UWP (%s vs %s)",
+				hex.Location,
+				sys.Orbits[sys.MainworldOrbit].World.UWP,
+				hex.System.Orbits[hex.System.MainworldOrbit].World.UWP,
+			)
+		}
+
+		if checked >= 20 {
+			break // enough to be confident without regenerating every populated hex
+		}
+	}
+
+	if checked == 0 {
+		t.Fatal("no populated hexes found — test can't verify anything, try a different seed")
 	}
 }
 
@@ -152,8 +192,8 @@ func TestGenerateSectorDensityAffectsPopulation(t *testing.T) {
 		return n
 	}
 
-	rift := countPopulated(GenerateSector(dice.RollerFromSeed(2), "Test", DensityRift))
-	core := countPopulated(GenerateSector(dice.RollerFromSeed(2), "Test", DensityCore))
+	rift := countPopulated(GenerateSector(2, "Test", DensityRift))
+	core := countPopulated(GenerateSector(2, "Test", DensityCore))
 
 	if rift >= core {
 		t.Errorf("Rift produced %d populated hexes, Core produced %d — want Rift well below Core", rift, core)

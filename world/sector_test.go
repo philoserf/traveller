@@ -107,3 +107,19 @@ func TestSectorSubsectorInvalidLetter(t *testing.T) {
 		}
 	}
 }
+
+func TestValidSubsectorLetter(t *testing.T) {
+	t.Parallel()
+
+	for letter := byte('A'); letter <= 'P'; letter++ {
+		if !ValidSubsectorLetter(letter) {
+			t.Errorf("ValidSubsectorLetter(%c) = false, want true", letter)
+		}
+	}
+
+	for _, letter := range []byte{'Q', 'Z', '0', 'a'} {
+		if ValidSubsectorLetter(letter) {
+			t.Errorf("ValidSubsectorLetter(%c) = true, want false", letter)
+		}
+	}
+}

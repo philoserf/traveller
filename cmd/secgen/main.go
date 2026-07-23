@@ -31,13 +31,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *subsector != "" && (len(*subsector) != 1 || (*subsector)[0] < 'A' || (*subsector)[0] > 'P') {
+	if *subsector != "" && (len(*subsector) != 1 || !world.ValidSubsectorLetter((*subsector)[0])) {
 		fmt.Fprintln(os.Stderr, "secgen: -subsector must be a single letter A-P")
 		os.Exit(1)
 	}
 
-	r := dice.RollerFromSeed(s)
-	sec := world.GenerateSector(r, *name, density)
+	sec := world.GenerateSector(s, *name, density)
 
 	if *subsector != "" {
 		sec.Hexes = sec.Subsector((*subsector)[0])

@@ -182,27 +182,26 @@ func runSector(args []string) error {
 		return fmt.Errorf("client: parsing flags: %w", err)
 	}
 
-	url := *addr + "/sectors/random"
-
-	query := make([]string, 0, 4)
+	query := neturl.Values{}
 	if *seed != 0 {
-		query = append(query, "seed="+strconv.FormatInt(*seed, 10))
+		query.Set("seed", strconv.FormatInt(*seed, 10))
 	}
 
 	if *name != "" {
-		query = append(query, "name="+neturl.QueryEscape(*name))
+		query.Set("name", *name)
 	}
 
 	if *density != "" {
-		query = append(query, "density="+neturl.QueryEscape(*density))
+		query.Set("density", *density)
 	}
 
 	if *subsector != "" {
-		query = append(query, "subsector="+neturl.QueryEscape(*subsector))
+		query.Set("subsector", *subsector)
 	}
 
-	if len(query) > 0 {
-		url += "?" + strings.Join(query, "&")
+	url := *addr + "/sectors/random"
+	if encoded := query.Encode(); encoded != "" {
+		url += "?" + encoded
 	}
 
 	status, statusCode, body, err := get(url)

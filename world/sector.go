@@ -117,15 +117,23 @@ const (
 	sectorHeight    = 4 * subsectorHeight
 )
 
+// ValidSubsectorLetter reports whether letter is a valid Subsector
+// identifier (A-P, Book 3 p.15) — the single source Subsector itself,
+// api/sectors.go, and cmd/secgen all check against, so the valid range
+// can't drift between them.
+func ValidSubsectorLetter(letter byte) bool {
+	return letter >= 'A' && letter <= 'P'
+}
+
 // Subsector returns the 80 Hexes (8 columns x 10 rows) belonging to
 // letter — A-P, laid out in Book 3 p.15's own 4x4 lettered grid (A B C D
 // / E F G H / I J K L / M N O P, reading left-to-right then top-to-bottom)
 // — as a slice of Sector's own Hexes. Not a separate generation path:
 // "Subsector Map creation uses the same procedures as creating a Sector
-// Map," just at a smaller, sliced scale. Returns nil if letter is outside
-// 'A'..'P'.
+// Map," just at a smaller, sliced scale. Returns nil if letter fails
+// ValidSubsectorLetter.
 func (s Sector) Subsector(letter byte) []Hex {
-	if letter < 'A' || letter > 'P' {
+	if !ValidSubsectorLetter(letter) {
 		return nil
 	}
 
