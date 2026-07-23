@@ -13,11 +13,13 @@ import (
 
 // World renders w as a Markdown world sheet, covering everything
 // world.Generate currently populates (UWP, TradeCodes, Bases, PBG, and the
-// Importance/Economic/Cultural extensions). Fields Generate doesn't
-// produce yet (Name, Sector, Hex, TravelZone, Worlds, Notes, Nobility,
-// Allegiance) are omitted rather than shown as misleading blanks or
-// zeros — see world/generate.go's own doc comment for what's not
-// generated, and why.
+// Importance/Economic/Cultural extensions). Two fields Generate doesn't
+// set yet get a graceful fallback instead of a blank or invalid value: the
+// title falls back to the UWP code when Name is empty, and Travel Zone is
+// shown only when TravelZone.String() is non-empty (it isn't, until
+// something actually sets it). Sector, Hex, Worlds, Notes, Nobility, and
+// Allegiance are never rendered at all — see world/generate.go's own doc
+// comment for what's not generated, and why.
 func World(w world.World) string {
 	var b strings.Builder
 
@@ -27,7 +29,7 @@ func World(w world.World) string {
 	fmt.Fprintf(&b, "**Bases:** %s\n\n", joinOrNone(world.BaseStrings(w.Bases)))
 	fmt.Fprintf(&b, "**PBG:** %s\n\n", w.PBG)
 
-	if zone, ok := travelZoneName(w.TravelZone); ok {
+	if zone := w.TravelZone.String(); zone != "" {
 		fmt.Fprintf(&b, "**Travel Zone:** %s\n\n", zone)
 	}
 
@@ -57,20 +59,4 @@ func joinOrNone(items []string) string {
 	}
 
 	return strings.Join(items, " ")
-}
-
-// travelZoneName returns the zone's display name and true, or false if z
-// is the zero value (Generate never sets TravelZone today, so this is the
-// common case a caller must handle, not a malformed-data edge case).
-func travelZoneName(z world.TravelZone) (string, bool) {
-	switch z {
-	case world.ZoneGreen:
-		return "Green", true
-	case world.ZoneAmber:
-		return "Amber", true
-	case world.ZoneRed:
-		return "Red", true
-	default:
-		return "", false
-	}
 }

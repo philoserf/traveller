@@ -36,6 +36,23 @@ const (
 	ZoneRed   TravelZone = 'R'
 )
 
+// String returns the zone's display name (Green/Amber/Red), or "" for the
+// zero value or any other byte that isn't one of the three constants —
+// world.Generate doesn't set TravelZone yet, so the zero value is the
+// common case a caller must handle, not a malformed-data edge case.
+func (z TravelZone) String() string {
+	switch z {
+	case ZoneGreen:
+		return "Green"
+	case ZoneAmber:
+		return "Amber"
+	case ZoneRed:
+		return "Red"
+	default:
+		return ""
+	}
+}
+
 // PBG encodes a system's Population digit, Belts, and Gas Giants.
 type PBG struct {
 	PopulationDigit ehex.Value
