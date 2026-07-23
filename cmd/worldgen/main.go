@@ -6,9 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math/rand/v2"
 	"strings"
-	"time"
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/world"
@@ -19,13 +17,8 @@ func main() {
 
 	flag.Parse()
 
-	s := *seed
-	if s == 0 {
-		s = time.Now().UnixNano()
-	}
-
-	roller := dice.New(rand.NewPCG(uint64(s), uint64(s)))
-	w := world.Generate(roller)
+	s := dice.ResolveSeed(*seed)
+	w := world.Generate(dice.RollerFromSeed(s))
 
 	codes := make([]string, len(w.TradeCodes))
 	for i, c := range w.TradeCodes {

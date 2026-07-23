@@ -3,7 +3,10 @@
 // ships — wherever the rules call for a roll.
 package dice
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
+	"time"
+)
 
 // Roller rolls dice from an injectable random source, so generation stays
 // deterministic and testable given a seeded source. Never use a
@@ -33,4 +36,22 @@ func (r *Roller) Flux() int {
 	a, b := r.D6(), r.D6()
 
 	return a - b
+}
+
+// ResolveSeed returns seed unchanged unless it's 0, in which case it
+// derives one from the current time. 0 is therefore never itself a
+// reproducible, intentional seed — a documented tradeoff, not an oversight.
+func ResolveSeed(seed int64) int64 {
+	if seed == 0 {
+		return time.Now().UnixNano()
+	}
+
+	return seed
+}
+
+// RollerFromSeed builds a Roller from an already-resolved seed (see
+// ResolveSeed).
+func RollerFromSeed(seed int64) *Roller {
+	//nolint:gosec // any int64 bit pattern, including negative, is a valid PRNG seed
+	return New(rand.NewPCG(uint64(seed), uint64(seed)))
 }

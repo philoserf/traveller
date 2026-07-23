@@ -2,21 +2,17 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/philoserf/traveller/api"
 )
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprintln(w, "ok")
-	})
-
 	srv := &http.Server{
 		Addr:              ":8080",
-		Handler:           mux,
+		Handler:           api.NewMux(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

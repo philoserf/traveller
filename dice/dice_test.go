@@ -59,3 +59,31 @@ func TestDeterminism(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveSeedNonZeroUnchanged(t *testing.T) {
+	t.Parallel()
+
+	if got := dice.ResolveSeed(12345); got != 12345 {
+		t.Errorf("ResolveSeed(12345) = %d, want 12345 (unchanged)", got)
+	}
+}
+
+func TestResolveSeedZeroDerivesNonZero(t *testing.T) {
+	t.Parallel()
+
+	got := dice.ResolveSeed(0)
+	if got == 0 {
+		t.Error("ResolveSeed(0) = 0, want a non-zero time-derived seed")
+	}
+}
+
+func TestRollerFromSeedDeterminism(t *testing.T) {
+	t.Parallel()
+
+	r1 := dice.RollerFromSeed(999)
+	r2 := dice.RollerFromSeed(999)
+
+	if r1.TwoD6() != r2.TwoD6() {
+		t.Error("RollerFromSeed(999) produced different first rolls across two calls, want identical")
+	}
+}
