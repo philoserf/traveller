@@ -14,6 +14,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          # No go.sum exists to key a cache on — go.mod has no require
+          # block at all (depguard enforces std-lib-only, see .golangci.yml)
+          # — so the default cache:true just fails to restore every run.
+          cache: false
 
       - name: Add GOPATH/bin to PATH
         run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
