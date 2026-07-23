@@ -29,6 +29,23 @@ const (
 	Far
 )
 
+// String returns the role's display name (Primary/Close/Near/Far), or ""
+// for any other value.
+func (role StellarRole) String() string {
+	switch role {
+	case Primary:
+		return "Primary"
+	case Close:
+		return "Close"
+	case Near:
+		return "Near"
+	case Far:
+		return "Far"
+	default:
+		return ""
+	}
+}
+
 // Star is a single star in a system, e.g. "F7 V".
 type Star struct {
 	SpectralType       SpectralType

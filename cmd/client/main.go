@@ -19,7 +19,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: client <healthz|world> [flags]")
+		fmt.Fprintln(os.Stderr, "usage: client <healthz|world|system> [flags]")
 		os.Exit(1)
 	}
 
@@ -30,6 +30,8 @@ func main() {
 		err = runHealthz(os.Args[2:])
 	case "world":
 		err = runWorld(os.Args[2:])
+	case "system":
+		err = runSystem(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "client: unknown command %q\n", os.Args[1])
 		os.Exit(1)
@@ -98,6 +100,71 @@ func runWorld(args []string) error {
 	fmt.Printf("Cultural: Heterogeneity=%d Acceptance=%d Strangeness=%d Symbols=%d\n",
 		w.Cultural.Heterogeneity, w.Cultural.Acceptance, w.Cultural.Strangeness, w.Cultural.Symbols)
 	fmt.Printf("(seed: %d)\n", w.Seed)
+
+	return nil
+}
+
+func runSystem(args []string) error {
+	fs := flag.NewFlagSet("system", flag.ExitOnError)
+	addr := fs.String("server", "http://localhost:8080", "traveller API server address")
+	seed := fs.Int64("seed", 0, "seed to request (0 = server picks)")
+
+	if err := fs.Parse(args); err != nil {
+		return fmt.Errorf("client: parsing flags: %w", err)
+	}
+
+	url := *addr + "/systems/random"
+	if *seed != 0 {
+		url += "?seed=" + strconv.FormatInt(*seed, 10)
+	}
+
+	status, statusCode, body, err := get(url)
+	if err != nil {
+		return err
+	}
+
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("client: server returned %s: %s", status, body)
+	}
+
+	var sys api.SystemResponse
+	if err := json.Unmarshal(body, &sys); err != nil {
+		return fmt.Errorf("client: decoding response: %w", err)
+	}
+
+	for _, s := range sys.Stars {
+		orbit := "center"
+		if s.Orbit != nil {
+			orbit = fmt.Sprintf("orbit %d", *s.Orbit)
+		}
+
+		companion := ""
+		if s.HasCompanion {
+			companion = ", with a Companion"
+		}
+
+		fmt.Printf("%s: %s%d %s (%s, HZ orbit %d)%s\n",
+			s.Role, s.SpectralType, s.SpectralDecimal, s.LuminosityClass, orbit, s.HabitableZoneOrbit, companion)
+	}
+
+	mw := sys.Mainworld
+	if mw.Satellite {
+		fmt.Printf("Mainworld orbit: %d (satellite of a Gas Giant)\n", mw.Orbit)
+	} else {
+		fmt.Printf("Mainworld orbit: %d (%.1f AU)\n", mw.Orbit, mw.AU)
+	}
+
+	fmt.Printf("UWP: %s\n", mw.UWP)
+	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(mw.TradeCodes), " "))
+	fmt.Printf("Bases: %s\n", strings.Join(world.BaseStrings(mw.Bases), " "))
+	fmt.Printf("PBG: %s\n", mw.PBG)
+	fmt.Printf("Travel Zone: %s\n", mw.TravelZone)
+	fmt.Printf("Importance: %+d\n", mw.Importance)
+	fmt.Printf("Economic: Resources=%d Labor=%d Infrastructure=%d Efficiency=%+d\n",
+		mw.Economic.Resources, mw.Economic.Labor, mw.Economic.Infrastructure, mw.Economic.Efficiency)
+	fmt.Printf("Cultural: Heterogeneity=%d Acceptance=%d Strangeness=%d Symbols=%d\n",
+		mw.Cultural.Heterogeneity, mw.Cultural.Acceptance, mw.Cultural.Strangeness, mw.Cultural.Symbols)
+	fmt.Printf("(seed: %d)\n", sys.Seed)
 
 	return nil
 }

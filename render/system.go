@@ -67,25 +67,10 @@ func starLine(star world.Star) string {
 		spec = string(star.SpectralType) + " " + star.LuminosityClass // Degenerate stars have no decimal
 	}
 
-	line := fmt.Sprintf("%s: %s (HZ orbit %d)", roleLabel(star.Role), spec, star.HabitableZoneOrbit)
+	line := fmt.Sprintf("%s: %s (HZ orbit %d)", star.Role, spec, star.HabitableZoneOrbit)
 	if star.Companion != nil {
 		line += ", with a Companion"
 	}
 
 	return line
-}
-
-func roleLabel(role world.StellarRole) string {
-	switch role {
-	case world.Primary:
-		return "Primary"
-	case world.Close:
-		return "Close"
-	case world.Near:
-		return "Near"
-	case world.Far:
-		return "Far"
-	default:
-		return "Unknown"
-	}
 }

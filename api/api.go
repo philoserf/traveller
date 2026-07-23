@@ -26,6 +26,7 @@ func NewMux() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealthz)
 	mux.HandleFunc("GET /worlds/random", handleWorldsRandom)
+	mux.HandleFunc("GET /systems/random", handleSystemsRandom)
 
 	return jsonErrors(mux)
 }
