@@ -190,18 +190,37 @@ func TestGenerateSystemInvariants(t *testing.T) {
 // assertNoPrecludedOrbitViolations fails t if any non-Star, non-Satellite
 // entry sits at or below its host star's own precluded-orbit ceiling
 // (precludedOrbitHost) — the floor placeInOrbit's minOrbit exists to
-// enforce.
+// enforce. Orbit only records HostHZOrbit (a value), not which specific
+// Star placed a body, and distinct stars in the same system routinely
+// share the same HabitableZoneOrbit (habitableZoneTable collapses many
+// (SpectralType, LuminosityClass) combos onto few integers) — a body
+// can't always be attributed to one specific host star's own minOrbit
+// from HostHZOrbit alone. Ambiguous keys (two stars sharing an HZ orbit
+// with *different* minOrbits) are skipped rather than guessed at, since
+// checking against the wrong one would produce a false failure just as
+// easily as it might mask a real regression; unambiguous keys (every
+// star sharing that HZ orbit agrees on minOrbit, including the common
+// case of only one star at that value) are still fully checked.
 func assertNoPrecludedOrbitViolations(t *testing.T, sys StarSystem) {
 	t.Helper()
 
 	minOrbitByHZ := map[int]int{}
+	ambiguousHZ := map[int]bool{}
 
 	for _, star := range sys.Stars() {
-		minOrbitByHZ[star.HabitableZoneOrbit] = precludedOrbitHost(*star)
+		minOrbit := precludedOrbitHost(*star)
+
+		if existing, ok := minOrbitByHZ[star.HabitableZoneOrbit]; ok && existing != minOrbit {
+			ambiguousHZ[star.HabitableZoneOrbit] = true
+
+			continue
+		}
+
+		minOrbitByHZ[star.HabitableZoneOrbit] = minOrbit
 	}
 
 	for _, o := range sys.Orbits {
-		if o.Satellite || o.Star != nil || (o.World == nil && o.GasGiant == nil) {
+		if o.Satellite || o.Star != nil || (o.World == nil && o.GasGiant == nil) || ambiguousHZ[o.HostHZOrbit] {
 			continue
 		}
 

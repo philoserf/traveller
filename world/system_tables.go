@@ -423,11 +423,11 @@ var stellarSurfaceIa = []stellarSurfaceEntry{
 }
 
 var stellarSurfaceIb = []stellarSurfaceEntry{
-	{20, 1}, {40, 2}, {44, 4}, {50, 5}, {55, 6}, {60, 7}, {69, 8},
+	{20, 1}, {40, 2}, {45, 4}, {50, 5}, {55, 6}, {60, 7}, {69, 8},
 }
 
 var stellarSurfaceII = []stellarSurfaceEntry{
-	{35, 0}, {44, 1}, {50, 2}, {55, 4}, {60, 5}, {65, 6}, {69, 7},
+	{35, 0}, {45, 1}, {50, 2}, {55, 4}, {60, 5}, {65, 6}, {69, 7},
 }
 
 var stellarSurfaceIII = []stellarSurfaceEntry{

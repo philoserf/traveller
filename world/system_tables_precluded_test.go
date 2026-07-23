@@ -39,6 +39,12 @@ func TestPrecludedOrbitCeilingLiteralTableEntries(t *testing.T) {
 		{"II row0 F5 (upper end)", SpectralF, 5, "II", 0},
 		{"III row0 K0 (upper end)", SpectralK, 0, "III", 0},
 		{"Ia row9 M9 (max ordinal)", SpectralM, 9, "Ia", 9},
+		// Regression guard: Ib row4 and II row1 are both printed "G5" (not
+		// "G4"), ordinal 45 — a code-review catch against a real
+		// transcription slip in an earlier version of this table (both
+		// cells had been encoded as ordinal 44, one off).
+		{"Ib row4 G5 (upper end, not G4)", SpectralG, 5, "Ib", 4},
+		{"II row1 G5 (upper end, not G4)", SpectralG, 5, "II", 1},
 	}
 
 	for _, c := range cases {
