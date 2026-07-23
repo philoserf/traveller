@@ -362,3 +362,111 @@ func rollSecondaryWorldCategory(r *dice.Roller, delta int) secondaryWorldCategor
 
 	return outerCategoryByRoll[r.D6()]
 }
+
+// spectralRank orders SpectralType hottest-to-coolest: O=0 .. M=6,
+// matching the type's own doc comment ordering. SpectralDegenerate never
+// reaches the Stellar Surface table below (see precludedOrbitCeiling,
+// which rejects every luminosity class Degenerate stars actually have
+// before ever calling this) — the fallback here is defensive, not a real
+// case.
+func spectralRank(t SpectralType) int {
+	switch t {
+	case SpectralO:
+		return 0
+	case SpectralB:
+		return 1
+	case SpectralA:
+		return 2
+	case SpectralF:
+		return 3
+	case SpectralG:
+		return 4
+	case SpectralK:
+		return 5
+	case SpectralM:
+		return 6
+	default:
+		return 7
+	}
+}
+
+// spectralOrdinal combines rank and decimal into one comparable value
+// (rank*10 + decimal, range 0-69) for range-matching against the Stellar
+// Surface table's printed spectral ranges (e.g. "A5-G0").
+func spectralOrdinal(t SpectralType, decimal int) int {
+	return spectralRank(t)*10 + decimal
+}
+
+// stellarSurfaceEntry is one row of Book 3 p.20's "Stellar Surface"
+// table for a single luminosity-class column: UpperOrdinal is the
+// spectralOrdinal of the coolest (latest-decimal) spectral type whose
+// photosphere still reaches Orbit. Rows are sorted by Orbit ascending —
+// precludedOrbitCeiling finds the first (innermost) row whose
+// UpperOrdinal is >= a star's own ordinal.
+type stellarSurfaceEntry struct {
+	UpperOrdinal int
+	Orbit        int
+}
+
+// stellarSurfaceIa/Ib/II/III: Book 3 p.20's four Stellar Surface columns.
+// The printed ranges (e.g. Ib row2 = "A5-G0") become one entry per row,
+// UpperOrdinal set from the range's cooler (higher-ordinal) end. Rows the
+// book leaves blank for a column (e.g. Ia has no rows 0-3) simply have no
+// entry — "first row whose UpperOrdinal is >= ordinal" naturally rounds
+// an ordinal that falls in a blank gap up to the next tabulated
+// (cooler, farther-out) row, and clamps an ordinal hotter than a
+// column's very first row to that row — see the sysgen precluded-orbit
+// plan for why "round toward more precluded, not less" is the right
+// direction to be wrong in, matching this project's other tables.
+var stellarSurfaceIa = []stellarSurfaceEntry{
+	{35, 4}, {40, 5}, {50, 6}, {55, 7}, {60, 8}, {69, 9},
+}
+
+var stellarSurfaceIb = []stellarSurfaceEntry{
+	{20, 1}, {40, 2}, {44, 4}, {50, 5}, {55, 6}, {60, 7}, {69, 8},
+}
+
+var stellarSurfaceII = []stellarSurfaceEntry{
+	{35, 0}, {44, 1}, {50, 2}, {55, 4}, {60, 5}, {65, 6}, {69, 7},
+}
+
+var stellarSurfaceIII = []stellarSurfaceEntry{
+	{50, 0}, {55, 1}, {60, 2}, {65, 5}, {69, 6},
+}
+
+// precludedOrbitCeiling returns the highest orbit number a star of
+// SpectralType t, SpectralDecimal decimal, and LuminosityClass
+// luminosityClass physically engulfs with its own photosphere ("Book 3
+// p.21: Some stars are so large that they engulf some of the orbits in
+// the system"), and whether any preclusion applies at all. ok is false
+// for every luminosity class besides Ia/Ib/II/III — Book 3's Stellar
+// Surface table has no column for IV/V/VI/D, since main-sequence and
+// smaller stars are never physically large enough to reach even orbit 0.
+func precludedOrbitCeiling(t SpectralType, decimal int, luminosityClass string) (int, bool) {
+	var table []stellarSurfaceEntry
+
+	switch luminosityClass {
+	case "Ia":
+		table = stellarSurfaceIa
+	case "Ib":
+		table = stellarSurfaceIb
+	case "II":
+		table = stellarSurfaceII
+	case "III":
+		table = stellarSurfaceIII
+	default:
+		return 0, false
+	}
+
+	ordinal := spectralOrdinal(t, decimal)
+
+	for _, entry := range table {
+		if ordinal <= entry.UpperOrdinal {
+			return entry.Orbit, true
+		}
+	}
+
+	// Unreachable given every populated column's last row already covers
+	// ordinal 69, the maximum possible (M9) — defensive, not a real case.
+	return 0, false
+}

@@ -236,13 +236,14 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	orbitNumber = max(orbitNumber, 0)
 
 	// The computed number can independently coincide with a Close/Near/Far
-	// star's own orbit (both are computed separately, with nothing ruling
-	// out a match) — nudge via the same collision handling placeInOrbit
-	// gives every other placement. If Close/Near/Far stars have somehow
-	// occupied every orbit 0-20 (practically impossible — at most 3 of
-	// them), keep the original number rather than leave the mainworld
-	// unplaced.
-	if n, ok := placeInOrbit(orbits, starHost{hzOrbit: hzOrbit, maxOrbit: primaryMaxOrbit}, orbitNumber); ok {
+	// star's own orbit, or fall inside the Primary's own photosphere
+	// (both are computed separately, with nothing ruling out a match) —
+	// nudge via the same collision/preclusion handling placeInOrbit gives
+	// every other placement. If nothing in range is free (practically
+	// impossible), keep the original number rather than leave the
+	// mainworld unplaced.
+	primaryHost := starHost{hzOrbit: hzOrbit, minOrbit: precludedOrbitHost(primary), maxOrbit: primaryMaxOrbit}
+	if n, ok := placeInOrbit(orbits, primaryHost, orbitNumber); ok {
 		orbitNumber = n
 	}
 
@@ -270,15 +271,29 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 const primaryMaxOrbit = 20
 
 // starHost is one candidate star a non-mainworld body can be placed
-// around: its own HabitableZoneOrbit and the highest orbit number it can
-// host. Close/Near/Far stars "may fill orbits around them to their own
-// Orbit minus 3" (Book 3 p.21) — maxOrbit can come out negative for a
+// around: its own HabitableZoneOrbit, the lowest orbit number it can host
+// (minOrbit — see precludedOrbitHost), and the highest (maxOrbit).
+// Close/Near/Far stars "may fill orbits around them to their own Orbit
+// minus 3" (Book 3 p.21) — maxOrbit can come out negative for a
 // Close/Near/Far star in a low orbit itself ("A Close Star in Orbit 2 can
 // have no Planet Orbits"), which placeInOrbit's range check handles by
 // simply never finding a free slot.
 type starHost struct {
 	hzOrbit  int
+	minOrbit int
 	maxOrbit int
+}
+
+// precludedOrbitHost returns minOrbit for star: one past whatever orbit
+// its own photosphere engulfs (Book 3 p.21's "Precluded Orbits" —
+// precludedOrbitCeiling), or 0 if star's luminosity class never precludes
+// any orbit at all.
+func precludedOrbitHost(star Star) int {
+	if ceiling, ok := precludedOrbitCeiling(star.SpectralType, star.SpectralDecimal, star.LuminosityClass); ok {
+		return ceiling + 1
+	}
+
+	return 0
 }
 
 // availableHosts returns every star in orbits as a placement candidate,
@@ -297,7 +312,11 @@ func availableHosts(orbits []Orbit) []starHost {
 			maxOrbit = orbits[i].Number - 3
 		}
 
-		hosts = append(hosts, starHost{hzOrbit: orbits[i].Star.HabitableZoneOrbit, maxOrbit: maxOrbit})
+		hosts = append(hosts, starHost{
+			hzOrbit:  orbits[i].Star.HabitableZoneOrbit,
+			minOrbit: precludedOrbitHost(*orbits[i].Star),
+			maxOrbit: maxOrbit,
+		})
 	}
 
 	return hosts
@@ -316,22 +335,21 @@ func orbitOccupied(orbits []Orbit, number int) bool {
 	return false
 }
 
-// placeInOrbit finds the free orbit within [0, host.maxOrbit] closest to
-// candidate, per P2's own note ("If an orbit is duplicated or precluded,
-// adjust to an adjacent or the closest possible orbit") — scanning the
-// whole range rather than only forward from candidate, since a free
-// orbit behind candidate is still "the closest possible" if nothing
-// closer exists ahead of it. ok is false if no free slot exists anywhere
-// in range — the caller skips this body rather than force an invalid
-// placement. "Precluded" here means only "already occupied": this
-// doesn't implement the Stellar Surface table (oversized stars
-// physically precluding some orbits), deliberately deferred — see the
-// phase 2a plan. host.maxOrbit staying small (at most 20) keeps this
-// full-range scan cheap.
+// placeInOrbit finds the free orbit within [host.minOrbit, host.maxOrbit]
+// closest to candidate, per P2's own note ("If an orbit is duplicated or
+// precluded, adjust to an adjacent or the closest possible orbit") —
+// scanning the whole range rather than only forward from candidate,
+// since a free orbit behind candidate is still "the closest possible" if
+// nothing closer exists ahead of it. Both senses of "precluded" apply:
+// already occupied (orbitOccupied), or physically inside host's own
+// photosphere (host.minOrbit, from precludedOrbitHost). ok is false if
+// no free slot exists anywhere in range — the caller skips this body
+// rather than force an invalid placement. host.maxOrbit staying small (at
+// most 20) keeps this full-range scan cheap.
 func placeInOrbit(orbits []Orbit, host starHost, candidate int) (int, bool) {
 	best, found, bestDist := 0, false, 0
 
-	for n := 0; n <= host.maxOrbit; n++ {
+	for n := host.minOrbit; n <= host.maxOrbit; n++ {
 		if orbitOccupied(orbits, n) {
 			continue
 		}

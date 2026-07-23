@@ -183,6 +183,64 @@ func TestGenerateSystemInvariants(t *testing.T) {
 		}
 
 		assertNoOrphanedSatellites(t, sys)
+		assertNoPrecludedOrbitViolations(t, sys)
+	}
+}
+
+// assertNoPrecludedOrbitViolations fails t if any non-Star, non-Satellite
+// entry sits at or below its host star's own precluded-orbit ceiling
+// (precludedOrbitHost) — the floor placeInOrbit's minOrbit exists to
+// enforce.
+func assertNoPrecludedOrbitViolations(t *testing.T, sys StarSystem) {
+	t.Helper()
+
+	minOrbitByHZ := map[int]int{}
+
+	for _, star := range sys.Stars() {
+		minOrbitByHZ[star.HabitableZoneOrbit] = precludedOrbitHost(*star)
+	}
+
+	for _, o := range sys.Orbits {
+		if o.Satellite || o.Star != nil || (o.World == nil && o.GasGiant == nil) {
+			continue
+		}
+
+		if minOrbit, ok := minOrbitByHZ[o.HostHZOrbit]; ok && o.Number < minOrbit {
+			t.Fatalf(
+				"orbit %d (hostHZ=%d) is below its host's precluded-orbit floor %d",
+				o.Number,
+				o.HostHZOrbit,
+				minOrbit,
+			)
+		}
+	}
+}
+
+// TestGenerateSystemAvoidsPrecludedOrbitsForGiantPrimary pins a real
+// generated case with a giant Primary (seed 21: A1 II — Book 3 p.20's
+// Stellar Surface table precludes orbit 0 for this combination), rather
+// than only the synthetic table tests in system_tables_precluded_test.go.
+func TestGenerateSystemAvoidsPrecludedOrbitsForGiantPrimary(t *testing.T) {
+	t.Parallel()
+
+	r := dice.RollerFromSeed(21)
+	mw := Generate(r)
+	sys := GenerateSystem(r, mw)
+
+	primary := sys.Stars()[0]
+	if primary.SpectralType != SpectralA || primary.SpectralDecimal != 1 || primary.LuminosityClass != "II" {
+		t.Fatalf("seed 21's Primary changed (%s%d %s) — this test needs re-pinning to a fresh giant-primary seed",
+			string(primary.SpectralType), primary.SpectralDecimal, primary.LuminosityClass)
+	}
+
+	for _, o := range sys.Orbits {
+		if o.Satellite || o.Star != nil || o.HostHZOrbit != primary.HabitableZoneOrbit {
+			continue
+		}
+
+		if o.Number < 1 {
+			t.Fatalf("orbit %d hosted by the Primary (A1 II, precluded ceiling 0), want >= 1", o.Number)
+		}
 	}
 }
 
