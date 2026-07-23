@@ -55,20 +55,51 @@ tasks:
 
   demo:
     desc: Build and run the server, exercise it via the client, then stop the server
+    vars:
+      DEMO_BIN:
+        sh: mktemp -u /tmp/traveller-server-demo.XXXXXX
     cmds:
-      - go build -o /tmp/traveller-server ./cmd/server
-      - cmd: /tmp/traveller-server &
+      - go build -o {{.DEMO_BIN}} ./cmd/server
       - defer:
           task: demo:stop
-      - sleep 1
+          vars:
+            DEMO_BIN: "{{.DEMO_BIN}}"
+      # Two problems, both confirmed by direct testing, not just theory:
+      # (1) go-task's own embedded shell interpreter's &/$!/kill -0
+      # handling is unreliable — it reported a real, still-starting server
+      # process as already dead. Run under a real /bin/sh instead. (2)
+      # kill -0 alone isn't enough even under a real shell: if port 8080 is
+      # already held by another process, curl can succeed against THAT
+      # process before our own server's bind failure has had time to kill
+      # it. Checking lsof's port owner against our own PID confirms our
+      # server specifically is the one answering, not just that something is.
+      - |
+        sh -c '
+        {{.DEMO_BIN}} &
+        SERVER_PID=$!
+        for i in $(seq 1 20); do
+          sleep 0.25
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "demo: server exited before becoming ready (bind failure?)" >&2
+            exit 1
+          fi
+          if [ "$(lsof -ti :8080)" = "$SERVER_PID" ] && curl -sf http://localhost:8080/healthz >/dev/null; then
+            exit 0
+          fi
+        done
+        echo "demo: server did not become ready within 5s, or port 8080 is held by another process" >&2
+        exit 1
+        '
       - go run ./cmd/client healthz
       - go run ./cmd/client world
 
   demo:stop:
     internal: true
+    requires:
+      vars: [DEMO_BIN]
     cmds:
-      - pkill -f /tmp/traveller-server || true
-      - rm -f /tmp/traveller-server
+      - pkill -f "{{.DEMO_BIN}}" || true
+      - rm -f {{.DEMO_BIN}}
 
   text:
     desc: Convert reference/*.pdf to reference/*.txt via pdftotext -layout
