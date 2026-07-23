@@ -20,3 +20,14 @@ type World struct {
 	Worlds     int
 	Notes      string
 }
+
+// stringsOf converts a slice of any string-backed enum type (TradeCode,
+// Base, ...) to plain strings, e.g. for joining into display text.
+func stringsOf[T ~string](vals []T) []string {
+	s := make([]string, len(vals))
+	for i, v := range vals {
+		s[i] = string(v)
+	}
+
+	return s
+}

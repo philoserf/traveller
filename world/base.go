@@ -21,10 +21,5 @@ const (
 // BaseStrings converts bases to their plain string form, e.g. for joining
 // into display text.
 func BaseStrings(bases []Base) []string {
-	s := make([]string, len(bases))
-	for i, b := range bases {
-		s[i] = string(b)
-	}
-
-	return s
+	return stringsOf(bases)
 }
