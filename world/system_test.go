@@ -65,3 +65,39 @@ func TestSystemBodiesSortsStarsCloseToFar(t *testing.T) {
 		}
 	}
 }
+
+// TestSystemBodiesSortsSatellitesCloseToFar builds a Gas Giant at orbit 3
+// with its two satellites appended out of order (Far, then Close) — the
+// order generateSatellitesForBody's own per-satellite Close/Far roll can
+// produce — and confirms SystemBodies returns satellitesOf[3] sorted
+// Close before Far, the same close-to-far ordering applied to star groups.
+func TestSystemBodiesSortsSatellitesCloseToFar(t *testing.T) {
+	t.Parallel()
+
+	primary := world.Star{Role: world.Primary}
+	gg := world.GasGiant{Size: 'S', Bracket: "LGG"}
+	farSat := world.World{}
+	closeSat := world.World{}
+
+	sys := world.StarSystem{
+		Orbits: []world.Orbit{
+			{Number: -1, Star: &primary},
+			{Number: 3, HostRole: world.Primary, GasGiant: &gg},
+			{Number: 3, Satellite: true, Close: false, World: &farSat},
+			{Number: 3, Satellite: true, Close: true, World: &closeSat},
+		},
+		MainworldOrbit: -1,
+	}
+
+	_, _, satellitesOf := sys.SystemBodies()
+
+	sats := satellitesOf[3]
+	if len(sats) != 2 {
+		t.Fatalf("satellitesOf[3] has %d entries, want 2", len(sats))
+	}
+
+	if !sats[0].Close || sats[1].Close {
+		t.Errorf("satellitesOf[3] Close values = [%v, %v], want [true, false] (Close before Far)",
+			sats[0].Close, sats[1].Close)
+	}
+}

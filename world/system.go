@@ -168,9 +168,10 @@ func (s StarSystem) Worlds() []*World {
 // slot, for the Primary) into: bodiesByRole, every top-level
 // (non-Satellite) Gas Giant/World grouped by the StellarRole that hosts
 // it (Orbit.HostRole) and sorted by orbit Number within each group; and
-// satellitesOf, grouped by the Number they share with their parent. The
-// single source both render.System and the JSON API's toSystemResponse
-// group by, so the two stay consistent.
+// satellitesOf, grouped by the Number they share with their parent and
+// sorted Close before Far — the same close-to-far ordering applied one
+// level up. The single source both render.System and the JSON API's
+// toSystemResponse group by, so the two stay consistent.
 func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]Orbit) {
 	var starOrbits []Orbit
 
@@ -196,6 +197,13 @@ func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]
 		sort.Slice(
 			bodiesByRole[role],
 			func(i, j int) bool { return bodiesByRole[role][i].Number < bodiesByRole[role][j].Number },
+		)
+	}
+
+	for number := range satellitesOf {
+		sort.SliceStable(
+			satellitesOf[number],
+			func(i, j int) bool { return satellitesOf[number][i].Close && !satellitesOf[number][j].Close },
 		)
 	}
 
