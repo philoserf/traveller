@@ -28,6 +28,7 @@ func NewMux() http.Handler {
 	mux.HandleFunc("GET /healthz", handleHealthz)
 	mux.HandleFunc("GET /worlds/random", handleWorldsRandom)
 	mux.HandleFunc("GET /systems/random", handleSystemsRandom)
+	mux.HandleFunc("GET /sectors/random", handleSectorsRandom)
 
 	return jsonErrors(mux)
 }
@@ -36,8 +37,12 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-func writeJSONError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, errorResponse{Error: msg})
+// writeJSONError always responds 400 — every /random-style handler's own
+// validation failure (bad seed, unrecognized density, malformed
+// subsector) is a client input error, and nothing in this package has
+// ever needed a different status here.
+func writeJSONError(w http.ResponseWriter, msg string) {
+	writeJSON(w, http.StatusBadRequest, errorResponse{Error: msg})
 }
 
 // parseSeed parses the "seed" query parameter from r. present is false if

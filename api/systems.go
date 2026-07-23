@@ -111,7 +111,7 @@ type SystemResponse struct {
 func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 	seed, present, err := parseSeed(r)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "seed must be an integer")
+		writeJSONError(w, "seed must be an integer")
 
 		return
 	}

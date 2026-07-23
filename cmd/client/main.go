@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -19,7 +20,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: client <healthz|world|system> [flags]")
+		fmt.Fprintln(os.Stderr, "usage: client <healthz|world|system|sector> [flags]")
 		os.Exit(1)
 	}
 
@@ -32,6 +33,8 @@ func main() {
 		err = runWorld(os.Args[2:])
 	case "system":
 		err = runSystem(os.Args[2:])
+	case "sector":
+		err = runSector(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "client: unknown command %q\n", os.Args[1])
 		os.Exit(1)
@@ -123,6 +126,15 @@ func runSystem(args []string) error {
 		return fmt.Errorf("client: decoding response: %w", err)
 	}
 
+	printSystem(sys)
+
+	return nil
+}
+
+// printSystem prints one system's Mainworld orbit/UWP/extensions fields
+// followed by every star group's bodies and satellites — shared by
+// runSystem (one system) and runSector (one per populated hex).
+func printSystem(sys api.SystemResponse) {
 	mw := sys.Mainworld
 	if mw.Satellite {
 		orbitKind := "Far"
@@ -156,6 +168,69 @@ func runSystem(args []string) error {
 	}
 
 	fmt.Printf("(seed: %d)\n", sys.Seed)
+}
+
+func runSector(args []string) error {
+	fs := flag.NewFlagSet("sector", flag.ExitOnError)
+	addr := fs.String("server", "http://localhost:8080", "traveller API server address")
+	seed := fs.Int64("seed", 0, "seed to request (0 = server picks)")
+	name := fs.String("name", "", "sector name")
+	density := fs.String("density", "", "System Presence density (default: Standard)")
+	subsector := fs.String("subsector", "", "single letter A-P — limit output to that 80-hex block only")
+
+	if err := fs.Parse(args); err != nil {
+		return fmt.Errorf("client: parsing flags: %w", err)
+	}
+
+	url := *addr + "/sectors/random"
+
+	query := make([]string, 0, 4)
+	if *seed != 0 {
+		query = append(query, "seed="+strconv.FormatInt(*seed, 10))
+	}
+
+	if *name != "" {
+		query = append(query, "name="+neturl.QueryEscape(*name))
+	}
+
+	if *density != "" {
+		query = append(query, "density="+neturl.QueryEscape(*density))
+	}
+
+	if *subsector != "" {
+		query = append(query, "subsector="+neturl.QueryEscape(*subsector))
+	}
+
+	if len(query) > 0 {
+		url += "?" + strings.Join(query, "&")
+	}
+
+	status, statusCode, body, err := get(url)
+	if err != nil {
+		return err
+	}
+
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("client: server returned %s: %s", status, body)
+	}
+
+	var sec api.SectorResponse
+	if err := json.Unmarshal(body, &sec); err != nil {
+		return fmt.Errorf("client: decoding response: %w", err)
+	}
+
+	fmt.Printf("%s Sector\n", sec.Name)
+
+	for _, hex := range sec.Hexes {
+		if hex.System == nil {
+			fmt.Printf("Hex %s: empty\n", hex.Location)
+
+			continue
+		}
+
+		fmt.Printf("Hex %s\n", hex.Location)
+		printSystem(*hex.System)
+	}
 
 	return nil
 }
