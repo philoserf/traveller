@@ -41,11 +41,21 @@ var nonZeroTechLevels = func() []ehex.Value {
 //
 // Deliberately excluded, and not represented here:
 //   - Structural, not a UWP-digit predicate: Satellite (Sa), Locked (Lk).
-//   - Referee-assigned in the rulebook's own text: MilitaryRule (Mr),
-//     SubsectorCapital (Cp), SectorCapital (Cs), Capital (Cx), Colony
-//     (Cy), DataRepository (Ab), AncientSite (An).
+//   - Referee-assigned in the rulebook's own text, with no generation
+//     mechanic at all: MilitaryRule (Mr), Capital (Cx), Colony (Cy),
+//     DataRepository (Ab), AncientSite (An).
 //   - Explicitly non-mainworld ("Not MW") in the rulebook: Mining (Mi),
 //     PenalColony (Pe).
+//
+// SubsectorCapital (Cp) and SectorCapital (Cs) are absent for a
+// different reason: Book 3 states they ARE mechanically determined
+// ("the most Important world in a subsector/sector... established by
+// Importance," ties broken by most Trade Classifications) — just not
+// from a single world's UWP in isolation, the way every row in this
+// table is. Determining them needs Importance compared across every
+// hex in a generated Sector, which only exists once sector.GenerateSector
+// has built one — see sector.assignCapitals, called from GenerateSector
+// itself once every hex is generated.
 //
 // Frozen (Fr), Hot (Ho), Cold (Co), Tropic (Tr), Tundra (Tu),
 // TwilightZone (Tz), and Farming (Fa) are absent for the same reason as

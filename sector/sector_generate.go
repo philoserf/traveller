@@ -90,6 +90,12 @@ func rollSystemPresent(r *dice.Roller, density Density) bool {
 // both questions (an actual PBG.GasGiants count, and an actual Size-0
 // Asteroid-Belt mainworld when the dice land there) without a separate
 // roll.
+//
+// Once every hex is generated, assignCapitals marks each subsector's and
+// the whole sector's most-Important mainworld with SubsectorCapital/
+// SectorCapital — the only part of a generated hex that isn't
+// independently reproducible from HexSeed alone, since it depends on
+// comparing Importance across hexes outside the one being reproduced.
 func GenerateSector(seed int64, name string, density Density) Sector {
 	hexes := make([]Hex, 0, sectorWidth*sectorHeight)
 
@@ -118,5 +124,8 @@ func GenerateSector(seed int64, name string, density Density) Sector {
 		}
 	}
 
-	return Sector{Name: name, Hexes: hexes}
+	sec := Sector{Name: name, Hexes: hexes}
+	assignCapitals(sec)
+
+	return sec
 }
