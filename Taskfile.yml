@@ -53,6 +53,23 @@ tasks:
       - task: test
       - task: build
 
+  demo:
+    desc: Build and run the server, exercise it via the client, then stop the server
+    cmds:
+      - go build -o /tmp/traveller-server ./cmd/server
+      - cmd: /tmp/traveller-server &
+      - defer:
+          task: demo:stop
+      - sleep 1
+      - go run ./cmd/client healthz
+      - go run ./cmd/client world
+
+  demo:stop:
+    internal: true
+    cmds:
+      - pkill -f /tmp/traveller-server || true
+      - rm -f /tmp/traveller-server
+
   text:
     desc: Convert reference/*.pdf to reference/*.txt via pdftotext -layout
     preconditions:
