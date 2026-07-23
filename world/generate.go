@@ -251,12 +251,11 @@ func scoutBaseTarget(s Starport) (int, bool) {
 }
 
 // rollBases rolls Naval and Scout base presence, independent 2D checks
-// gated by Starport grade. The rulebook's own worked example (Regina,
-// Starport A, rolling 5 for Naval and 3 for Scout) reports both as
-// present despite the printed table requiring 6+ and 4+ respectively — an
-// inconsistency in the source, not a transcription error here. This
-// implementation trusts the table (matching known Naval/Scout base
-// mechanics across Traveller editions) over the example.
+// gated by Starport grade. Book 3 p.28's table header is "Base Present If
+// 2D=" with entries like "6-"/"4-" — the trailing dash is Traveller's
+// standard "or less" notation, confirmed by the same page's Regina worked
+// example (Starport A, Naval present on a roll of 5, Scout present on a
+// roll of 3 — both only possible under "or less").
 //
 // Naval Depot and Way Station are excluded: both are Starport-A-only
 // density/frequency placements ("1 per 1000 worlds", "1 per 50 parsecs on
@@ -266,11 +265,11 @@ func scoutBaseTarget(s Starport) (int, bool) {
 func rollBases(r *dice.Roller, starport Starport) []Base {
 	var bases []Base
 
-	if target, ok := navalBaseTarget(starport); ok && r.TwoD6() >= target {
+	if target, ok := navalBaseTarget(starport); ok && r.TwoD6() <= target {
 		bases = append(bases, NavalBase)
 	}
 
-	if target, ok := scoutBaseTarget(starport); ok && r.TwoD6() >= target {
+	if target, ok := scoutBaseTarget(starport); ok && r.TwoD6() <= target {
 		bases = append(bases, ScoutBase)
 	}
 
