@@ -59,3 +59,14 @@ const (
 	DataRepository TradeCode = "Ab"
 	AncientSite    TradeCode = "An"
 )
+
+// TradeCodeStrings converts codes to their plain string form, e.g. for
+// joining into display text.
+func TradeCodeStrings(codes []TradeCode) []string {
+	s := make([]string, len(codes))
+	for i, c := range codes {
+		s[i] = string(c)
+	}
+
+	return s
+}

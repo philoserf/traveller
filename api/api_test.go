@@ -125,3 +125,24 @@ func TestWorldsRandomBadSeed(t *testing.T) {
 		t.Error("error field is empty, want a message")
 	}
 }
+
+func TestNotFound(t *testing.T) {
+	t.Parallel()
+
+	rec := doRequest(t, api.NewMux(), "/no/such/route")
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+
+	var body struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v (body should be JSON, not the stdlib mux's plain-text 404)", err)
+	}
+
+	if body.Error == "" {
+		t.Error("error field is empty, want a message")
+	}
+}

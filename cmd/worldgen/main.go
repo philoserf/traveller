@@ -20,14 +20,9 @@ func main() {
 	s := dice.ResolveSeed(*seed)
 	w := world.Generate(dice.RollerFromSeed(s))
 
-	codes := make([]string, len(w.TradeCodes))
-	for i, c := range w.TradeCodes {
-		codes[i] = string(c)
-	}
-
 	// This is where a future render.World(w) (markdown) replaces the
 	// Printf block below.
 	fmt.Printf("UWP: %s\n", w.UWP)
-	fmt.Printf("Trade Codes: %s\n", strings.Join(codes, " "))
+	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(w.TradeCodes), " "))
 	fmt.Printf("(seed: %d)\n", s)
 }

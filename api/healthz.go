@@ -7,5 +7,5 @@ type healthzResponse struct {
 }
 
 func handleHealthz(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, healthzResponse{Status: "ok"})
+	writeJSON(w, http.StatusOK, healthzResponse{Status: "ok"})
 }

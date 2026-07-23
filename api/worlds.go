@@ -35,7 +35,7 @@ func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
 	resolved := dice.ResolveSeed(seed)
 	generated := world.Generate(dice.RollerFromSeed(resolved))
 
-	writeJSON(w, WorldResponse{
+	writeJSON(w, http.StatusOK, WorldResponse{
 		Seed:       resolved,
 		UWP:        generated.UWP.String(),
 		TradeCodes: generated.TradeCodes,
