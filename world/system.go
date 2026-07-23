@@ -161,13 +161,16 @@ func (s StarSystem) Worlds() []*World {
 }
 
 // SystemBodies groups every Orbit in s besides the mainworld's own and
-// every Star (starOrbits collects those separately, in the order
-// GenerateSystem placed them — Primary first, then Close/Near/Far) into:
-// bodiesByRole, every top-level (non-Satellite) Gas Giant/World grouped
-// by the StellarRole that hosts it (Orbit.HostRole) and sorted by orbit
-// Number within each group; and satellitesOf, grouped by the Number they
-// share with their parent. The single source both render.System and the
-// JSON API's toSystemResponse group by, so the two stay consistent.
+// every Star (starOrbits collects those separately, sorted by
+// StellarRole — Primary, then Close/Near/Far, the same close-to-far
+// ordering the role constants themselves are declared in; Orbit.Number
+// can't be the sort key here since it's a sentinel, not a real orbit
+// slot, for the Primary) into: bodiesByRole, every top-level
+// (non-Satellite) Gas Giant/World grouped by the StellarRole that hosts
+// it (Orbit.HostRole) and sorted by orbit Number within each group; and
+// satellitesOf, grouped by the Number they share with their parent. The
+// single source both render.System and the JSON API's toSystemResponse
+// group by, so the two stay consistent.
 func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]Orbit) {
 	var starOrbits []Orbit
 
@@ -186,6 +189,8 @@ func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]
 			bodiesByRole[o.HostRole] = append(bodiesByRole[o.HostRole], o)
 		}
 	}
+
+	sort.Slice(starOrbits, func(i, j int) bool { return starOrbits[i].Star.Role < starOrbits[j].Star.Role })
 
 	for role := range bodiesByRole {
 		sort.Slice(
