@@ -77,7 +77,7 @@ func TestSystemsRandomSatelliteShape(t *testing.T) {
 		t.Errorf("Mainworld.AU = %v for a Satellite orbit, want 0 (omitted)", got.Mainworld.AU)
 	}
 
-	// Seed 5's mainworld is a Close satellite (world.TestGenerateSystemPreservesMainworldSatelliteCloseFar
+	// Seed 5's mainworld is a Close satellite (system.TestGenerateSystemPreservesMainworldSatelliteCloseFar
 	// pins the same seed for the same reason on the domain-model side).
 	if !got.Mainworld.Close {
 		t.Error(

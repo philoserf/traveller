@@ -11,7 +11,7 @@ import (
 // System renders s as a Markdown system sheet: the mainworld's own orbit
 // placement and UWP/TradeCodes/PBG/extensions, then every star grouped
 // with the bodies it hosts (Gas Giants, Belts, secondary worlds — see
-// world.GenerateSystem for what's placed and why) and their satellites,
+// system.GenerateSystem for what's placed and why) and their satellites,
 // sorted by orbit number within each star's group. Doesn't call World for
 // the mainworld section — World's own "#"/"##" headers don't compose
 // cleanly nested inside a larger document, so this renders the same

@@ -82,18 +82,16 @@ func rollAndPlaceStar(r *dice.Roller, primaryFlux int, role StellarRole, orbitNu
 
 // GenerateSystem builds a StarSystem around an already-generated
 // mainworld (from Generate): rolls the Primary star (and, independently,
-// whether a Close/Near/Far star and any Companions exist), computes the
-// Primary's HZ orbit, places the mainworld (as a Planet, as a Satellite
+// whether a Close/Near/Far star and any Companions exist), computes each
+// star's HZ orbit and precluded-orbit ceiling (for oversized stars —
+// precludedOrbitHost), places the mainworld (as a Planet, as a Satellite
 // of a freshly rolled Gas Giant, or — if the mainworld is itself an
-// Asteroid Belt — via the Belt placement roll instead of HZ+Var), and
-// merges the newly-derivable orbit-dependent trade codes
-// (DeriveOrbitTradeCodes) into the mainworld's TradeCodes.
-//
-// Only the Primary hosts the mainworld. Placing every other body in the
-// system (additional gas giants/belts/secondary worlds beyond what
-// mainworld placement itself needs, satellites for any of them, rings,
-// and precluded-orbit adjustment for oversized stars) is deliberately out
-// of scope — see the sysgen plan/issue #3 for why.
+// Asteroid Belt — via the Belt placement roll instead of HZ+Var), then
+// rolls and places every other Gas Giant, Belt, and secondary world
+// across all stars (placeGasGiants/placeBelts/placeOtherWorlds), each
+// with its own satellites and Rings, and merges the newly-derivable
+// orbit-dependent trade codes (DeriveOrbitTradeCodes) into every placed
+// world's TradeCodes.
 func GenerateSystem(r *dice.Roller, mainworld world.World) StarSystem {
 	primaryFlux := r.Flux()
 	primary := rollStar(r, primaryFlux, true)
