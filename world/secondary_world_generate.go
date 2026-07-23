@@ -16,45 +16,45 @@ func capPopulation(rolled, maxPopulation ehex.Value) ehex.Value {
 }
 
 // dmPopulation rolls Population via the standard 2D6-2 formula plus dm,
-// then caps at max. The mainworld's own rollPopulation has a reroll-on-10
+// then caps at max. The mainworld's own RollPopulation has a reroll-on-10
 // exception (extending into a very-populous band) that this doesn't
 // reproduce — a secondary-world population is far less consequential
 // than the mainworld's, and that reroll rule reads as mainworld-specific
 // flavor in the source, not a general Population-rolling rule.
 func dmPopulation(r *dice.Roller, dm int, maxPopulation ehex.Value) ehex.Value {
-	return capPopulation(clampEhex(r.TwoD6()-2+dm, 0, int(ehex.Max)), maxPopulation)
+	return capPopulation(ClampEhex(r.TwoD6()-2+dm, 0, int(ehex.Max)), maxPopulation)
 }
 
 // secondaryPopulation rolls Population for a secondary world: the
-// standard rollPopulation (including its reroll-on-10 exception) when
+// standard RollPopulation (including its reroll-on-10 exception) when
 // dm==0, since that matches a category formula with no DM at all
 // ("roll normally"); dmPopulation (no reroll exception — see its own doc
 // comment) otherwise.
 func secondaryPopulation(r *dice.Roller, dm int, maxPopulation ehex.Value) ehex.Value {
 	if dm == 0 {
-		return capPopulation(rollPopulation(r), maxPopulation)
+		return capPopulation(RollPopulation(r), maxPopulation)
 	}
 
 	return dmPopulation(r, dm, maxPopulation)
 }
 
-// dmAtmosphere rolls Atmosphere via the standard rollAtmosphere formula
+// dmAtmosphere rolls Atmosphere via the standard RollAtmosphere formula
 // plus an additional dm, clamped to 0..15 (F). dm=0 reproduces
-// rollAtmosphere's own result exactly.
+// RollAtmosphere's own result exactly.
 func dmAtmosphere(r *dice.Roller, size ehex.Value, dm int) ehex.Value {
-	return clampEhex(int(rollAtmosphere(r, size))+dm, 0, 15)
+	return ClampEhex(int(RollAtmosphere(r, size))+dm, 0, 15)
 }
 
-// dmHydrographics rolls Hydrographics via the standard rollHydrographics
+// dmHydrographics rolls Hydrographics via the standard RollHydrographics
 // formula plus an additional dm, clamped to 0..10 (A). dm=0 reproduces
-// rollHydrographics's own result exactly.
+// RollHydrographics's own result exactly.
 func dmHydrographics(r *dice.Roller, size, atm ehex.Value, dm int) ehex.Value {
-	return clampEhex(int(rollHydrographics(r, size, atm))+dm, 0, 10)
+	return ClampEhex(int(RollHydrographics(r, size, atm))+dm, 0, 10)
 }
 
-func rollBigWorldSize(r *dice.Roller) ehex.Value   { return clampEhex(r.TwoD6()+7, 0, int(ehex.Max)) }
-func rollWorldletSize(r *dice.Roller) ehex.Value   { return clampEhex(r.D6()-3, 0, int(ehex.Max)) }
-func rollStormWorldSize(r *dice.Roller) ehex.Value { return clampEhex(r.TwoD6(), 0, int(ehex.Max)) }
+func rollBigWorldSize(r *dice.Roller) ehex.Value   { return ClampEhex(r.TwoD6()+7, 0, int(ehex.Max)) }
+func rollWorldletSize(r *dice.Roller) ehex.Value   { return ClampEhex(r.D6()-3, 0, int(ehex.Max)) }
+func rollStormWorldSize(r *dice.Roller) ehex.Value { return ClampEhex(r.TwoD6(), 0, int(ehex.Max)) }
 
 // rollSecondaryUWPBody rolls the StSAHPGL-T skeleton every "normal"
 // secondary-world category shares (Book 3 p.29): Starport through
@@ -73,14 +73,14 @@ func rollSecondaryUWPBody(
 ) UWP {
 	var u UWP
 
-	u.Starport = rollStarport(r)
+	u.Starport = RollStarport(r)
 	u.Size = sizeRoll(r)
 	u.Atmosphere = dmAtmosphere(r, u.Size, atmDM)
 	u.Hydrographics = dmHydrographics(r, u.Size, u.Atmosphere, hydDM)
 	u.Population = secondaryPopulation(r, popDM, maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
+	u.Government = RollGovernment(r, u.Population)
+	u.Law = RollLaw(r, u.Government)
+	u.TechLevel = RollTechLevel(r, u)
 
 	return u
 }
@@ -103,10 +103,10 @@ func generateBigWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
 func generateRadWorld(r *dice.Roller) UWP {
 	var u UWP
 
-	u.Starport = rollStarport(r)
-	u.Size = clampEhex(r.TwoD6(), 0, int(ehex.Max))
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
+	u.Starport = RollStarport(r)
+	u.Size = ClampEhex(r.TwoD6(), 0, int(ehex.Max))
+	u.Atmosphere = RollAtmosphere(r, u.Size)
+	u.Hydrographics = RollHydrographics(r, u.Size, u.Atmosphere)
 
 	return u
 }
@@ -122,7 +122,7 @@ func generateRadWorld(r *dice.Roller) UWP {
 func generateInferno(r *dice.Roller) UWP {
 	return UWP{
 		Starport: StarportNone,
-		Size:     clampEhex(6+r.D6(), 0, int(ehex.Max)),
+		Size:     ClampEhex(6+r.D6(), 0, int(ehex.Max)),
 	}
 }
 
@@ -157,11 +157,11 @@ func generateStormWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
 func generatePlanetoidWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
 	var u UWP
 
-	u.Starport = rollStarport(r)
-	u.Population = capPopulation(rollPopulation(r), maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
+	u.Starport = RollStarport(r)
+	u.Population = capPopulation(RollPopulation(r), maxPopulation)
+	u.Government = RollGovernment(r, u.Population)
+	u.Law = RollLaw(r, u.Government)
+	u.TechLevel = RollTechLevel(r, u)
 
 	return u
 }

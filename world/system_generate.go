@@ -229,14 +229,14 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	// Table 2C's own roll says this mainworld orbits one; when both are
 	// true, regenerate the mainworld as a BigWorld and place it as an
 	// ordinary planet instead of manufacturing a Gas Giant that would
-	// contradict PBG. Only the fields generateWithSize itself computes
+	// contradict PBG. Only the fields GenerateWithSize itself computes
 	// are overwritten — Name/Sector/Hex/Nobility/Allegiance/Worlds/Notes/
 	// Ring (left zero by Generate, but not necessarily by an arbitrary
 	// caller of GenerateSystem) are preserved rather than wholesale-
 	// replaced. An Asteroid Belt mainworld can never reach here — kind
 	// only gets set to a satellite kind in the non-belt branch above.
 	if kind != mainworldPlanet && mw.PBG.GasGiants == 0 {
-		bigWorld := generateWithSize(r, rollBigWorldSize)
+		bigWorld := GenerateWithSize(r, rollBigWorldSize)
 		mw.UWP = bigWorld.UWP
 		mw.TradeCodes = bigWorld.TradeCodes
 		mw.TravelZone = bigWorld.TravelZone

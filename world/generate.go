@@ -17,14 +17,14 @@ var lawCeiling = func() ehex.Value {
 	return v
 }()
 
-// clampEhex clamps v to [lo,hi] and converts it to ehex.Value. lo and hi
+// ClampEhex clamps v to [lo,hi] and converts it to ehex.Value. lo and hi
 // must themselves be valid ehex digits (0..ehex.Max) — the switch below is
 // what proves the conversion below never overflows uint8, though gosec
 // can't verify that itself (it doesn't reason about a callee's own bounds
 // checks, only literal patterns in the same function), hence the nolint.
 //
 //nolint:gosec // v is provably in [lo,hi] by the switch below; callers pass ehex-valid lo/hi
-func clampEhex(v, lo, hi int) ehex.Value {
+func ClampEhex(v, lo, hi int) ehex.Value {
 	switch {
 	case v < lo:
 		return ehex.Value(lo)
@@ -35,7 +35,8 @@ func clampEhex(v, lo, hi int) ehex.Value {
 	}
 }
 
-func rollStarport(r *dice.Roller) Starport {
+// RollStarport rolls a Starport quality code from 2D6.
+func RollStarport(r *dice.Roller) Starport {
 	switch v := r.TwoD6(); {
 	case v <= 4:
 		return StarportA
@@ -60,23 +61,23 @@ func rollSize(r *dice.Roller) ehex.Value {
 		v = r.D6() + 9
 	}
 
-	return clampEhex(v, 0, int(ehex.Max)) // mathematically 0-15 already; defensive
+	return ClampEhex(v, 0, int(ehex.Max)) // mathematically 0-15 already; defensive
 }
 
-// rollAtmosphere: Flux+Size, forced to 0 if Size=0, clamped to 0..15(F).
-func rollAtmosphere(r *dice.Roller, size ehex.Value) ehex.Value {
+// RollAtmosphere rolls Flux+Size, forced to 0 if Size=0, clamped to 0..15(F).
+func RollAtmosphere(r *dice.Roller, size ehex.Value) ehex.Value {
 	if size == 0 {
 		return 0
 	}
 
 	v := r.Flux() + int(size)
 
-	return clampEhex(v, 0, 15) // 15 = F
+	return ClampEhex(v, 0, 15) // 15 = F
 }
 
-// rollHydrographics: Flux+Atmosphere-4(if Atm out of 2..9), forced to 0 if
-// Size<2, clamped to 0..10(A).
-func rollHydrographics(r *dice.Roller, size, atm ehex.Value) ehex.Value {
+// RollHydrographics rolls Flux+Atmosphere-4(if Atm out of 2..9), forced to
+// 0 if Size<2, clamped to 0..10(A).
+func RollHydrographics(r *dice.Roller, size, atm ehex.Value) ehex.Value {
 	if size < 2 {
 		return 0
 	}
@@ -88,35 +89,35 @@ func rollHydrographics(r *dice.Roller, size, atm ehex.Value) ehex.Value {
 
 	v := r.Flux() + int(atm) + mod
 
-	return clampEhex(v, 0, 10) // 10 = A
+	return ClampEhex(v, 0, 10) // 10 = A
 }
 
-// rollPopulation: 2D6-2, independent of prior fields. A raw 10 rerolls as
-// 2D6+3 (range 5-15), extending into the very-populous band.
-func rollPopulation(r *dice.Roller) ehex.Value {
+// RollPopulation rolls 2D6-2, independent of prior fields. A raw 10
+// rerolls as 2D6+3 (range 5-15), extending into the very-populous band.
+func RollPopulation(r *dice.Roller) ehex.Value {
 	v := r.TwoD6() - 2
 	if v == 10 {
 		v = r.TwoD6() + 3
 	}
 
-	return clampEhex(v, 0, int(ehex.Max)) // mathematically 0-15 already; defensive
+	return ClampEhex(v, 0, int(ehex.Max)) // mathematically 0-15 already; defensive
 }
 
-// rollGovernment: Flux+Population, clamped to 0..15(F). The rulebook states
-// only the ceiling; the floor of 0 is a design choice (Government feeds
-// Law, which needs a sane input), not literal rulebook text.
-func rollGovernment(r *dice.Roller, pop ehex.Value) ehex.Value {
+// RollGovernment rolls Flux+Population, clamped to 0..15(F). The rulebook
+// states only the ceiling; the floor of 0 is a design choice (Government
+// feeds Law, which needs a sane input), not literal rulebook text.
+func RollGovernment(r *dice.Roller, pop ehex.Value) ehex.Value {
 	v := r.Flux() + int(pop)
 
-	return clampEhex(v, 0, 15) // 15 = F
+	return ClampEhex(v, 0, 15) // 15 = F
 }
 
-// rollLaw: Flux+Government, clamped to 0..lawCeiling(J). As with
+// RollLaw rolls Flux+Government, clamped to 0..lawCeiling(J). As with
 // Government, the floor of 0 is a design choice, not literal rulebook text.
-func rollLaw(r *dice.Roller, gov ehex.Value) ehex.Value {
+func RollLaw(r *dice.Roller, gov ehex.Value) ehex.Value {
 	v := r.Flux() + int(gov)
 
-	return clampEhex(v, 0, int(lawCeiling))
+	return ClampEhex(v, 0, int(lawCeiling))
 }
 
 func starportTechLevelMod(s Starport) int {
@@ -205,7 +206,7 @@ func techLevelModifier(u UWP) int {
 		governmentTechLevelMod(u.Government)
 }
 
-// rollTechLevel: 1D6 + techLevelModifier, rolled last since the modifier
+// RollTechLevel rolls 1D6 + techLevelModifier, rolled last since the modifier
 // depends on every other field. The rulebook states no floor or ceiling,
 // but the modifier table's worst case (Starport X, Government D, minimum
 // roll) computes to -5 — converting that directly to ehex.Value (uint8)
@@ -213,10 +214,10 @@ func techLevelModifier(u UWP) int {
 // correctness guard, not a rules interpretation. The ceiling at ehex.Max is
 // defensive insurance against future modifier-table changes; the realistic
 // max (~22) never reaches it today.
-func rollTechLevel(r *dice.Roller, u UWP) ehex.Value {
+func RollTechLevel(r *dice.Roller, u UWP) ehex.Value {
 	v := r.D6() + techLevelModifier(u)
 
-	return clampEhex(v, 0, int(ehex.Max))
+	return ClampEhex(v, 0, int(ehex.Max))
 }
 
 // navalBaseTarget returns the 2D target number for a Naval Base at the
@@ -286,13 +287,13 @@ func rollBases(r *dice.Roller, starport Starport) []Base {
 func rollPBG(r *dice.Roller, population ehex.Value) PBG {
 	var populationDigit ehex.Value
 	if population > 0 {
-		populationDigit = clampEhex(r.Uniform(9), 0, 9)
+		populationDigit = ClampEhex(r.Uniform(9), 0, 9)
 	}
 
 	return PBG{
 		PopulationDigit: populationDigit,
-		Belts:           clampEhex(r.D6()-3, 0, 3),
-		GasGiants:       clampEhex(r.TwoD6()/2-2, 0, 4),
+		Belts:           ClampEhex(r.D6()-3, 0, 3),
+		GasGiants:       ClampEhex(r.TwoD6()/2-2, 0, 4),
 	}
 }
 
@@ -305,14 +306,14 @@ func rollPBG(r *dice.Roller, population ehex.Value) PBG {
 func generateUWPWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) UWP {
 	var u UWP
 
-	u.Starport = rollStarport(r)
+	u.Starport = RollStarport(r)
 	u.Size = sizeRoll(r)
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
-	u.Population = rollPopulation(r)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
+	u.Atmosphere = RollAtmosphere(r, u.Size)
+	u.Hydrographics = RollHydrographics(r, u.Size, u.Atmosphere)
+	u.Population = RollPopulation(r)
+	u.Government = RollGovernment(r, u.Population)
+	u.Law = RollLaw(r, u.Government)
+	u.TechLevel = RollTechLevel(r, u)
 
 	return u
 }
@@ -324,12 +325,12 @@ func GenerateUWP(r *dice.Roller) UWP {
 	return generateUWPWithSize(r, rollSize)
 }
 
-// generateWithSize is Generate's own logic, parameterized by the Size
+// GenerateWithSize is Generate's own logic, parameterized by the Size
 // roll for the same reason generateUWPWithSize is — reused by the
 // mainworld BigWorld fallback so a BigWorld mainworld gets the same
 // fully-derived TravelZone/TradeCodes/Bases/PBG/Importance/Economic/
 // Cultural treatment any other mainworld gets, not just a bare UWP swap.
-func generateWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) World {
+func GenerateWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) World {
 	uwp := generateUWPWithSize(r, sizeRoll)
 	travelZone := computeTravelZone(uwp)
 	tradeCodes := deriveTradeCodesForZone(uwp, travelZone)
@@ -358,5 +359,5 @@ func generateWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) Wo
 // generation, not just "not yet": both are referee/campaign-assigned in
 // T5, with no dice mechanic given for either.
 func Generate(r *dice.Roller) World {
-	return generateWithSize(r, rollSize)
+	return GenerateWithSize(r, rollSize)
 }

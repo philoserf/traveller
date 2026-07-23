@@ -22,8 +22,8 @@ func TestClampEhex(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if got := clampEhex(c.v, c.lo, c.hi); got != c.want {
-			t.Errorf("clampEhex(%d, %d, %d) = %d, want %d", c.v, c.lo, c.hi, got, c.want)
+		if got := ClampEhex(c.v, c.lo, c.hi); got != c.want {
+			t.Errorf("ClampEhex(%d, %d, %d) = %d, want %d", c.v, c.lo, c.hi, got, c.want)
 		}
 	}
 }
@@ -32,7 +32,7 @@ func TestTechLevelModifierWorstCase(t *testing.T) {
 	t.Parallel()
 
 	// Starport X (-4), Size/Atm/Hyd/Pop in their zero-modifier bands,
-	// Government D=13 (-2): total -6, matching rollTechLevel's documented
+	// Government D=13 (-2): total -6, matching RollTechLevel's documented
 	// worst case (D6 min 1, so TechLevel would compute to -5 before the
 	// floor clamp).
 	u := UWP{
@@ -73,9 +73,9 @@ func TestRollTechLevelNeverInvalid(t *testing.T) {
 	r := dice.New(rand.NewPCG(1, 1))
 
 	for range 1000 {
-		tl := rollTechLevel(r, u)
+		tl := RollTechLevel(r, u)
 		if !tl.Valid() {
-			t.Fatalf("rollTechLevel produced invalid ehex.Value %d", tl)
+			t.Fatalf("RollTechLevel produced invalid ehex.Value %d", tl)
 		}
 	}
 }
@@ -112,10 +112,10 @@ func TestGenerateUWPInvariants(t *testing.T) {
 	}
 }
 
-// TestGenerateWithSizeUsesGivenSizeRoll confirms generateWithSize
+// TestGenerateWithSizeUsesGivenSizeRoll confirms GenerateWithSize
 // actually threads its sizeRoll parameter through to the resulting
 // World's UWP — the mainworld BigWorld fallback (world/system_generate.go)
-// depends on generateWithSize(r, rollBigWorldSize) producing a BigWorld-
+// depends on GenerateWithSize(r, rollBigWorldSize) producing a BigWorld-
 // range Size (Book 3 p.29: "Siz= 2D+7", "any with Siz=B+ is BW"), not
 // silently falling back to the standard rollSize formula.
 func TestGenerateWithSizeUsesGivenSizeRoll(t *testing.T) {
@@ -124,10 +124,10 @@ func TestGenerateWithSizeUsesGivenSizeRoll(t *testing.T) {
 	r := dice.New(rand.NewPCG(3, 4))
 
 	for range 1000 {
-		w := generateWithSize(r, rollBigWorldSize)
+		w := GenerateWithSize(r, rollBigWorldSize)
 		if w.UWP.Size < 9 {
 			t.Fatalf(
-				"generateWithSize(r, rollBigWorldSize): Size = %s, want >= 9 (2D+7 floor: TwoD6 min 2, +7)",
+				"GenerateWithSize(r, rollBigWorldSize): Size = %s, want >= 9 (2D+7 floor: TwoD6 min 2, +7)",
 				w.UWP.Size,
 			)
 		}

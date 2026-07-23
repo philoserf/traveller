@@ -119,7 +119,7 @@ func generateSatellite(
 	u := generateSecondaryWorldUWP(r, category, maxPopulation)
 
 	if hasParentSize && parentSize > 0 && u.Size > parentSize {
-		u.Size = clampEhex(int(parentSize)-1, 0, int(ehex.Max))
+		u.Size = ClampEhex(int(parentSize)-1, 0, int(ehex.Max))
 	}
 
 	return u
