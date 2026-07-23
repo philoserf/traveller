@@ -26,8 +26,8 @@ func World(w world.World) string {
 
 	fmt.Fprintf(&b, "# %s\n\n", title(w))
 	fmt.Fprintf(&b, "**UWP:** %s\n\n", w.UWP)
-	fmt.Fprintf(&b, "**Trade Codes:** %s\n\n", joinOrNone(world.TradeCodeStrings(w.TradeCodes)))
-	fmt.Fprintf(&b, "**Bases:** %s\n\n", joinOrNone(world.BaseStrings(w.Bases)))
+	fmt.Fprintf(&b, "**Trade Codes:** %s\n\n", world.JoinOrNone(world.TradeCodeStrings(w.TradeCodes)))
+	fmt.Fprintf(&b, "**Bases:** %s\n\n", world.JoinOrNone(world.BaseStrings(w.Bases)))
 	fmt.Fprintf(&b, "**PBG:** %s\n\n", w.PBG)
 
 	if zone := w.TravelZone.String(); zone != "" {
@@ -52,12 +52,4 @@ func title(w world.World) string {
 	}
 
 	return w.UWP.String()
-}
-
-func joinOrNone(items []string) string {
-	if len(items) == 0 {
-		return "None"
-	}
-
-	return strings.Join(items, " ")
 }

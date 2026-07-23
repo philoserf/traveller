@@ -178,9 +178,14 @@ func runSector(args []string) error {
 	name := fs.String("name", "", "sector name")
 	density := fs.String("density", "", "System Presence density (default: Standard)")
 	subsector := fs.String("subsector", "", "single letter A-P — limit output to that 80-hex block only")
+	format := fs.String("format", "full", "output format: full (nested detail) or short (compact table)")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("client: parsing flags: %w", err)
+	}
+
+	if *format != "full" && *format != "short" {
+		return fmt.Errorf("client: -format must be \"full\" or \"short\", got %q", *format)
 	}
 
 	query := neturl.Values{}
@@ -222,19 +227,43 @@ func runSector(args []string) error {
 	fmt.Printf("%s Sector\n", sec.Name)
 
 	for _, hex := range sec.Hexes {
-		if hex.System == nil {
-			fmt.Printf("Hex %s: empty\n", hex.Location)
-
-			continue
-		}
-
-		fmt.Printf("Hex %s\n", hex.Location)
-		printSystem(*hex.System)
+		printSectorHex(hex, *format == "short")
 	}
 
 	fmt.Printf("(seed: %d)\n", sec.Seed)
 
 	return nil
+}
+
+// printSectorHex prints one hex of a sector's output: the full nested
+// system (printSystem) by default, or — when short is true — a single
+// compact line (location, UWP, Trade Codes, Bases, PBG, Travel Zone, the
+// same fields render.SectorCompact puts in its Markdown table). Empty
+// hexes are printed as "Hex %s: empty" in full mode; short mode omits
+// them entirely, matching render.SectorCompact's own convention.
+func printSectorHex(hex api.HexResponse, short bool) {
+	if hex.System == nil {
+		if !short {
+			fmt.Printf("Hex %s: empty\n", hex.Location)
+		}
+
+		return
+	}
+
+	if !short {
+		fmt.Printf("Hex %s\n", hex.Location)
+		printSystem(*hex.System)
+
+		return
+	}
+
+	mw := hex.System.Mainworld
+
+	fmt.Printf("%s  %s  %s  %s  %s  %s\n",
+		hex.Location, mw.UWP,
+		world.JoinOrNone(world.TradeCodeStrings(mw.TradeCodes)),
+		world.JoinOrNone(world.BaseStrings(mw.Bases)),
+		mw.PBG, world.OrDash(mw.TravelZone))
 }
 
 // bodyLine formats one non-star, non-satellite body: a Gas Giant, or a

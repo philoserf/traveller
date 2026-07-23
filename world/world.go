@@ -6,6 +6,8 @@
 // package system; sector-scale generation lives in package sector.
 package world
 
+import "strings"
+
 // World is a single mainworld's full profile.
 type World struct {
 	Name       string
@@ -36,6 +38,31 @@ func stringsOf[T ~string](vals []T) []string {
 	s := make([]string, len(vals))
 	for i, v := range vals {
 		s[i] = string(v)
+	}
+
+	return s
+}
+
+// JoinOrNone space-joins items, or returns "None" if items is empty —
+// the shared display convention every renderer of TradeCodeStrings/
+// BaseStrings output uses (package render's Markdown, cmd/client's
+// terminal output) so an empty field reads as an explicit "None" rather
+// than silently going blank.
+func JoinOrNone(items []string) string {
+	if len(items) == 0 {
+		return "None"
+	}
+
+	return strings.Join(items, " ")
+}
+
+// OrDash returns s, or "—" if s is empty — the shared placeholder every
+// renderer of an optional already-stringified field (e.g. TravelZone's
+// String(), which is "" for the common no-zone case) uses instead of
+// silently leaving the field blank.
+func OrDash(s string) string {
+	if s == "" {
+		return "—"
 	}
 
 	return s

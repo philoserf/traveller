@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/philoserf/traveller/sector"
+	"github.com/philoserf/traveller/world"
 )
 
 // Sector renders sec as a Markdown document: a title, then every Hex in
@@ -32,4 +33,34 @@ func Sector(sec sector.Sector) string {
 	}
 
 	return strings.TrimRight(b.String(), "\n") + "\n"
+}
+
+// SectorCompact renders sec as a Markdown table, one row per populated
+// Hex — the mainworld's UWP, Trade Codes, Bases, PBG, and Travel Zone
+// only, none of the star/orbit/satellite detail Sector's full System(...)
+// output includes. Empty hexes are omitted entirely: a "map overview" is
+// meant to be scanned for what's actually there, and most sectors are
+// mostly empty space.
+func SectorCompact(sec sector.Sector) string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "# %s Sector (compact)\n\n", sec.Name)
+	fmt.Fprint(&b, "| Hex  | UWP       | Trade Codes | Bases | PBG | Zone  |\n")
+	fmt.Fprint(&b, "| ---- | --------- | ----------- | ----- | --- | ----- |\n")
+
+	for _, hex := range sec.Hexes {
+		if hex.System == nil {
+			continue
+		}
+
+		mw := hex.System.Orbits[hex.System.MainworldOrbit].World
+
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n",
+			hex.Location, mw.UWP,
+			world.JoinOrNone(world.TradeCodeStrings(mw.TradeCodes)),
+			world.JoinOrNone(world.BaseStrings(mw.Bases)),
+			mw.PBG, world.OrDash(mw.TravelZone.String()))
+	}
+
+	return b.String()
 }

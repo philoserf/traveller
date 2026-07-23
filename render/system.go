@@ -77,8 +77,8 @@ func writeMainworld(b *strings.Builder, mwOrbit system.Orbit) {
 	}
 
 	fmt.Fprintf(b, "**UWP:** %s\n\n", mw.UWP)
-	fmt.Fprintf(b, "**Trade Codes:** %s\n\n", joinOrNone(world.TradeCodeStrings(mw.TradeCodes)))
-	fmt.Fprintf(b, "**Bases:** %s\n\n", joinOrNone(world.BaseStrings(mw.Bases)))
+	fmt.Fprintf(b, "**Trade Codes:** %s\n\n", world.JoinOrNone(world.TradeCodeStrings(mw.TradeCodes)))
+	fmt.Fprintf(b, "**Bases:** %s\n\n", world.JoinOrNone(world.BaseStrings(mw.Bases)))
 	fmt.Fprintf(b, "**PBG:** %s\n\n", mw.PBG)
 
 	if zone := mw.TravelZone.String(); zone != "" {
@@ -113,7 +113,7 @@ func otherBodyLine(o system.Orbit, isMainworld bool) string {
 			"Orbit %d: %s — %s",
 			o.Number,
 			o.World.UWP,
-			joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
+			world.JoinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
 		)
 		if o.World.Ring {
 			line += ", with a Ring"
@@ -145,7 +145,7 @@ func satelliteLine(o system.Orbit, isMainworld bool) string {
 		"%s satellite: %s — %s",
 		closeFarLabel(o.Close),
 		o.World.UWP,
-		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
+		world.JoinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
 	)
 
 	if isMainworld {

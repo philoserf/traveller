@@ -20,6 +20,7 @@ func main() {
 		"System Presence density: Extra Galactic, Rift, Sparse, Scattered, Standard, Dense, Cluster, Core",
 	)
 	subsector := flag.String("subsector", "", "single letter A-P — limit output to that 80-hex block only")
+	format := flag.String("format", "full", "output format: full (nested detail) or short (compact table)")
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
 	// registered above this line.
@@ -36,12 +37,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *format != "full" && *format != "short" {
+		fmt.Fprintf(os.Stderr, "secgen: -format must be \"full\" or \"short\", got %q\n", *format)
+		os.Exit(1)
+	}
+
 	sec := sector.GenerateSector(s, *name, density)
 
 	if *subsector != "" {
 		sec.Hexes = sec.Subsector((*subsector)[0])
 	}
 
-	fmt.Print(render.Sector(sec))
+	if *format == "short" {
+		fmt.Print(render.SectorCompact(sec))
+	} else {
+		fmt.Print(render.Sector(sec))
+	}
+
 	fmt.Printf("\n_(seed: %d)_\n", s)
 }
