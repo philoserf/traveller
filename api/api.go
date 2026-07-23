@@ -38,8 +38,12 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, errorResponse{Error: msg})
 }
 
-// jsonErrorWriter intercepts WriteHeader for 404/405 so a JSON body can
-// replace net/http's default plain-text one — see jsonErrors.
+// jsonErrorWriter substitutes a JSON body for net/http's default
+// plain-text 404/405 one — see jsonErrors. Unlike writeJSONError, it's
+// unconditional: every WriteHeader call it sees is assumed to be net/http's
+// own fallback, never an application handler's, because jsonErrors only
+// ever wraps a request that mux.Handler has already confirmed will hit
+// that fallback (no application handler runs on this path at all).
 type jsonErrorWriter struct {
 	http.ResponseWriter
 
@@ -47,19 +51,8 @@ type jsonErrorWriter struct {
 }
 
 func (w *jsonErrorWriter) WriteHeader(status int) {
-	if status != http.StatusNotFound && status != http.StatusMethodNotAllowed {
-		w.ResponseWriter.WriteHeader(status)
-
-		return
-	}
-
 	w.intercepting = true
-	w.ResponseWriter.Header().Set("Content-Type", "application/json")
-	w.ResponseWriter.WriteHeader(status)
-
-	if err := json.NewEncoder(w.ResponseWriter).Encode(errorResponse{Error: http.StatusText(status)}); err != nil {
-		log.Printf("api: writing error response: %v", err)
-	}
+	writeJSON(w.ResponseWriter, status, errorResponse{Error: http.StatusText(status)})
 }
 
 // Write discards net/http's own plain-text 404/405 body (from http.Error,
@@ -78,14 +71,25 @@ func (w *jsonErrorWriter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-// jsonErrors wraps h so unmatched paths (404) and wrong-method requests
-// (405) get a JSON {"error": "..."} body instead of net/http's default
-// plain text, matching every in-handler error's envelope (writeJSONError).
-// A ResponseWriter wrapper, not a mux route — see NewMux's doc comment for
-// why a catch-all route was tried and reverted.
-func jsonErrors(h http.Handler) http.Handler {
+// jsonErrors wraps mux so unmatched paths (404) and wrong-method requests
+// (405) — cases where no application handler ever runs — get a JSON
+// {"error": "..."} body instead of net/http's default plain text, matching
+// every in-handler error's envelope (writeJSONError). mux.Handler decides
+// *before* dispatch whether a request will hit ServeMux's own fallback (an
+// empty pattern) rather than inspecting the status code after the fact, so
+// an application handler that legitimately calls writeJSONError with its
+// own 404/405 status is never touched by this wrapper at all. Not a mux
+// route — see NewMux's doc comment for why a catch-all route was tried
+// and reverted.
+func jsonErrors(mux *http.ServeMux) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h.ServeHTTP(&jsonErrorWriter{ResponseWriter: w}, r)
+		if _, pattern := mux.Handler(r); pattern == "" {
+			mux.ServeHTTP(&jsonErrorWriter{ResponseWriter: w}, r)
+
+			return
+		}
+
+		mux.ServeHTTP(w, r)
 	})
 }
 
