@@ -89,11 +89,19 @@ type Orbit struct {
 	Satellite bool
 	// Close is meaningful only when Satellite is true: "Close" (2D<=7,
 	// tidally locked to its parent) vs "Far" (2D>=8) — Book 3 p.21/24.
-	Close    bool
-	AU       float64
-	Star     *Star
-	GasGiant *GasGiant
-	World    *World
+	Close bool
+	AU    float64
+	// HostHZOrbit is the HabitableZoneOrbit of whichever star actually
+	// placed this body (the Primary for the mainworld and Star itself;
+	// whichever host placeGasGiants/placeBelts/placeOtherWorlds rotated
+	// to for everything else). Meaningless (zero) for a Star entry
+	// itself. Recorded at placement time rather than reconstructed later
+	// — a body's own orbit Number alone doesn't reliably identify which
+	// host star placed it, especially in a multi-star system.
+	HostHZOrbit int
+	Star        *Star
+	GasGiant    *GasGiant
+	World       *World
 }
 
 // StarSystem is a full system. Orbits is the single source of truth for

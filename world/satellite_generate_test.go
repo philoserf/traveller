@@ -157,17 +157,3 @@ func TestGenerateSatelliteNoAdjustmentForGasGiantParent(t *testing.T) {
 		)
 	}
 }
-
-func TestNearestHZOrbit(t *testing.T) {
-	t.Parallel()
-
-	hosts := []starHost{{hzOrbit: 3, maxOrbit: 19}, {hzOrbit: 10, maxOrbit: 8}}
-
-	if got, want := nearestHZOrbit(hosts, 4), 3; got != want {
-		t.Errorf("nearestHZOrbit(orbit=4) = %d, want %d", got, want)
-	}
-
-	if got, want := nearestHZOrbit(hosts, 9), 10; got != want {
-		t.Errorf("nearestHZOrbit(orbit=9) = %d, want %d", got, want)
-	}
-}

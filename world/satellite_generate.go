@@ -101,9 +101,13 @@ func rollSatelliteCategory(r *dice.Roller, delta int) secondaryWorldCategory {
 // is generated as larger than the parent, adjust to fit." Only applied
 // when hasParentSize is true (the parent is a World — its Size is
 // directly comparable to the satellite's own, unlike a GasGiant parent's
-// Size, which is a letter on a different physical scale entirely). "If
-// sizes are equal, the result is a double planet" — left as-is, no
-// adjustment and no dedicated flag for that rare case.
+// Size, which is a letter on a different physical scale entirely) and
+// parentSize > 0 — for a Size-0 parent there's no strictly-smaller ehex
+// digit to adjust down to, so the roll is left as-is rather than being
+// silently forced to 0 (which would misrepresent a clamp as the "sizes
+// are equal, the result is a double planet" case — left as-is, no
+// adjustment and no dedicated flag — when it's really just "couldn't
+// adjust").
 func generateSatellite(
 	r *dice.Roller,
 	delta int,
@@ -114,7 +118,7 @@ func generateSatellite(
 	category := rollSatelliteCategory(r, delta)
 	u := generateSecondaryWorldUWP(r, category, maxPopulation)
 
-	if hasParentSize && u.Size > parentSize {
+	if hasParentSize && parentSize > 0 && u.Size > parentSize {
 		u.Size = clampEhex(int(parentSize)-1, 0, int(ehex.Max))
 	}
 
@@ -161,31 +165,4 @@ func generateSatellitesForBody(r *dice.Roller, orbits *[]Orbit, parent Orbit, hz
 			World:     &w,
 		})
 	}
-}
-
-// nearestHZOrbit returns whichever host's hzOrbit is closest to
-// orbitNumber. Placement (phase 2a) rotates each body through whichever
-// stars exist but doesn't record which one placed it, so a body's
-// delta-from-HZ here uses this as a proxy — bodies were placed by
-// rotating through the same host list to begin with, so "closest host"
-// is a reasonable stand-in for "the host that actually placed it," not
-// exact tracking.
-func nearestHZOrbit(hosts []starHost, orbitNumber int) int {
-	best, bestDist := hosts[0].hzOrbit, absInt(orbitNumber-hosts[0].hzOrbit)
-
-	for _, h := range hosts[1:] {
-		if d := absInt(orbitNumber - h.hzOrbit); d < bestDist {
-			best, bestDist = h.hzOrbit, d
-		}
-	}
-
-	return best
-}
-
-func absInt(n int) int {
-	if n < 0 {
-		return -n
-	}
-
-	return n
 }

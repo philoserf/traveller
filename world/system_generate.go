@@ -156,21 +156,27 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 
 	// Every top-level body — the mainworld, its host Gas Giant if any,
 	// and everything just placed above — gets its own satellite roll
-	// (Book 3 p.29: "For Each World in the System" + Gas Giants).
-	// Snapshotting the current top-level bodies first, rather than
-	// ranging over orbits live, is what keeps newly-appended satellites
-	// from being mistaken for more top-level bodies to recurse into —
-	// satellites don't get their own satellites.
+	// (Book 3 p.29: "For Each World in the System" + Gas Giants) — except
+	// Asteroid Belts, which the satellite-count table (Gas Giants/Inners/
+	// Hospitables/Outers) has no row for at all. Snapshotting the current
+	// top-level bodies first, rather than ranging over orbits live, is
+	// what keeps newly-appended satellites from being mistaken for more
+	// top-level bodies to recurse into — satellites don't get their own
+	// satellites.
 	topLevel := make([]Orbit, 0, len(orbits))
 
 	for _, o := range orbits {
-		if !o.Satellite && (o.World != nil || o.GasGiant != nil) {
+		if o.Satellite {
+			continue
+		}
+
+		if o.GasGiant != nil || (o.World != nil && !slices.Contains(o.World.TradeCodes, AsteroidBelt)) {
 			topLevel = append(topLevel, o)
 		}
 	}
 
 	for _, parent := range topLevel {
-		generateSatellitesForBody(r, &orbits, parent, nearestHZOrbit(hosts, parent.Number), maxPopulation)
+		generateSatellitesForBody(r, &orbits, parent, parent.HostHZOrbit, maxPopulation)
 	}
 
 	return StarSystem{
@@ -244,10 +250,13 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 
 	if satelliteOfGasGiant {
 		gg := rollGasGiant(r)
-		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), GasGiant: &gg})
+		orbits = append(
+			orbits,
+			Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), HostHZOrbit: hzOrbit, GasGiant: &gg},
+		)
 		orbits = append(orbits, Orbit{Number: orbitNumber, Satellite: true, World: &mw})
 	} else {
-		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), World: &mw})
+		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), HostHZOrbit: hzOrbit, World: &mw})
 	}
 
 	return orbits, len(orbits) - 1
@@ -377,7 +386,7 @@ func placeGasGiants(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count, in
 		}
 
 		if n, ok := placeInOrbit(*orbits, host, host.hzOrbit+offset); ok {
-			*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), GasGiant: &gg})
+			*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, GasGiant: &gg})
 		}
 	}
 }
@@ -399,7 +408,7 @@ func placeBelts(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count int, ma
 
 		u := generatePlanetoidWorld(r, maxPopulation)
 		w := worldWithTradeCodes(u, n, host.hzOrbit)
-		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), World: &w})
+		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, World: &w})
 	}
 }
 
@@ -431,7 +440,7 @@ func placeOtherWorlds(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count i
 		category := rollSecondaryWorldCategory(r, n-host.hzOrbit)
 		u := generateSecondaryWorldUWP(r, category, maxPopulation)
 		w := worldWithTradeCodes(u, n, host.hzOrbit)
-		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), World: &w})
+		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, World: &w})
 	}
 }
 
