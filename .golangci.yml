@@ -18,6 +18,7 @@ linters:
     - paralleltest # ~0 benefit on fast deterministic tests; huge manual churn
     - err113 # false-positive-prone; pointless sentinels for one-off CLI errors
     - wsl # deprecated; superseded by wsl_v5
+    - testpackage # white-box tests are intentional (see file header) — internal package access to unexported generation/table logic
   settings:
     depguard:
       # Enforce the deliberate std-lib-only invariant (go.mod has no require
