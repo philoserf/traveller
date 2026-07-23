@@ -41,14 +41,18 @@ var nonZeroTechLevels = func() []ehex.Value {
 //
 // Deliberately excluded, and not represented here:
 //   - Structural, not a UWP-digit predicate: Satellite (Sa), Locked (Lk).
-//   - Depends on orbit/Habitable-Zone position, which a standalone UWP
-//     doesn't carry: Frozen (Fr), Hot (Ho), Cold (Co), Tropic (Tr),
-//     Tundra (Tu), TwilightZone (Tz), Farming (Fa).
 //   - Referee-assigned in the rulebook's own text: MilitaryRule (Mr),
 //     SubsectorCapital (Cp), SectorCapital (Cs), Capital (Cx), Colony
 //     (Cy), DataRepository (Ab), AncientSite (An).
 //   - Explicitly non-mainworld ("Not MW") in the rulebook: Mining (Mi),
 //     PenalColony (Pe).
+//
+// Frozen (Fr), Hot (Ho), Cold (Co), Tropic (Tr), Tundra (Tu),
+// TwilightZone (Tz), and Farming (Fa) are absent for the same reason as
+// Forbidden/Puzzle/Dangerous below: they depend on orbit/Habitable-Zone
+// position, which a standalone UWP doesn't carry — see
+// DeriveOrbitTradeCodes (world/orbit_tradecode.go) instead, called once
+// GenerateSystem has placed a world in an orbit.
 //
 // Forbidden (Fo), Puzzle (Pz), and Dangerous (Da) are never trigger-table
 // rows either, but for a different reason: they ARE derivable (Book 3

@@ -39,12 +39,29 @@ type Star struct {
 	HabitableZoneOrbit int
 }
 
-// Orbit is a single numbered orbit slot within a system.
+// GasGiant is a gas giant occupying an orbit — its own kind of body, not a
+// UWP World (Book 3's GG table gives it a Size and Bracket only, no
+// Atmosphere/Hydrographics/Population/...).
+type GasGiant struct {
+	Size    byte   // 'L'..'Y', per the GG table (Book 3 p.29)
+	Bracket string // "SGG" (Small Gas Giant) or "LGG" (Large Gas Giant)
+}
+
+// Orbit is a single numbered orbit slot within a system. Number may repeat:
+// a satellite shares its parent body's Number and sets Satellite to true,
+// distinguishing "orbits the star at slot N" from "orbits whatever
+// occupies slot N" — e.g. a Gas Giant's moon, or (per Book 3's "G Placing
+// Worlds" narrative) a mainworld that is itself a satellite of a Gas
+// Giant. AU is left zero for a Satellite entry: the orbit-to-AU table
+// (Book 3 p.20) only covers primary numbered orbits, not sub-orbit
+// distances.
 type Orbit struct {
-	Number int
-	AU     float64
-	Star   *Star
-	World  *World
+	Number    int
+	Satellite bool
+	AU        float64
+	Star      *Star
+	GasGiant  *GasGiant
+	World     *World
 }
 
 // StarSystem is a full system. Orbits is the single source of truth for
