@@ -1,10 +1,11 @@
-package world
+package system
 
 import (
 	"slices"
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/ehex"
+	"github.com/philoserf/traveller/world"
 )
 
 // primaryOrbitNumber is the sentinel Orbit.Number for the Primary star
@@ -93,7 +94,7 @@ func rollAndPlaceStar(r *dice.Roller, primaryFlux int, role StellarRole, orbitNu
 // mainworld placement itself needs, satellites for any of them, rings,
 // and precluded-orbit adjustment for oversized stars) is deliberately out
 // of scope — see the sysgen plan/issue #3 for why.
-func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
+func GenerateSystem(r *dice.Roller, mainworld world.World) StarSystem {
 	primaryFlux := r.Flux()
 	primary := rollStar(r, primaryFlux, true)
 	primary.Role = Primary
@@ -170,7 +171,7 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 			continue
 		}
 
-		if o.GasGiant != nil || (o.World != nil && !slices.Contains(o.World.TradeCodes, AsteroidBelt)) {
+		if o.GasGiant != nil || (o.World != nil && !slices.Contains(o.World.TradeCodes, world.AsteroidBelt)) {
 			topLevel = append(topLevel, o)
 		}
 	}
@@ -196,7 +197,7 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 // index of the mainworld's own Orbit entry within it — when that entry's
 // Satellite is true, the immediately preceding orbits entry is its host
 // Gas Giant (see the two-Orbit-append below).
-func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld World) ([]Orbit, int) {
+func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld world.World) ([]Orbit, int) {
 	hzOrbit := primary.HabitableZoneOrbit
 	mw := mainworld
 
@@ -205,7 +206,7 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 		kind        = mainworldPlanet
 	)
 
-	if slices.Contains(mw.TradeCodes, AsteroidBelt) {
+	if slices.Contains(mw.TradeCodes, world.AsteroidBelt) {
 		// "If the Mainworld is an Asteroid Belt, it is placed using the
 		// Belt Column of the Basic Placement Chart without regard to
 		// Habitable Zone" — skips Table 2B's HZ+Var roll entirely.
@@ -236,7 +237,7 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	// replaced. An Asteroid Belt mainworld can never reach here — kind
 	// only gets set to a satellite kind in the non-belt branch above.
 	if kind != mainworldPlanet && mw.PBG.GasGiants == 0 {
-		bigWorld := GenerateWithSize(r, rollBigWorldSize)
+		bigWorld := world.GenerateWithSize(r, rollBigWorldSize)
 		mw.UWP = bigWorld.UWP
 		mw.TradeCodes = bigWorld.TradeCodes
 		mw.TravelZone = bigWorld.TravelZone
@@ -269,7 +270,7 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 		orbitNumber = n
 	}
 
-	mw.TradeCodes = append(mw.TradeCodes, DeriveOrbitTradeCodes(mw.UWP, orbitNumber, hzOrbit, true)...)
+	mw.TradeCodes = append(mw.TradeCodes, world.DeriveOrbitTradeCodes(mw.UWP, orbitNumber, hzOrbit, true)...)
 
 	if kind != mainworldPlanet {
 		gg := rollGasGiant(r)
@@ -513,9 +514,9 @@ func placeOtherWorlds(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count i
 // mainworld-only concerns (Book 3 p.27: Ix/Ex apply to the entire
 // system, computed once already) — left zero-valued, not omitted by
 // oversight.
-func worldWithTradeCodes(u UWP, orbit, hzOrbit int) World {
-	tradeCodes := DeriveTradeCodes(u)
-	tradeCodes = append(tradeCodes, DeriveOrbitTradeCodes(u, orbit, hzOrbit, false)...)
+func worldWithTradeCodes(u world.UWP, orbit, hzOrbit int) world.World {
+	tradeCodes := world.DeriveTradeCodes(u)
+	tradeCodes = append(tradeCodes, world.DeriveOrbitTradeCodes(u, orbit, hzOrbit, false)...)
 
-	return World{UWP: u, TradeCodes: tradeCodes}
+	return world.World{UWP: u, TradeCodes: tradeCodes}
 }

@@ -53,9 +53,9 @@ func RollStarport(r *dice.Roller) Starport {
 	}
 }
 
-// rollSize: 2D6-2, range 0-10. A raw 10 rerolls as 1D6+9 (range 10-15),
-// extending the world into the A-F "large world" band.
-func rollSize(r *dice.Roller) ehex.Value {
+// RollSize rolls 2D6-2, range 0-10. A raw 10 rerolls as 1D6+9 (range
+// 10-15), extending the world into the A-F "large world" band.
+func RollSize(r *dice.Roller) ehex.Value {
 	v := r.TwoD6() - 2
 	if v == 10 {
 		v = r.D6() + 9
@@ -300,7 +300,7 @@ func rollPBG(r *dice.Roller, population ehex.Value) PBG {
 // generateUWPWithSize rolls a complete UWP in the order T5 requires (each
 // field may depend only on fields already rolled, ending with TechLevel,
 // which depends on all the others), taking Size's own roll as a
-// parameter — GenerateUWP always passes rollSize; world/system_generate.go's
+// parameter — GenerateUWP always passes RollSize; world/system_generate.go's
 // mainworld BigWorld fallback (Book 3 p.24's "If Satellite and No Giants,
 // place a BigWorld in MW Orbit") passes rollBigWorldSize instead.
 func generateUWPWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) UWP {
@@ -319,10 +319,10 @@ func generateUWPWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value)
 }
 
 // GenerateUWP rolls a complete UWP using the standard Size formula
-// (rollSize). See generateUWPWithSize for the size-parameterized version
+// (RollSize). See generateUWPWithSize for the size-parameterized version
 // this wraps.
 func GenerateUWP(r *dice.Roller) UWP {
-	return generateUWPWithSize(r, rollSize)
+	return generateUWPWithSize(r, RollSize)
 }
 
 // GenerateWithSize is Generate's own logic, parameterized by the Size
@@ -359,5 +359,5 @@ func GenerateWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) Wo
 // generation, not just "not yet": both are referee/campaign-assigned in
 // T5, with no dice mechanic given for either.
 func Generate(r *dice.Roller) World {
-	return GenerateWithSize(r, rollSize)
+	return GenerateWithSize(r, RollSize)
 }

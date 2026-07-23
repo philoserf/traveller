@@ -1,4 +1,4 @@
-package world
+package system
 
 import (
 	"math/rand/v2"

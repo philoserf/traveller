@@ -1,6 +1,15 @@
-package world
+// Package system models a Traveller5 star system: stars, orbits, gas
+// giants, satellites, and their generation (GenerateSystem) — everything
+// Book 3's system-generation tables place around an already-generated
+// mainworld (package world). Sector-scale generation lives in package
+// sector.
+package system
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/philoserf/traveller/world"
+)
 
 // SpectralType is a star's spectral classification.
 type SpectralType byte
@@ -108,7 +117,7 @@ type Orbit struct {
 	HostRole StellarRole
 	Star     *Star
 	GasGiant *GasGiant
-	World    *World
+	World    *world.World
 }
 
 // StarSystem is a full system. Orbits is the single source of truth for
@@ -148,8 +157,8 @@ func (s StarSystem) GasGiantAt(number int) *GasGiant {
 }
 
 // Worlds returns every world in the system, collected from Orbits.
-func (s StarSystem) Worlds() []*World {
-	var worlds []*World
+func (s StarSystem) Worlds() []*world.World {
+	var worlds []*world.World
 
 	for i := range s.Orbits {
 		if s.Orbits[i].World != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/philoserf/traveller/world"
+	"github.com/philoserf/traveller/sector"
 )
 
 // Sector renders sec as a Markdown document: a title, then every Hex in
@@ -14,7 +14,7 @@ import (
 // running cmd/sysgen repeatedly already produces (a sequence of
 // independent "# ... System" blocks), so System itself needs no changes
 // to compose here.
-func Sector(sec world.Sector) string {
+func Sector(sec sector.Sector) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "# %s Sector\n\n", sec.Name)

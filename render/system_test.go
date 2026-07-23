@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/philoserf/traveller/render"
+	"github.com/philoserf/traveller/system"
 	"github.com/philoserf/traveller/world"
 )
 
@@ -37,28 +38,28 @@ func fixtureMainworld() *world.World {
 func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 	t.Parallel()
 
-	primary := world.Star{
-		SpectralType: world.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
-		Role: world.Primary, HabitableZoneOrbit: 3,
+	primary := system.Star{
+		SpectralType: system.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
+		Role: system.Primary, HabitableZoneOrbit: 3,
 	}
-	closeStar := world.Star{
-		SpectralType: world.SpectralM, SpectralDecimal: 6, LuminosityClass: "V",
-		Role: world.Close, HabitableZoneOrbit: 0,
+	closeStar := system.Star{
+		SpectralType: system.SpectralM, SpectralDecimal: 6, LuminosityClass: "V",
+		Role: system.Close, HabitableZoneOrbit: 0,
 	}
-	nearStar := world.Star{
-		SpectralType: world.SpectralK, SpectralDecimal: 1, LuminosityClass: "V",
-		Role: world.Near, HabitableZoneOrbit: 2,
+	nearStar := system.Star{
+		SpectralType: system.SpectralK, SpectralDecimal: 1, LuminosityClass: "V",
+		Role: system.Near, HabitableZoneOrbit: 2,
 	}
 	moon := &world.World{UWP: fixtureUWP()}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
+	sys := system.StarSystem{
+		Orbits: []system.Orbit{
 			{Number: -1, Star: &primary},
 			{Number: 5, Star: &closeStar},
 			{Number: 9, Star: &nearStar},
-			{Number: 3, HostRole: world.Primary, World: fixtureMainworld()},
+			{Number: 3, HostRole: system.Primary, World: fixtureMainworld()},
 			{Number: 3, Satellite: true, Close: true, World: moon},
-			{Number: 2, HostRole: world.Close, GasGiant: &world.GasGiant{Size: 'S', Bracket: "LGG"}},
+			{Number: 2, HostRole: system.Close, GasGiant: &system.GasGiant{Size: 'S', Bracket: "LGG"}},
 		},
 		MainworldOrbit: 3,
 	}
@@ -126,19 +127,19 @@ func TestSystemMainworldSatelliteReportsCloseOrFar(t *testing.T) {
 		{"far", false, "**Far satellite of:**", "Far satellite: A788899-C — None (Mainworld)"},
 	}
 
-	primary := world.Star{
-		SpectralType: world.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
-		Role: world.Primary, HabitableZoneOrbit: 3,
+	primary := system.Star{
+		SpectralType: system.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
+		Role: system.Primary, HabitableZoneOrbit: 3,
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			sys := world.StarSystem{
-				Orbits: []world.Orbit{
+			sys := system.StarSystem{
+				Orbits: []system.Orbit{
 					{Number: -1, Star: &primary},
-					{Number: 3, HostRole: world.Primary, GasGiant: &world.GasGiant{Size: 'S', Bracket: "LGG"}},
+					{Number: 3, HostRole: system.Primary, GasGiant: &system.GasGiant{Size: 'S', Bracket: "LGG"}},
 					{Number: 3, Satellite: true, Close: c.close, World: fixtureMainworld()},
 				},
 				MainworldOrbit: 2,

@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/philoserf/traveller/render"
-	"github.com/philoserf/traveller/world"
+	"github.com/philoserf/traveller/sector"
+	"github.com/philoserf/traveller/system"
 )
 
 // TestSectorRendersEmptyAndPopulatedHexes builds a minimal Sector with
@@ -15,22 +16,22 @@ import (
 func TestSectorRendersEmptyAndPopulatedHexes(t *testing.T) {
 	t.Parallel()
 
-	primary := world.Star{
-		SpectralType: world.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
-		Role: world.Primary, HabitableZoneOrbit: 3,
+	primary := system.Star{
+		SpectralType: system.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
+		Role: system.Primary, HabitableZoneOrbit: 3,
 	}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
+	sys := system.StarSystem{
+		Orbits: []system.Orbit{
 			{Number: -1, Star: &primary},
-			{Number: 3, HostRole: world.Primary, World: fixtureMainworld()},
+			{Number: 3, HostRole: system.Primary, World: fixtureMainworld()},
 		},
 		MainworldOrbit: 1,
 	}
 
-	sec := world.Sector{
+	sec := sector.Sector{
 		Name: "Test",
-		Hexes: []world.Hex{
+		Hexes: []sector.Hex{
 			{Location: "0101"},
 			{Location: "0102", System: &sys},
 		},

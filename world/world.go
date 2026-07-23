@@ -1,5 +1,9 @@
-// Package world models Traveller5 worlds and star systems: the UWP,
-// trade codes, extensions, and system/star/orbit structure.
+// Package world models a single Traveller5 world: the UWP, trade codes,
+// and Importance/Economic/Cultural extensions, plus the UWP-field-rolling
+// primitives (RollStarport, RollSize, ...) both mainworld generation here
+// and secondary-world generation in package system are built from.
+// Star-system structure (stars, orbits, gas giants, satellites) lives in
+// package system; sector-scale generation lives in package sector.
 package world
 
 // World is a single mainworld's full profile.

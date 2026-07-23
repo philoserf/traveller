@@ -10,13 +10,13 @@ import (
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/render"
-	"github.com/philoserf/traveller/world"
+	"github.com/philoserf/traveller/sector"
 )
 
 func main() {
 	name := flag.String("name", "Unnamed", "sector name")
 	densityName := flag.String(
-		"density", world.DensityStandard.String(),
+		"density", sector.DensityStandard.String(),
 		"System Presence density: Extra Galactic, Rift, Sparse, Scattered, Standard, Dense, Cluster, Core",
 	)
 	subsector := flag.String("subsector", "", "single letter A-P — limit output to that 80-hex block only")
@@ -25,18 +25,18 @@ func main() {
 	// registered above this line.
 	s := dice.SeedFlag()
 
-	density, ok := world.ParseDensity(*densityName)
+	density, ok := sector.ParseDensity(*densityName)
 	if !ok {
 		fmt.Fprintf(os.Stderr, "secgen: unknown density %q\n", *densityName)
 		os.Exit(1)
 	}
 
-	if *subsector != "" && (len(*subsector) != 1 || !world.ValidSubsectorLetter((*subsector)[0])) {
+	if *subsector != "" && (len(*subsector) != 1 || !sector.ValidSubsectorLetter((*subsector)[0])) {
 		fmt.Fprintln(os.Stderr, "secgen: -subsector must be a single letter A-P")
 		os.Exit(1)
 	}
 
-	sec := world.GenerateSector(s, *name, density)
+	sec := sector.GenerateSector(s, *name, density)
 
 	if *subsector != "" {
 		sec.Hexes = sec.Subsector((*subsector)[0])

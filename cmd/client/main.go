@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/philoserf/traveller/api"
+	"github.com/philoserf/traveller/system"
 	"github.com/philoserf/traveller/world"
 )
 
@@ -295,12 +296,12 @@ func printWorldFields(
 // starHeadingLine formats one star's own group heading — matching
 // render/system.go's starHeading: Degenerate stars (white dwarfs/brown
 // dwarfs) omit SpectralDecimal, since api.StarResponse's SpectralDecimal
-// is meaningless for them (mirroring world.Star's own doc comment), and
+// is meaningless for them (mirroring system.Star's own doc comment), and
 // the orbit part is omitted entirely for the Primary (s.Orbit is nil —
 // see StarResponse's own doc comment on the sentinel this maps from).
 func starHeadingLine(s api.StarResponse) string {
 	spec := fmt.Sprintf("%s%d %s", s.SpectralType, s.SpectralDecimal, s.LuminosityClass)
-	if s.SpectralType == string(world.SpectralDegenerate) {
+	if s.SpectralType == string(system.SpectralDegenerate) {
 		spec = fmt.Sprintf("%s %s", s.SpectralType, s.LuminosityClass)
 	}
 

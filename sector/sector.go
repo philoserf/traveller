@@ -1,4 +1,9 @@
-package world
+// Package sector models a Traveller5 sector: a 32x40 hex grid, each hex
+// either empty or holding a complete generated star system (package
+// system), populated per Book 3 p.13's System Presence density tables.
+package sector
+
+import "github.com/philoserf/traveller/system"
 
 // Density is one of Book 3 p.13's eight named System Presence densities,
 // each a dice-count + "N or less" target for whether a given hex holds a
@@ -94,7 +99,7 @@ var densityTable = map[Density]densityRoll{
 // (deep space) hex.
 type Hex struct {
 	Location string // "CCRR", e.g. "0101".."3240"
-	System   *StarSystem
+	System   *system.StarSystem
 }
 
 // Sector is a full 32x40 (1280-hex) grid, per Book 3 p.12-13. Hexes is

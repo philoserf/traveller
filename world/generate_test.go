@@ -112,22 +112,26 @@ func TestGenerateUWPInvariants(t *testing.T) {
 	}
 }
 
-// TestGenerateWithSizeUsesGivenSizeRoll confirms GenerateWithSize
-// actually threads its sizeRoll parameter through to the resulting
-// World's UWP — the mainworld BigWorld fallback (world/system_generate.go)
-// depends on GenerateWithSize(r, rollBigWorldSize) producing a BigWorld-
-// range Size (Book 3 p.29: "Siz= 2D+7", "any with Siz=B+ is BW"), not
-// silently falling back to the standard rollSize formula.
+// TestGenerateWithSizeUsesGivenSizeRoll confirms GenerateWithSize actually
+// threads its sizeRoll parameter through to the resulting World's UWP —
+// the mainworld BigWorld fallback (system/system_generate.go) depends on
+// GenerateWithSize(r, aSizeRoll) producing exactly that roll's Size, not
+// silently falling back to the standard RollSize formula. A fixed sizeRoll
+// (rather than the real system package's rollBigWorldSize, which now
+// lives across the package boundary this test can't reach) proves the
+// same thing more directly: the exact value flows through.
 func TestGenerateWithSizeUsesGivenSizeRoll(t *testing.T) {
 	t.Parallel()
 
+	fixedSize := func(*dice.Roller) ehex.Value { return 9 }
+
 	r := dice.New(rand.NewPCG(3, 4))
 
-	for range 1000 {
-		w := GenerateWithSize(r, rollBigWorldSize)
-		if w.UWP.Size < 9 {
+	for range 100 {
+		w := GenerateWithSize(r, fixedSize)
+		if w.UWP.Size != 9 {
 			t.Fatalf(
-				"GenerateWithSize(r, rollBigWorldSize): Size = %s, want >= 9 (2D+7 floor: TwoD6 min 2, +7)",
+				"GenerateWithSize(r, fixedSize): Size = %s, want exactly 9 (sizeRoll's own fixed value)",
 				w.UWP.Size,
 			)
 		}

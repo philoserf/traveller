@@ -1,7 +1,7 @@
-// Command sysgen rolls a Traveller5 star system around a freshly
-// generated mainworld — stars, orbit placement, habitable zone, and
-// mainworld placement — and renders it as Markdown. Placing every other
-// body in the system is not implemented yet — see world/system_generate.go.
+// Command sysgen rolls a full Traveller5 star system around a freshly
+// generated mainworld — stars, every other gas giant/belt/secondary
+// world, satellites, and rings — and renders it as Markdown. See
+// system/system_generate.go for what's placed and why.
 package main
 
 import (
@@ -9,6 +9,7 @@ import (
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/render"
+	"github.com/philoserf/traveller/system"
 	"github.com/philoserf/traveller/world"
 )
 
@@ -16,7 +17,7 @@ func main() {
 	s := dice.SeedFlag()
 	r := dice.RollerFromSeed(s)
 	mw := world.Generate(r)
-	sys := world.GenerateSystem(r, mw)
+	sys := system.GenerateSystem(r, mw)
 
 	fmt.Print(render.System(sys))
 	fmt.Printf("\n_(seed: %d)_\n", s)

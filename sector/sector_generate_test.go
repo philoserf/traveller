@@ -1,4 +1,4 @@
-package world
+package sector
 
 import (
 	"math/rand/v2"
@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/system"
+	"github.com/philoserf/traveller/world"
 )
 
 func TestHexLocationBoundaries(t *testing.T) {
@@ -151,8 +153,8 @@ func TestGenerateSectorHexIsIndependentlyReproducible(t *testing.T) {
 		checked++
 
 		r := dice.RollerFromSeed(HexSeed(sectorSeed, hex.Location))
-		mw := Generate(r)
-		sys := GenerateSystem(r, mw)
+		mw := world.Generate(r)
+		sys := system.GenerateSystem(r, mw)
 
 		if sys.Orbits[sys.MainworldOrbit].World.UWP != hex.System.Orbits[hex.System.MainworldOrbit].World.UWP {
 			t.Fatalf("hex %s: standalone regeneration from HexSeed produced a different mainworld UWP (%s vs %s)",

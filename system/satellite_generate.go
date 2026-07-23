@@ -1,8 +1,9 @@
-package world
+package system
 
 import (
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/ehex"
+	"github.com/philoserf/traveller/world"
 )
 
 // satelliteHostKind is which of Book 3 p.29's four "S Number of
@@ -114,12 +115,12 @@ func generateSatellite(
 	parentSize ehex.Value,
 	hasParentSize bool,
 	maxPopulation ehex.Value,
-) UWP {
+) world.UWP {
 	category := rollSatelliteCategory(r, delta)
 	u := generateSecondaryWorldUWP(r, category, maxPopulation)
 
 	if hasParentSize && parentSize > 0 && u.Size > parentSize {
-		u.Size = ClampEhex(int(parentSize)-1, 0, int(ehex.Max))
+		u.Size = world.ClampEhex(int(parentSize)-1, 0, int(ehex.Max))
 	}
 
 	return u

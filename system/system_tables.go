@@ -1,4 +1,4 @@
-package world
+package system
 
 import "github.com/philoserf/traveller/dice"
 

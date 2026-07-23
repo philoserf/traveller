@@ -1,4 +1,4 @@
-package world
+package system
 
 import (
 	"math/rand/v2"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/world"
 )
 
 // TestHabitableZoneOrbitMatchesReginaPrimary is a consistency check, not
@@ -112,8 +113,8 @@ func TestGenerateSystemDeterminism(t *testing.T) {
 	r1 := dice.New(rand.NewPCG(7, 7))
 	r2 := dice.New(rand.NewPCG(7, 7))
 
-	mw1 := Generate(r1)
-	mw2 := Generate(r2)
+	mw1 := world.Generate(r1)
+	mw2 := world.Generate(r2)
 
 	sys1 := GenerateSystem(r1, mw1)
 	sys2 := GenerateSystem(r2, mw2)
@@ -127,7 +128,7 @@ func TestGenerateSystemMainworldOrbitIndexIsCorrect(t *testing.T) {
 	t.Parallel()
 
 	r := dice.New(rand.NewPCG(20, 20))
-	mw := Generate(r)
+	mw := world.Generate(r)
 	sys := GenerateSystem(r, mw)
 
 	got := sys.Orbits[sys.MainworldOrbit].World
@@ -151,7 +152,7 @@ func TestGenerateSystemInvariants(t *testing.T) {
 	r := dice.New(rand.NewPCG(42, 42))
 
 	for range 2000 {
-		mw := Generate(r)
+		mw := world.Generate(r)
 		sys := GenerateSystem(r, mw)
 
 		if sys.MainworldOrbit < 0 || sys.MainworldOrbit >= len(sys.Orbits) {
@@ -226,7 +227,7 @@ func TestGenerateSystemAvoidsPrecludedOrbitsForGiantPrimary(t *testing.T) {
 	t.Parallel()
 
 	r := dice.RollerFromSeed(21)
-	mw := Generate(r)
+	mw := world.Generate(r)
 	sys := GenerateSystem(r, mw)
 
 	primary := sys.Stars()[0]
@@ -269,7 +270,7 @@ func TestGenerateSystemPreservesMainworldSatelliteCloseFar(t *testing.T) {
 			t.Parallel()
 
 			r := dice.RollerFromSeed(c.seed)
-			mw := Generate(r)
+			mw := world.Generate(r)
 			sys := GenerateSystem(r, mw)
 
 			mwOrbit := sys.Orbits[sys.MainworldOrbit]
@@ -299,7 +300,7 @@ func TestGenerateSystemMainworldFallsBackToBigWorld(t *testing.T) {
 	t.Parallel()
 
 	r := dice.RollerFromSeed(34)
-	mw := Generate(r)
+	mw := world.Generate(r)
 
 	if mw.PBG.GasGiants != 0 {
 		t.Fatalf("seed 34's mainworld PBG.GasGiants = %d, want 0 — this test needs re-pinning to a fresh seed",

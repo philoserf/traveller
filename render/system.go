@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/philoserf/traveller/system"
 	"github.com/philoserf/traveller/world"
 )
 
@@ -15,7 +16,7 @@ import (
 // the mainworld section — World's own "#"/"##" headers don't compose
 // cleanly nested inside a larger document, so this renders the same
 // fields directly at its own heading level instead.
-func System(s world.StarSystem) string {
+func System(s system.StarSystem) string {
 	mwOrbit := s.Orbits[s.MainworldOrbit]
 	mw := mwOrbit.World
 
@@ -59,7 +60,7 @@ func System(s world.StarSystem) string {
 // satellites (if any) aren't repeated here — they're already visible,
 // marked "(Mainworld)", nested under its entry in "## System" below,
 // alongside every other body's satellites.
-func writeMainworld(b *strings.Builder, mwOrbit world.Orbit) {
+func writeMainworld(b *strings.Builder, mwOrbit system.Orbit) {
 	mw := mwOrbit.World
 
 	fmt.Fprint(b, "## Mainworld\n\n")
@@ -100,7 +101,7 @@ func writeMainworld(b *strings.Builder, mwOrbit world.Orbit) {
 // (Size letter and Bracket), or a placed World with its Trade Codes —
 // either way with a Ring suffix when it has one, and a "(Mainworld)"
 // suffix when isMainworld (a Gas Giant is never the mainworld itself).
-func otherBodyLine(o world.Orbit, isMainworld bool) string {
+func otherBodyLine(o system.Orbit, isMainworld bool) string {
 	var line string
 	if o.GasGiant != nil {
 		line = fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
@@ -139,7 +140,7 @@ func closeFarLabel(isClose bool) string {
 // satelliteLine renders one satellite: Close or Far, its UWP, its Trade
 // Codes, and a "(Mainworld)" suffix when isMainworld — a mainworld that
 // is itself a satellite of a Gas Giant.
-func satelliteLine(o world.Orbit, isMainworld bool) string {
+func satelliteLine(o system.Orbit, isMainworld bool) string {
 	line := fmt.Sprintf(
 		"%s satellite: %s — %s",
 		closeFarLabel(o.Close),
@@ -156,10 +157,10 @@ func satelliteLine(o world.Orbit, isMainworld bool) string {
 
 // starSpec renders a star's spectral classification, e.g. "G7 IV" — or,
 // for a Degenerate star (white dwarf/brown dwarf), "D D": SpectralDecimal
-// is meaningless for them (world.Star's own doc comment), so the type
+// is meaningless for them (system.Star's own doc comment), so the type
 // letter and LuminosityClass ("D") are shown instead of a decimal.
-func starSpec(star world.Star) string {
-	if star.SpectralType == world.SpectralDegenerate {
+func starSpec(star system.Star) string {
+	if star.SpectralType == system.SpectralDegenerate {
 		return string(star.SpectralType) + " " + star.LuminosityClass
 	}
 
@@ -171,7 +172,7 @@ func starSpec(star world.Star) string {
 // Number is the primaryOrbitNumber sentinel, not a real orbit slot — the
 // same o.Number >= 0 check api.toStarResponse uses for this), HZ orbit,
 // and whether it has a Companion.
-func starHeading(o world.Orbit) string {
+func starHeading(o system.Orbit) string {
 	star := *o.Star
 
 	var orbitPart string

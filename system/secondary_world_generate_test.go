@@ -1,4 +1,4 @@
-package world
+package system
 
 import (
 	"math/rand/v2"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/ehex"
+	"github.com/philoserf/traveller/world"
 )
 
 func TestCapPopulation(t *testing.T) {
@@ -42,8 +43,8 @@ func TestGenerateInfernoFixedFields(t *testing.T) {
 	for range 1000 {
 		u := generateInferno(r)
 
-		if u.Starport != StarportNone {
-			t.Fatalf("generateInferno: Starport = %v, want StarportNone", u.Starport)
+		if u.Starport != world.StarportNone {
+			t.Fatalf("generateInferno: Starport = %v, want world.StarportNone", u.Starport)
 		}
 
 		if u.Size < 7 {
@@ -95,8 +96,8 @@ func TestGeneratePlanetoidWorldFixedFields(t *testing.T) {
 			t.Fatalf("generatePlanetoidWorld: %+v, want Size/Atmosphere/Hydrographics fixed at 0", u)
 		}
 
-		if !slices.Contains(DeriveTradeCodes(u), AsteroidBelt) {
-			t.Fatalf("generatePlanetoidWorld: DeriveTradeCodes(%+v) doesn't contain AsteroidBelt", u)
+		if !slices.Contains(world.DeriveTradeCodes(u), world.AsteroidBelt) {
+			t.Fatalf("generatePlanetoidWorld: world.DeriveTradeCodes(%+v) doesn't contain world.AsteroidBelt", u)
 		}
 	}
 }
@@ -110,7 +111,7 @@ func TestSecondaryWorldsRespectMaxPopulation(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(6, 6))
 
-	generators := map[string]func(*dice.Roller, ehex.Value) UWP{
+	generators := map[string]func(*dice.Roller, ehex.Value) world.UWP{
 		"Hospitable": generateHospitableWorld,
 		"BigWorld":   generateBigWorld,
 		"Worldlet":   generateWorldlet,

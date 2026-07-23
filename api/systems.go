@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/system"
 	"github.com/philoserf/traveller/world"
 )
 
@@ -15,7 +16,7 @@ type GasGiantResponse struct {
 
 // StarResponse is the wire shape of a single star in a system. Orbit is
 // nil for the Primary — it's the system's center, not a numbered orbit
-// (see world.Orbit's doc comment on the sentinel this maps from).
+// (see system.Orbit's doc comment on the sentinel this maps from).
 type StarResponse struct {
 	SpectralType       string `json:"spectralType"`
 	SpectralDecimal    int    `json:"spectralDecimal"`
@@ -38,7 +39,7 @@ type MainworldResponse struct {
 	AU        float64 `json:"au,omitempty"`
 	Satellite bool    `json:"satellite"`
 	// Close is meaningful only when Satellite is true — Close (tidally
-	// locked) vs Far, mirroring world.Orbit.Close.
+	// locked) vs Far, mirroring system.Orbit.Close.
 	Close      bool              `json:"close"`
 	GasGiant   *GasGiantResponse `json:"gasGiant,omitempty"`
 	UWP        string            `json:"uwp"`
@@ -91,7 +92,7 @@ type StarGroupResponse struct {
 // SystemResponse is the wire shape of a generated star system: its
 // mainworld's placement, and every star with the bodies it hosts (Gas
 // Giants, Belts, secondary worlds, and their satellites — see
-// world.GenerateSystem for what's placed and why).
+// system.GenerateSystem for what's placed and why).
 type SystemResponse struct {
 	Seed       int64               `json:"seed"`
 	StarGroups []StarGroupResponse `json:"starGroups"`
@@ -124,12 +125,12 @@ func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 	resolved := dice.ResolveSeed(seedPtr)
 	roller := dice.RollerFromSeed(resolved)
 	mainworld := world.Generate(roller)
-	sys := world.GenerateSystem(roller, mainworld)
+	sys := system.GenerateSystem(roller, mainworld)
 
 	writeJSON(w, http.StatusOK, toSystemResponse(resolved, sys))
 }
 
-func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
+func toSystemResponse(seed int64, sys system.StarSystem) SystemResponse {
 	starOrbits, bodiesByRole, satellitesOf := sys.SystemBodies()
 
 	starGroups := make([]StarGroupResponse, 0, len(starOrbits))
@@ -157,7 +158,7 @@ func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
 // satellites (already collected by Number) nested under it. sys.IsMainworld
 // marks whichever entry (this body, or one of its satellites) is the
 // system's own mainworld.
-func toBodyResponse(sys world.StarSystem, o world.Orbit, satellites []world.Orbit) BodyResponse {
+func toBodyResponse(sys system.StarSystem, o system.Orbit, satellites []system.Orbit) BodyResponse {
 	resp := BodyResponse{Orbit: o.Number, IsMainworld: sys.IsMainworld(o)}
 
 	if o.GasGiant != nil {
@@ -181,7 +182,7 @@ func toBodyResponse(sys world.StarSystem, o world.Orbit, satellites []world.Orbi
 	return resp
 }
 
-func toStarResponse(o world.Orbit) StarResponse {
+func toStarResponse(o system.Orbit) StarResponse {
 	star := o.Star
 
 	resp := StarResponse{
@@ -201,7 +202,7 @@ func toStarResponse(o world.Orbit) StarResponse {
 	return resp
 }
 
-func toMainworldResponse(sys world.StarSystem, mwOrbit world.Orbit) MainworldResponse {
+func toMainworldResponse(sys system.StarSystem, mwOrbit system.Orbit) MainworldResponse {
 	mw := mwOrbit.World
 
 	resp := MainworldResponse{

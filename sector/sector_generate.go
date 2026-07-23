@@ -1,10 +1,12 @@
-package world
+package sector
 
 import (
 	"fmt"
 	"hash/fnv"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/system"
+	"github.com/philoserf/traveller/world"
 )
 
 // hexLocation formats col/row (1-based: col 1-32, row 1-40) as Book 3's
@@ -104,11 +106,11 @@ func GenerateSector(seed int64, name string, density Density) Sector {
 
 			r := dice.RollerFromSeed(HexSeed(seed, location))
 
-			mw := Generate(r)
+			mw := world.Generate(r)
 			mw.Sector = name
 			mw.Hex = location
 
-			sys := GenerateSystem(r, mw)
+			sys := system.GenerateSystem(r, mw)
 			sys.Sector = name
 			sys.Hex = location
 

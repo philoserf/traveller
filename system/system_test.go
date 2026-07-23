@@ -1,8 +1,9 @@
-package world_test
+package system_test
 
 import (
 	"testing"
 
+	"github.com/philoserf/traveller/system"
 	"github.com/philoserf/traveller/world"
 )
 
@@ -10,14 +11,14 @@ func TestStellarRoleString(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		role world.StellarRole
+		role system.StellarRole
 		want string
 	}{
-		{world.Primary, "Primary"},
-		{world.Close, "Close"},
-		{world.Near, "Near"},
-		{world.Far, "Far"},
-		{world.StellarRole(99), "Unknown"},
+		{system.Primary, "Primary"},
+		{system.Close, "Close"},
+		{system.Near, "Near"},
+		{system.Far, "Far"},
+		{system.StellarRole(99), "Unknown"},
 	}
 
 	for _, c := range cases {
@@ -37,13 +38,13 @@ func TestStellarRoleString(t *testing.T) {
 func TestSystemBodiesSortsStarsCloseToFar(t *testing.T) {
 	t.Parallel()
 
-	far := world.Star{Role: world.Far}
-	closeStar := world.Star{Role: world.Close}
-	primary := world.Star{Role: world.Primary}
-	near := world.Star{Role: world.Near}
+	far := system.Star{Role: system.Far}
+	closeStar := system.Star{Role: system.Close}
+	primary := system.Star{Role: system.Primary}
+	near := system.Star{Role: system.Near}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
+	sys := system.StarSystem{
+		Orbits: []system.Orbit{
 			{Number: 14, Star: &far},
 			{Number: 3, Star: &closeStar},
 			{Number: -1, Star: &primary},
@@ -54,7 +55,7 @@ func TestSystemBodiesSortsStarsCloseToFar(t *testing.T) {
 
 	starOrbits, _, _ := sys.SystemBodies()
 
-	want := []world.StellarRole{world.Primary, world.Close, world.Near, world.Far}
+	want := []system.StellarRole{system.Primary, system.Close, system.Near, system.Far}
 	if len(starOrbits) != len(want) {
 		t.Fatalf("SystemBodies() returned %d star orbits, want %d", len(starOrbits), len(want))
 	}
@@ -74,15 +75,15 @@ func TestSystemBodiesSortsStarsCloseToFar(t *testing.T) {
 func TestSystemBodiesSortsSatellitesCloseToFar(t *testing.T) {
 	t.Parallel()
 
-	primary := world.Star{Role: world.Primary}
-	gg := world.GasGiant{Size: 'S', Bracket: "LGG"}
+	primary := system.Star{Role: system.Primary}
+	gg := system.GasGiant{Size: 'S', Bracket: "LGG"}
 	farSat := world.World{}
 	closeSat := world.World{}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
+	sys := system.StarSystem{
+		Orbits: []system.Orbit{
 			{Number: -1, Star: &primary},
-			{Number: 3, HostRole: world.Primary, GasGiant: &gg},
+			{Number: 3, HostRole: system.Primary, GasGiant: &gg},
 			{Number: 3, Satellite: true, Close: false, World: &farSat},
 			{Number: 3, Satellite: true, Close: true, World: &closeSat},
 		},
@@ -110,20 +111,20 @@ func TestSystemBodiesSortsSatellitesCloseToFar(t *testing.T) {
 func TestSystemBodiesIncludesFreestandingMainworld(t *testing.T) {
 	t.Parallel()
 
-	primary := world.Star{Role: world.Primary}
+	primary := system.Star{Role: system.Primary}
 	mw := world.World{}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
+	sys := system.StarSystem{
+		Orbits: []system.Orbit{
 			{Number: -1, Star: &primary},
-			{Number: 4, HostRole: world.Primary, World: &mw},
+			{Number: 4, HostRole: system.Primary, World: &mw},
 		},
 		MainworldOrbit: 1,
 	}
 
 	_, bodiesByRole, _ := sys.SystemBodies()
 
-	bodies := bodiesByRole[world.Primary]
+	bodies := bodiesByRole[system.Primary]
 	if len(bodies) != 1 || bodies[0].World != &mw {
 		t.Errorf("bodiesByRole[Primary] = %v, want exactly the mainworld's own Orbit", bodies)
 	}
@@ -137,15 +138,15 @@ func TestSystemBodiesIncludesFreestandingMainworld(t *testing.T) {
 func TestSystemBodiesIncludesSatelliteMainworld(t *testing.T) {
 	t.Parallel()
 
-	primary := world.Star{Role: world.Primary}
-	gg := world.GasGiant{Size: 'S', Bracket: "LGG"}
+	primary := system.Star{Role: system.Primary}
+	gg := system.GasGiant{Size: 'S', Bracket: "LGG"}
 	mw := world.World{}
 	otherMoon := world.World{}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
+	sys := system.StarSystem{
+		Orbits: []system.Orbit{
 			{Number: -1, Star: &primary},
-			{Number: 3, HostRole: world.Primary, GasGiant: &gg},
+			{Number: 3, HostRole: system.Primary, GasGiant: &gg},
 			{Number: 3, Satellite: true, Close: true, World: &mw},
 			{Number: 3, Satellite: true, Close: false, World: &otherMoon},
 		},
@@ -180,16 +181,16 @@ func TestSystemBodiesIncludesSatelliteMainworld(t *testing.T) {
 func TestIsMainworld(t *testing.T) {
 	t.Parallel()
 
-	primary := world.Star{Role: world.Primary}
+	primary := system.Star{Role: system.Primary}
 	mw := world.World{}
 	otherWorld := world.World{}
-	gg := world.GasGiant{Size: 'S', Bracket: "LGG"}
+	gg := system.GasGiant{Size: 'S', Bracket: "LGG"}
 
 	t.Run("matches the mainworld's own Orbit", func(t *testing.T) {
 		t.Parallel()
 
-		sys := world.StarSystem{
-			Orbits:         []world.Orbit{{Number: -1, Star: &primary}, {Number: 4, World: &mw}},
+		sys := system.StarSystem{
+			Orbits:         []system.Orbit{{Number: -1, Star: &primary}, {Number: 4, World: &mw}},
 			MainworldOrbit: 1,
 		}
 
@@ -197,7 +198,7 @@ func TestIsMainworld(t *testing.T) {
 			t.Error("IsMainworld(mainworld's own Orbit) = false, want true")
 		}
 
-		if sys.IsMainworld(world.Orbit{Number: 4, World: &otherWorld}) {
+		if sys.IsMainworld(system.Orbit{Number: 4, World: &otherWorld}) {
 			t.Error("IsMainworld(a different World at the same Number) = true, want false")
 		}
 	})
@@ -208,8 +209,8 @@ func TestIsMainworld(t *testing.T) {
 		// An invalid StarSystem (MainworldOrbit points at a Star, not a
 		// World) — every Gas Giant orbit has a nil World too, and must
 		// not be reported as the mainworld just because both are nil.
-		sys := world.StarSystem{
-			Orbits:         []world.Orbit{{Number: -1, Star: &primary}, {Number: 4, GasGiant: &gg}},
+		sys := system.StarSystem{
+			Orbits:         []system.Orbit{{Number: -1, Star: &primary}, {Number: 4, GasGiant: &gg}},
 			MainworldOrbit: 0,
 		}
 
