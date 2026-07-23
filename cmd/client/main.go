@@ -164,11 +164,18 @@ func runSystem(args []string) error {
 // Giant, or a placed World with its own Trade Codes — matching
 // render/system.go's otherBodyLine.
 func bodyLine(b api.BodyResponse) string {
+	var line string
 	if b.GasGiant != nil {
-		return fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", b.Orbit, b.GasGiant.Size, b.GasGiant.Bracket)
+		line = fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", b.Orbit, b.GasGiant.Size, b.GasGiant.Bracket)
+	} else {
+		line = fmt.Sprintf("Orbit %d: %s — %s", b.Orbit, b.UWP, strings.Join(world.TradeCodeStrings(b.TradeCodes), " "))
 	}
 
-	return fmt.Sprintf("Orbit %d: %s — %s", b.Orbit, b.UWP, strings.Join(world.TradeCodeStrings(b.TradeCodes), " "))
+	if b.Ring {
+		line += ", with a Ring"
+	}
+
+	return line
 }
 
 // satelliteLine formats one satellite — matching render/system.go's

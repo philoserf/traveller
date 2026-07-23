@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"sort"
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/world"
@@ -63,9 +62,10 @@ type SatelliteResponse struct {
 // BodyResponse is the wire shape of a non-mainworld, non-star body placed
 // in the system: either a Gas Giant, or a placed World with its own
 // UWP/TradeCodes (GasGiant is nil in that case), plus any Satellites of
-// its own.
+// its own. Ring is whichever of GasGiant.Ring/World.Ring applies.
 type BodyResponse struct {
 	Orbit      int                 `json:"orbit"`
+	Ring       bool                `json:"ring,omitempty"`
 	GasGiant   *GasGiantResponse   `json:"gasGiant,omitempty"`
 	UWP        string              `json:"uwp,omitempty"`
 	TradeCodes []world.TradeCode   `json:"tradeCodes,omitempty"`
@@ -124,30 +124,7 @@ func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 }
 
 func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
-	var starOrbits []world.Orbit
-
-	bodiesByRole := map[world.StellarRole][]world.Orbit{}
-	satellitesOf := map[int][]world.Orbit{}
-
-	for i, o := range sys.Orbits {
-		switch {
-		case o.Star != nil:
-			starOrbits = append(starOrbits, o)
-		case i == sys.MainworldOrbit:
-			// handled separately below, via toMainworldResponse
-		case o.Satellite:
-			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
-		default:
-			bodiesByRole[o.HostRole] = append(bodiesByRole[o.HostRole], o)
-		}
-	}
-
-	for role := range bodiesByRole {
-		sort.Slice(
-			bodiesByRole[role],
-			func(i, j int) bool { return bodiesByRole[role][i].Number < bodiesByRole[role][j].Number },
-		)
-	}
+	starOrbits, bodiesByRole, satellitesOf := sys.SystemBodies()
 
 	starGroups := make([]StarGroupResponse, 0, len(starOrbits))
 
@@ -178,8 +155,10 @@ func toBodyResponse(o world.Orbit, satellites []world.Orbit) BodyResponse {
 	resp := BodyResponse{Orbit: o.Number}
 
 	if o.GasGiant != nil {
+		resp.Ring = o.GasGiant.Ring
 		resp.GasGiant = &GasGiantResponse{Size: string(o.GasGiant.Size), Bracket: o.GasGiant.Bracket}
 	} else {
+		resp.Ring = o.World.Ring
 		resp.UWP = o.World.UWP.String()
 		resp.TradeCodes = o.World.TradeCodes
 	}

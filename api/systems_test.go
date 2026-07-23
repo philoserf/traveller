@@ -151,6 +151,54 @@ func TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies(t *te
 	}
 }
 
+// TestSystemsRandomMultiStarBodiesGroupCorrectly pins seed 3 (known, via
+// go run ./cmd/sysgen -seed 3, to produce a Primary/Near/Far system with
+// bodies hosted by all three, and a Ring on the Primary's orbit-2 Gas
+// Giant) — confirming toSystemResponse's role-keyed grouping is exercised
+// across multiple stars at the API layer (not just the single-star case
+// TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies
+// covers), and that Ring survives the JSON round-trip.
+func TestSystemsRandomMultiStarBodiesGroupCorrectly(t *testing.T) {
+	t.Parallel()
+
+	rec := doRequest(t, api.NewMux(), "/systems/random?seed=3")
+
+	var got api.SystemResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if len(got.StarGroups) != 3 {
+		t.Fatalf(
+			"seed 3: StarGroups has %d entries, want 3 (regression: verify against cmd/sysgen -seed 3 if this changes)",
+			len(got.StarGroups),
+		)
+	}
+
+	bodiesByRole := map[string]int{}
+	ringFound := false
+
+	for _, g := range got.StarGroups {
+		bodiesByRole[g.Star.Role] = len(g.Bodies)
+
+		for _, b := range g.Bodies {
+			if b.Ring {
+				ringFound = true
+			}
+		}
+	}
+
+	for _, role := range []string{"Primary", "Near", "Far"} {
+		if bodiesByRole[role] == 0 {
+			t.Errorf("seed 3: %s group has no bodies, want at least one", role)
+		}
+	}
+
+	if !ringFound {
+		t.Error("seed 3: no body in any group has Ring set, want the Primary's orbit-2 Gas Giant to carry one")
+	}
+}
+
 func TestSystemsRandomBadSeed(t *testing.T) {
 	t.Parallel()
 

@@ -2,7 +2,6 @@ package render
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/philoserf/traveller/world"
@@ -24,17 +23,13 @@ func System(s world.StarSystem) string {
 
 	fmt.Fprintf(&b, "# %s System\n\n", title(*mw))
 
-	satellitesOf, bodiesByRole := systemBodies(s)
+	starOrbits, bodiesByRole, satellitesOf := s.SystemBodies()
 
 	writeMainworld(&b, mwOrbit, satellitesOf)
 
 	fmt.Fprint(&b, "\n## System\n\n")
 
-	for _, o := range s.Orbits {
-		if o.Star == nil {
-			continue
-		}
-
+	for _, o := range starOrbits {
 		fmt.Fprintf(&b, "### %s\n\n", starHeading(o))
 
 		bodies := bodiesByRole[o.Star.Role]
@@ -113,36 +108,6 @@ func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[in
 			}
 		}
 	}
-}
-
-// systemBodies splits every Orbit in s besides the mainworld's own and
-// every Star into: satellitesOf, grouped by the Number they share with
-// their parent; and bodiesByRole, every top-level (non-Satellite) Gas
-// Giant/World grouped by the StellarRole that hosts it (Orbit.HostRole)
-// and sorted by orbit number within each group.
-func systemBodies(s world.StarSystem) (map[int][]world.Orbit, map[world.StellarRole][]world.Orbit) {
-	satellitesOf := map[int][]world.Orbit{}
-	bodiesByRole := map[world.StellarRole][]world.Orbit{}
-
-	for i, o := range s.Orbits {
-		switch {
-		case i == s.MainworldOrbit, o.Star != nil:
-			continue
-		case o.Satellite:
-			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
-		default:
-			bodiesByRole[o.HostRole] = append(bodiesByRole[o.HostRole], o)
-		}
-	}
-
-	for role := range bodiesByRole {
-		sort.Slice(
-			bodiesByRole[role],
-			func(i, j int) bool { return bodiesByRole[role][i].Number < bodiesByRole[role][j].Number },
-		)
-	}
-
-	return satellitesOf, bodiesByRole
 }
 
 // otherBodyLine renders one non-mainworld, non-star, non-Satellite body:

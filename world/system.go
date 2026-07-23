@@ -1,5 +1,7 @@
 package world
 
+import "sort"
+
 // SpectralType is a star's spectral classification.
 type SpectralType byte
 
@@ -156,4 +158,41 @@ func (s StarSystem) Worlds() []*World {
 	}
 
 	return worlds
+}
+
+// SystemBodies groups every Orbit in s besides the mainworld's own and
+// every Star (starOrbits collects those separately, in the order
+// GenerateSystem placed them — Primary first, then Close/Near/Far) into:
+// bodiesByRole, every top-level (non-Satellite) Gas Giant/World grouped
+// by the StellarRole that hosts it (Orbit.HostRole) and sorted by orbit
+// Number within each group; and satellitesOf, grouped by the Number they
+// share with their parent. The single source both render.System and the
+// JSON API's toSystemResponse group by, so the two stay consistent.
+func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]Orbit) {
+	var starOrbits []Orbit
+
+	bodiesByRole := map[StellarRole][]Orbit{}
+	satellitesOf := map[int][]Orbit{}
+
+	for i, o := range s.Orbits {
+		switch {
+		case o.Star != nil:
+			starOrbits = append(starOrbits, o)
+		case i == s.MainworldOrbit:
+			// excluded: shown separately via its own dedicated section
+		case o.Satellite:
+			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
+		default:
+			bodiesByRole[o.HostRole] = append(bodiesByRole[o.HostRole], o)
+		}
+	}
+
+	for role := range bodiesByRole {
+		sort.Slice(
+			bodiesByRole[role],
+			func(i, j int) bool { return bodiesByRole[role][i].Number < bodiesByRole[role][j].Number },
+		)
+	}
+
+	return starOrbits, bodiesByRole, satellitesOf
 }
