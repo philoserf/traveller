@@ -49,12 +49,12 @@ func runHealthz(args []string) error {
 		return fmt.Errorf("client: parsing flags: %w", err)
 	}
 
-	statusCode, body, err := get(*addr + "/healthz")
+	status, _, body, err := get(*addr + "/healthz")
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("client: %s -> %d %s (%s)\n", *addr, statusCode, http.StatusText(statusCode), body)
+	fmt.Printf("client: %s -> %s (%s)\n", *addr, status, body)
 
 	return nil
 }
@@ -73,13 +73,13 @@ func runWorld(args []string) error {
 		url += "?seed=" + strconv.FormatInt(*seed, 10)
 	}
 
-	statusCode, body, err := get(url)
+	status, statusCode, body, err := get(url)
 	if err != nil {
 		return err
 	}
 
 	if statusCode != http.StatusOK {
-		return fmt.Errorf("client: server returned %d %s: %s", statusCode, http.StatusText(statusCode), body)
+		return fmt.Errorf("client: server returned %s: %s", status, body)
 	}
 
 	var w api.WorldResponse
@@ -96,26 +96,31 @@ func runWorld(args []string) error {
 
 // get performs a GET request against url. It fully drains and closes the
 // response body itself, returning only the pieces callers need — never a
-// live *http.Response — so there's no way for a caller to forget to close it.
-func get(url string) (int, []byte, error) {
+// live *http.Response — so there's no way for a caller to forget to close
+// it. status is the server's raw status line (e.g. "200 OK"), kept
+// alongside statusCode rather than reconstructed via http.StatusText:
+// StatusText returns "" for any status code outside net/http's built-in
+// table, which would silently drop the reason phrase for a non-standard
+// code from a proxy or future server change.
+func get(url string) (string, int, []byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return 0, nil, fmt.Errorf("client: building request: %w", err)
+		return "", 0, nil, fmt.Errorf("client: building request: %w", err)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return 0, nil, fmt.Errorf("client: request failed: %w", err)
+		return "", 0, nil, fmt.Errorf("client: request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, nil, fmt.Errorf("client: reading response: %w", err)
+		return "", 0, nil, fmt.Errorf("client: reading response: %w", err)
 	}
 
-	return resp.StatusCode, body, nil
+	return resp.Status, resp.StatusCode, body, nil
 }

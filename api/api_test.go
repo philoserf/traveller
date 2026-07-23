@@ -126,23 +126,22 @@ func TestWorldsRandomBadSeed(t *testing.T) {
 	}
 }
 
-func TestNotFound(t *testing.T) {
+func TestWrongMethodReturns405(t *testing.T) {
 	t.Parallel()
 
-	rec := doRequest(t, api.NewMux(), "/no/such/route")
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	api.NewMux().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	// Regression guard: a catch-all "/" route was tried once and reverted
+	// because registering it made every method match at every path from
+	// the mux's perspective, silently turning this into a 404 instead —
+	// see the doc comment on api.NewMux.
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusMethodNotAllowed)
 	}
 
-	var body struct {
-		Error string `json:"error"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("unmarshal response: %v (body should be JSON, not the stdlib mux's plain-text 404)", err)
-	}
-
-	if body.Error == "" {
-		t.Error("error field is empty, want a message")
+	if rec.Header().Get("Allow") == "" {
+		t.Error("Allow header is empty, want the mux's automatic method list")
 	}
 }

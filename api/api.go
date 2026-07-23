@@ -9,20 +9,24 @@ import (
 	"net/http"
 )
 
-// NewMux returns the traveller API's routes. Unmatched paths get a JSON 404
-// via handleNotFound, same as every other error response — the "/" pattern
-// only ever fires when nothing more specific matched.
+// NewMux returns the traveller API's routes.
+//
+// Unmatched paths and wrong-method requests fall through to net/http's
+// built-in plain-text 404/405 handling rather than a JSON error envelope.
+// A catch-all "/" pattern was tried here and reverted: registering it makes
+// every method match at every path from the mux's perspective, which
+// silently disables ServeMux's automatic 405 Method Not Allowed detection
+// for the routes above — a POST to /healthz became an indistinguishable
+// 404 instead. Making 404 *and* 405 both return JSON without that
+// regression needs a ResponseWriter-wrapping middleware that inspects the
+// mux's already-decided status code, not a route registration — deferred
+// until there's a second real consumer to justify it.
 func NewMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealthz)
 	mux.HandleFunc("GET /worlds/random", handleWorldsRandom)
-	mux.HandleFunc("/", handleNotFound)
 
 	return mux
-}
-
-func handleNotFound(w http.ResponseWriter, _ *http.Request) {
-	writeJSONError(w, http.StatusNotFound, "not found")
 }
 
 type errorResponse struct {
