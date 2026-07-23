@@ -135,9 +135,25 @@ func runSystem(args []string) error {
 	}
 
 	printWorldFields(mw.UWP, mw.TradeCodes, mw.Bases, mw.PBG, mw.TravelZone, mw.Importance, mw.Economic, mw.Cultural)
+
+	for _, o := range sys.OtherBodies {
+		fmt.Println(otherBodyLine(o))
+	}
+
 	fmt.Printf("(seed: %d)\n", sys.Seed)
 
 	return nil
+}
+
+// otherBodyLine formats one non-mainworld, non-star body: a Gas Giant, or
+// a placed World with its own Trade Codes — matching render/system.go's
+// otherBodyLine.
+func otherBodyLine(o api.OtherBodyResponse) string {
+	if o.GasGiant != nil {
+		return fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", o.Orbit, o.GasGiant.Size, o.GasGiant.Bracket)
+	}
+
+	return fmt.Sprintf("Orbit %d: %s — %s", o.Orbit, o.UWP, strings.Join(world.TradeCodeStrings(o.TradeCodes), " "))
 }
 
 // printWorldFields prints the fields api.WorldResponse and

@@ -25,51 +25,77 @@ func dmPopulation(r *dice.Roller, dm int, maxPopulation ehex.Value) ehex.Value {
 	return capPopulation(clampEhex(r.TwoD6()-2+dm, 0, int(ehex.Max)), maxPopulation)
 }
 
+// secondaryPopulation rolls Population for a secondary world: the
+// standard rollPopulation (including its reroll-on-10 exception) when
+// dm==0, since that matches a category formula with no DM at all
+// ("roll normally"); dmPopulation (no reroll exception — see its own doc
+// comment) otherwise.
+func secondaryPopulation(r *dice.Roller, dm int, maxPopulation ehex.Value) ehex.Value {
+	if dm == 0 {
+		return capPopulation(rollPopulation(r), maxPopulation)
+	}
+
+	return dmPopulation(r, dm, maxPopulation)
+}
+
 // dmAtmosphere rolls Atmosphere via the standard rollAtmosphere formula
-// plus an additional dm, clamped to 0..15 (F).
+// plus an additional dm, clamped to 0..15 (F). dm=0 reproduces
+// rollAtmosphere's own result exactly.
 func dmAtmosphere(r *dice.Roller, size ehex.Value, dm int) ehex.Value {
 	return clampEhex(int(rollAtmosphere(r, size))+dm, 0, 15)
 }
 
 // dmHydrographics rolls Hydrographics via the standard rollHydrographics
-// formula plus an additional dm, clamped to 0..10 (A).
+// formula plus an additional dm, clamped to 0..10 (A). dm=0 reproduces
+// rollHydrographics's own result exactly.
 func dmHydrographics(r *dice.Roller, size, atm ehex.Value, dm int) ehex.Value {
 	return clampEhex(int(rollHydrographics(r, size, atm))+dm, 0, 10)
 }
 
-// generateHospitableWorld rolls a full UWP normally (Book 3 p.29:
-// Hospitable= StSAHPGL-T).
-func generateHospitableWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
+func rollBigWorldSize(r *dice.Roller) ehex.Value   { return clampEhex(r.TwoD6()+7, 0, int(ehex.Max)) }
+func rollWorldletSize(r *dice.Roller) ehex.Value   { return clampEhex(r.D6()-3, 0, int(ehex.Max)) }
+func rollStormWorldSize(r *dice.Roller) ehex.Value { return clampEhex(r.TwoD6(), 0, int(ehex.Max)) }
+
+// rollSecondaryUWPBody rolls the StSAHPGL-T skeleton every "normal"
+// secondary-world category shares (Book 3 p.29): Starport through
+// TechLevel, with Size from sizeRoll and Atmosphere/Hydrographics/
+// Population each getting an additional dm on top of their standard roll
+// (0 for "no override," matching a category's own formula exactly when
+// it says nothing more than "roll normally"). Shared by every category
+// except RadWorld/Inferno/Planetoids, whose formulas fix enough fields
+// (Government/Law/TechLevel, or the whole UWP) that this skeleton
+// doesn't fit them.
+func rollSecondaryUWPBody(
+	r *dice.Roller,
+	sizeRoll func(*dice.Roller) ehex.Value,
+	atmDM, hydDM, popDM int,
+	maxPopulation ehex.Value,
+) UWP {
 	var u UWP
 
 	u.Starport = rollStarport(r)
-	u.Size = rollSize(r)
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
-	u.Population = capPopulation(rollPopulation(r), maxPopulation)
+	u.Size = sizeRoll(r)
+	u.Atmosphere = dmAtmosphere(r, u.Size, atmDM)
+	u.Hydrographics = dmHydrographics(r, u.Size, u.Atmosphere, hydDM)
+	u.Population = secondaryPopulation(r, popDM, maxPopulation)
 	u.Government = rollGovernment(r, u.Population)
 	u.Law = rollLaw(r, u.Government)
 	u.TechLevel = rollTechLevel(r, u)
 
 	return u
+}
+
+// generateHospitableWorld rolls a full UWP normally (Book 3 p.29:
+// Hospitable= StSAHPGL-T).
+func generateHospitableWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
+	return rollSecondaryUWPBody(r, rollSize, 0, 0, 0, maxPopulation)
 }
 
 // generateBigWorld overrides Size = 2D+7 (Book 3 p.29: BigWorld=
 // StSAHPGL-T Siz= 2D+7 — "any with Siz=B+ is BW"), rolling everything
 // else from that Size normally.
 func generateBigWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
-	var u UWP
-
-	u.Starport = rollStarport(r)
-	u.Size = clampEhex(r.TwoD6()+7, 0, int(ehex.Max))
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
-	u.Population = capPopulation(rollPopulation(r), maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
-
-	return u
+	return rollSecondaryUWPBody(r, rollBigWorldSize, 0, 0, 0, maxPopulation)
 }
 
 // generateRadWorld: Book 3 p.29's RadWorld= StSAH000-0 Siz=2D —
@@ -103,69 +129,25 @@ func generateInferno(r *dice.Roller) UWP {
 // generateWorldlet: Book 3 p.29's Worldlet= StSAHPGL-T Siz=1D-3 (floored
 // at 0), rest normal.
 func generateWorldlet(r *dice.Roller, maxPopulation ehex.Value) UWP {
-	var u UWP
-
-	u.Starport = rollStarport(r)
-	u.Size = clampEhex(r.D6()-3, 0, int(ehex.Max))
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
-	u.Population = capPopulation(rollPopulation(r), maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
-
-	return u
+	return rollSecondaryUWPBody(r, rollWorldletSize, 0, 0, 0, maxPopulation)
 }
 
 // generateIceworld: Book 3 p.29's Iceworld= StSAHPGL-T Pop=DM-6 — normal
-// UWP, Population via dmPopulation instead of the standard roll.
+// UWP, Population via secondaryPopulation instead of the standard roll.
 func generateIceworld(r *dice.Roller, maxPopulation ehex.Value) UWP {
-	var u UWP
-
-	u.Starport = rollStarport(r)
-	u.Size = rollSize(r)
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
-	u.Population = dmPopulation(r, -6, maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
-
-	return u
+	return rollSecondaryUWPBody(r, rollSize, 0, 0, -6, maxPopulation)
 }
 
 // generateInnerWorld: Book 3 p.29's Inner World= StSAHPGL-T Pop=DM-4
 // Hyd=DM-4.
 func generateInnerWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
-	var u UWP
-
-	u.Starport = rollStarport(r)
-	u.Size = rollSize(r)
-	u.Atmosphere = rollAtmosphere(r, u.Size)
-	u.Hydrographics = dmHydrographics(r, u.Size, u.Atmosphere, -4)
-	u.Population = dmPopulation(r, -4, maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
-
-	return u
+	return rollSecondaryUWPBody(r, rollSize, 0, -4, -4, maxPopulation)
 }
 
 // generateStormWorld: Book 3 p.29's Stormworld= StSAHPGL-T Siz=2D
 // Atm=DM+4 Hyd=DM-4 Pop=DM-6.
 func generateStormWorld(r *dice.Roller, maxPopulation ehex.Value) UWP {
-	var u UWP
-
-	u.Starport = rollStarport(r)
-	u.Size = clampEhex(r.TwoD6(), 0, int(ehex.Max))
-	u.Atmosphere = dmAtmosphere(r, u.Size, 4)
-	u.Hydrographics = dmHydrographics(r, u.Size, u.Atmosphere, -4)
-	u.Population = dmPopulation(r, -6, maxPopulation)
-	u.Government = rollGovernment(r, u.Population)
-	u.Law = rollLaw(r, u.Government)
-	u.TechLevel = rollTechLevel(r, u)
-
-	return u
+	return rollSecondaryUWPBody(r, rollStormWorldSize, 4, -4, -6, maxPopulation)
 }
 
 // generatePlanetoidWorld: Book 3 p.29's Planetoids= St000PGL-T —

@@ -48,12 +48,25 @@ type MainworldResponse struct {
 	Cultural   CulturalResponse  `json:"cultural"`
 }
 
-// SystemResponse is the wire shape of a generated star system: its stars
-// and its mainworld's placement within them.
+// OtherBodyResponse is the wire shape of a non-mainworld, non-star body
+// placed in the system: either a Gas Giant, or a placed World with its
+// own UWP/TradeCodes (GasGiant is nil in that case).
+type OtherBodyResponse struct {
+	Orbit      int               `json:"orbit"`
+	GasGiant   *GasGiantResponse `json:"gasGiant,omitempty"`
+	UWP        string            `json:"uwp,omitempty"`
+	TradeCodes []world.TradeCode `json:"tradeCodes,omitempty"`
+}
+
+// SystemResponse is the wire shape of a generated star system: its
+// stars, its mainworld's placement within them, and every other body
+// placed in the system (Gas Giants, Belts, secondary worlds — see
+// world.GenerateSystem for what's placed and why).
 type SystemResponse struct {
-	Seed      int64             `json:"seed"`
-	Stars     []StarResponse    `json:"stars"`
-	Mainworld MainworldResponse `json:"mainworld"`
+	Seed        int64               `json:"seed"`
+	Stars       []StarResponse      `json:"stars"`
+	Mainworld   MainworldResponse   `json:"mainworld"`
+	OtherBodies []OtherBodyResponse `json:"otherBodies"`
 }
 
 // handleSystemsRandom godoc
@@ -89,21 +102,43 @@ func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 
 func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
 	stars := make([]StarResponse, 0, len(sys.Orbits))
+	otherBodies := make([]OtherBodyResponse, 0, len(sys.Orbits))
 
-	for _, o := range sys.Orbits {
-		if o.Star == nil {
-			continue
+	for i, o := range sys.Orbits {
+		switch {
+		case o.Star != nil:
+			stars = append(stars, toStarResponse(o))
+		case i == sys.MainworldOrbit:
+			// handled separately below, via toMainworldResponse
+		default:
+			otherBodies = append(otherBodies, toOtherBodyResponse(o))
 		}
-
-		stars = append(stars, toStarResponse(o))
 	}
 
 	mwOrbit := sys.Orbits[sys.MainworldOrbit]
 
 	return SystemResponse{
-		Seed:      seed,
-		Stars:     stars,
-		Mainworld: toMainworldResponse(sys, mwOrbit),
+		Seed:        seed,
+		Stars:       stars,
+		Mainworld:   toMainworldResponse(sys, mwOrbit),
+		OtherBodies: otherBodies,
+	}
+}
+
+// toOtherBodyResponse builds the wire shape for a single non-mainworld,
+// non-star Orbit entry — a Gas Giant, or a placed World.
+func toOtherBodyResponse(o world.Orbit) OtherBodyResponse {
+	if o.GasGiant != nil {
+		return OtherBodyResponse{
+			Orbit:    o.Number,
+			GasGiant: &GasGiantResponse{Size: string(o.GasGiant.Size), Bracket: o.GasGiant.Bracket},
+		}
+	}
+
+	return OtherBodyResponse{
+		Orbit:      o.Number,
+		UWP:        o.World.UWP.String(),
+		TradeCodes: o.World.TradeCodes,
 	}
 }
 

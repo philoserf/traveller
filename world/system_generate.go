@@ -113,7 +113,7 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 		orbits = append(orbits, rollAndPlaceStar(r, primaryFlux, Far, 11+r.D6()))
 	}
 
-	orbits, mainworldOrbitIndex, _ := placeMainworld(r, orbits, primary, mainworld)
+	orbits, mainworldOrbitIndex := placeMainworld(r, orbits, primary, mainworld)
 	satelliteOfGasGiant := orbits[mainworldOrbitIndex].Satellite
 	mw := *orbits[mainworldOrbitIndex].World
 
@@ -123,12 +123,25 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 	// doc comment: "describe the whole system, not just this world").
 	// Phase 1 generated them but never consulted them for placement.
 	gasGiantsToPlace := int(mw.PBG.GasGiants)
+
+	initialSGGCount := 0
+
 	if satelliteOfGasGiant {
 		// The satellite-hosting Gas Giant already placed above counts
 		// against this total, per P1's own sequence ("Place Mainworld"
 		// — including its satellite GG — immediately followed by "Place
-		// Gas Giants" for the rest).
-		gasGiantsToPlace--
+		// Gas Giants" for the rest). PBG.GasGiants can still be 0 even
+		// though a satellite mainworld always gets one placed anyway (a
+		// real edge case — see placeMainworld's doc comment) — clamped
+		// here so gasGiantsToPlace never goes negative.
+		gasGiantsToPlace = max(gasGiantsToPlace-1, 0)
+
+		// The GG-vs-SGG "every second SGG converts to an IG" counter
+		// (placeGasGiants) needs to know about this one too, or it
+		// mis-numbers every SGG rolled after it.
+		if gg := orbits[mainworldOrbitIndex-1].GasGiant; gg != nil && gg.Bracket == "SGG" {
+			initialSGGCount = 1
+		}
 	}
 
 	maxPopulation := ehex.Value(0)
@@ -137,7 +150,7 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 	}
 
 	hosts := availableHosts(orbits)
-	placeGasGiants(r, &orbits, hosts, gasGiantsToPlace)
+	placeGasGiants(r, &orbits, hosts, gasGiantsToPlace, initialSGGCount)
 	placeBelts(r, &orbits, hosts, int(mw.PBG.Belts), maxPopulation)
 	placeOtherWorlds(r, &orbits, hosts, r.TwoD6(), maxPopulation)
 
@@ -152,10 +165,11 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 // Giant, or — if mainworld is an Asteroid Belt — via the Belt placement
 // roll instead of HZ+Var. Merges the newly-derivable orbit-dependent
 // trade codes (DeriveOrbitTradeCodes) into the mainworld's own copy.
-// Returns the updated orbits, the index of the mainworld's own Orbit
-// entry within it, and the Primary's HZ orbit (the caller needs it again
-// for the placement pass that follows).
-func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld World) ([]Orbit, int, int) {
+// Returns the updated orbits and the index of the mainworld's own Orbit
+// entry within it — when that entry's Satellite is true, the immediately
+// preceding orbits entry is its host Gas Giant (see the two-Orbit-append
+// below).
+func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld World) ([]Orbit, int) {
 	hzOrbit := primary.HabitableZoneOrbit
 	mw := mainworld
 
@@ -200,10 +214,10 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	// star's own orbit (both are computed separately, with nothing ruling
 	// out a match) — nudge via the same collision handling placeInOrbit
 	// gives every other placement. If Close/Near/Far stars have somehow
-	// occupied every orbit 0-19 (practically impossible — at most 3 of
+	// occupied every orbit 0-20 (practically impossible — at most 3 of
 	// them), keep the original number rather than leave the mainworld
 	// unplaced.
-	if n, ok := placeInOrbit(orbits, starHost{hzOrbit: hzOrbit, maxOrbit: 19}, orbitNumber); ok {
+	if n, ok := placeInOrbit(orbits, starHost{hzOrbit: hzOrbit, maxOrbit: primaryMaxOrbit}, orbitNumber); ok {
 		orbitNumber = n
 	}
 
@@ -217,8 +231,15 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), World: &mw})
 	}
 
-	return orbits, len(orbits) - 1, hzOrbit
+	return orbits, len(orbits) - 1
 }
+
+// primaryMaxOrbit is the Primary's own orbit-number ceiling: "The Primary
+// Star may have orbits out to Orbit-19" (Book 3 p.21) reads as inclusive
+// of 20 once cross-checked against orbitAUTable's own documented 0-20
+// range — treated here as 20, not 19, so the table's full range is
+// actually reachable.
+const primaryMaxOrbit = 20
 
 // starHost is one candidate star a non-mainworld body can be placed
 // around: its own HabitableZoneOrbit and the highest orbit number it can
@@ -243,7 +264,7 @@ func availableHosts(orbits []Orbit) []starHost {
 			continue
 		}
 
-		maxOrbit := 19
+		maxOrbit := primaryMaxOrbit
 		if orbits[i].Number != primaryOrbitNumber {
 			maxOrbit = orbits[i].Number - 3
 		}
@@ -267,38 +288,54 @@ func orbitOccupied(orbits []Orbit, number int) bool {
 	return false
 }
 
-// placeInOrbit finds a free orbit at or after candidate within host's
-// range, per P2's own note ("If an orbit is duplicated or precluded,
-// adjust to an adjacent or the closest possible orbit"). ok is false if
-// no free slot exists within range — the caller skips this body rather
-// than force an invalid placement. "Precluded" here means only "already
-// occupied": this doesn't implement the Stellar Surface table (oversized
-// stars physically precluding some orbits), deliberately deferred — see
-// the phase 2a plan.
+// placeInOrbit finds the free orbit within [0, host.maxOrbit] closest to
+// candidate, per P2's own note ("If an orbit is duplicated or precluded,
+// adjust to an adjacent or the closest possible orbit") — scanning the
+// whole range rather than only forward from candidate, since a free
+// orbit behind candidate is still "the closest possible" if nothing
+// closer exists ahead of it. ok is false if no free slot exists anywhere
+// in range — the caller skips this body rather than force an invalid
+// placement. "Precluded" here means only "already occupied": this
+// doesn't implement the Stellar Surface table (oversized stars
+// physically precluding some orbits), deliberately deferred — see the
+// phase 2a plan. host.maxOrbit staying small (at most 20) keeps this
+// full-range scan cheap.
 func placeInOrbit(orbits []Orbit, host starHost, candidate int) (int, bool) {
-	if candidate < 0 {
-		candidate = 0
-	}
+	best, found, bestDist := 0, false, 0
 
-	for n := candidate; n <= host.maxOrbit; n++ {
-		if !orbitOccupied(orbits, n) {
-			return n, true
+	for n := 0; n <= host.maxOrbit; n++ {
+		if orbitOccupied(orbits, n) {
+			continue
+		}
+
+		dist := candidate - n
+		if dist < 0 {
+			dist = -dist
+		}
+
+		if !found || dist < bestDist {
+			best, found, bestDist = n, true, dist
 		}
 	}
 
-	return 0, false
+	return best, found
 }
 
 // placeGasGiants places count Gas Giants, rotating through hosts (Book 3
 // p.21: "place the first of the worlds concerned in orbit around the
 // Primary, the second... around the Close..."). Every second SGG rolled
 // converts to an IG (Ice Giant), per the GG table's own note.
-func placeGasGiants(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count int) {
+// initialSGGCount carries forward the SGG/LGG split of any Gas Giant
+// already placed elsewhere in the system (the satellite-mainworld host,
+// placed in placeMainworld before this function ever runs) — without it,
+// this function's own counter would start over at 0 and mis-number every
+// SGG it rolls relative to the system as a whole.
+func placeGasGiants(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count, initialSGGCount int) {
 	if len(hosts) == 0 {
 		return
 	}
 
-	sggCount := 0
+	sggCount := initialSGGCount
 
 	for i := range count {
 		host := hosts[i%len(hosts)]
