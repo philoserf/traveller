@@ -94,6 +94,7 @@ tasks:
       - go run ./cmd/client world
       - go run ./cmd/client system
       - go run ./cmd/client sector -subsector A
+      - go run ./cmd/secgen -subsector A
 
   demo:stop:
     internal: true
