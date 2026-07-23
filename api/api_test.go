@@ -9,6 +9,7 @@ import (
 
 	"github.com/philoserf/traveller/api"
 	"github.com/philoserf/traveller/ehex"
+	"github.com/philoserf/traveller/world"
 )
 
 func doRequest(t *testing.T, mux *http.ServeMux, target string) *httptest.ResponseRecorder {
@@ -75,6 +76,16 @@ func TestWorldsRandom(t *testing.T) {
 
 		if _, err := ehex.Parse(string(c)); err != nil && i != 0 {
 			t.Errorf("UWP digit %q at position %d is not a valid ehex digit: %v", c, i, err)
+		}
+	}
+
+	if len(got.PBG) != 3 {
+		t.Errorf("PBG = %q, want a 3-character code", got.PBG)
+	}
+
+	for _, b := range got.Bases {
+		if b != world.NavalBase && b != world.ScoutBase {
+			t.Errorf("Bases contains %q, want only NavalBase/ScoutBase", b)
 		}
 	}
 }

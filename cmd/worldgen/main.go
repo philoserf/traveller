@@ -1,6 +1,6 @@
-// Command worldgen rolls a Traveller5 world (UWP + trade codes) and prints
-// it. Extensions (Importance/Economic/Cultural), star systems, and
-// markdown rendering are not implemented yet — see world/generate.go.
+// Command worldgen rolls a Traveller5 world (UWP, trade codes, bases, PBG)
+// and prints it. Extensions (Importance/Economic/Cultural), star systems,
+// and markdown rendering are not implemented yet — see world/generate.go.
 package main
 
 import (
@@ -32,5 +32,7 @@ func main() {
 	// Printf block below.
 	fmt.Printf("UWP: %s\n", w.UWP)
 	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(w.TradeCodes), " "))
+	fmt.Printf("Bases: %s\n", strings.Join(world.BaseStrings(w.Bases), " "))
+	fmt.Printf("PBG: %s\n", w.PBG)
 	fmt.Printf("(seed: %d)\n", s)
 }

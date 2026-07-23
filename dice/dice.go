@@ -38,6 +38,14 @@ func (r *Roller) Flux() int {
 	return a - b
 }
 
+// Uniform rolls a uniform ("even distribution") random integer in [1,n],
+// unlike D6/TwoD6/Flux, which are bell-curve die-sum rolls. T5 uses this
+// where a value should feel arbitrary rather than weighted toward the
+// middle — e.g. a world's PBG population digit.
+func (r *Roller) Uniform(n int) int {
+	return r.rng.IntN(n) + 1
+}
+
 // ResolveSeed returns *seed if seed is non-nil, or a time-derived seed if
 // seed is nil (absent). A pointer, not a plain int64, is the point: it lets
 // a caller represent "no seed was requested" distinctly from "the caller

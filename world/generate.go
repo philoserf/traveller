@@ -219,6 +219,83 @@ func rollTechLevel(r *dice.Roller, u UWP) ehex.Value {
 	return clampEhex(v, 0, int(ehex.Max))
 }
 
+// navalBaseTarget returns the 2D target number for a Naval Base at the
+// given Starport, or false if that Starport can't have one at all.
+func navalBaseTarget(s Starport) (int, bool) {
+	switch s {
+	case StarportA:
+		return 6, true
+	case StarportB:
+		return 5, true
+	default:
+		return 0, false
+	}
+}
+
+// scoutBaseTarget returns the 2D target number for a Scout Base at the
+// given Starport, or false if that Starport can't have one at all.
+func scoutBaseTarget(s Starport) (int, bool) {
+	switch s {
+	case StarportA:
+		return 4, true
+	case StarportB:
+		return 5, true
+	case StarportC:
+		return 6, true
+	case StarportD:
+		return 7, true
+	default:
+		return 0, false
+	}
+}
+
+// rollBases rolls Naval and Scout base presence, independent 2D checks
+// gated by Starport grade. The rulebook's own worked example (Regina,
+// Starport A, rolling 5 for Naval and 3 for Scout) reports both as
+// present despite the printed table requiring 6+ and 4+ respectively — an
+// inconsistency in the source, not a transcription error here. This
+// implementation trusts the table (matching known Naval/Scout base
+// mechanics across Traveller editions) over the example.
+//
+// Naval Depot and Way Station are excluded: both are Starport-A-only
+// density/frequency placements ("1 per 1000 worlds", "1 per 50 parsecs on
+// a trade route") rather than per-world dice rolls. Military, Scientific,
+// Diplomatic, and Cultural bases are excluded too: the rulebook calls them
+// out as referee-assigned exceptions with no given mechanic at all.
+func rollBases(r *dice.Roller, starport Starport) []Base {
+	var bases []Base
+
+	if target, ok := navalBaseTarget(starport); ok && r.TwoD6() >= target {
+		bases = append(bases, NavalBase)
+	}
+
+	if target, ok := scoutBaseTarget(starport); ok && r.TwoD6() >= target {
+		bases = append(bases, ScoutBase)
+	}
+
+	return bases
+}
+
+// rollPBG rolls a system's PBG: Population digit, Belts, and Gas Giants.
+// PopulationDigit is a flavor detail distinct from the UWP Population
+// field — a uniform 1-9 roll when Population>0, or 0 when Population=0 —
+// not meant to reflect the actual order-of-magnitude population value.
+// Belts (1D-3, floor 0, range 0-3) and Gas Giants (2D/2-2, floor 0, range
+// 0-4) describe the whole system, not just this world, but PBG lives on
+// World per this package's existing type (see world/extensions.go).
+func rollPBG(r *dice.Roller, population ehex.Value) PBG {
+	var populationDigit ehex.Value
+	if population > 0 {
+		populationDigit = clampEhex(r.Uniform(9), 0, 9)
+	}
+
+	return PBG{
+		PopulationDigit: populationDigit,
+		Belts:           clampEhex(r.D6()-3, 0, 3),
+		GasGiants:       clampEhex(r.TwoD6()/2-2, 0, 4),
+	}
+}
+
 // GenerateUWP rolls a complete UWP in the order T5 requires: each field may
 // depend only on fields already rolled, ending with TechLevel, which
 // depends on all the others.
@@ -237,17 +314,21 @@ func GenerateUWP(r *dice.Roller) UWP {
 	return u
 }
 
-// Generate produces a new World: a rolled UWP plus its UWP-derivable trade
-// codes. Name, Sector, Hex, Importance, Economic, Cultural, Nobility,
-// Allegiance, Bases, TravelZone, PBG, Worlds, and Notes are left
-// zero-valued — none of them are generated yet (see DeriveTradeCodes and
-// the world package's generation docs for what's deliberately out of
-// scope, and why).
+// Generate produces a new World: a rolled UWP, its UWP-derivable trade
+// codes, Bases, and PBG. Name, Sector, Hex, Importance, Economic, Cultural,
+// TravelZone, Worlds, and Notes are left zero-valued — none of them are
+// generated yet (see DeriveTradeCodes and the world package's generation
+// docs for what's deliberately out of scope, and why). Nobility and
+// Allegiance are permanently out of scope for generation, not just
+// "not yet": both are referee/campaign-assigned in T5, with no dice
+// mechanic given for either.
 func Generate(r *dice.Roller) World {
 	uwp := GenerateUWP(r)
 
 	return World{
 		UWP:        uwp,
 		TradeCodes: DeriveTradeCodes(uwp),
+		Bases:      rollBases(r, uwp.Starport),
+		PBG:        rollPBG(r, uwp.Population),
 	}
 }

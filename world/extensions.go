@@ -1,6 +1,10 @@
 package world
 
-import "github.com/philoserf/traveller/ehex"
+import (
+	"fmt"
+
+	"github.com/philoserf/traveller/ehex"
+)
 
 // Importance (Ix) ranks a world's significance, roughly -3 to +5.
 type Importance int
@@ -37,4 +41,22 @@ type PBG struct {
 	PopulationDigit ehex.Value
 	Belts           ehex.Value
 	GasGiants       ehex.Value
+}
+
+// String renders the PBG as its 3-character PopulationDigit-Belts-GasGiants
+// code, e.g. "703". If any field is out of range, it falls back to
+// ehex.Value's descriptive form for that digit instead of silently
+// emitting '?', matching UWP.String() and UPP.String().
+func (p PBG) String() string {
+	fields := [3]ehex.Value{p.PopulationDigit, p.Belts, p.GasGiants}
+
+	for _, f := range fields {
+		if !f.Valid() {
+			return fmt.Sprintf("%s%s%s", p.PopulationDigit, p.Belts, p.GasGiants)
+		}
+	}
+
+	s := [3]byte{p.PopulationDigit.Byte(), p.Belts.Byte(), p.GasGiants.Byte()}
+
+	return string(s[:])
 }

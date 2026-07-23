@@ -14,7 +14,7 @@ type World struct {
 	Cultural   Cultural
 	Nobility   []string
 	Allegiance string
-	Bases      []string
+	Bases      []Base
 	TravelZone TravelZone
 	PBG        PBG
 	Worlds     int

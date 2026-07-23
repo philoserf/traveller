@@ -9,13 +9,18 @@ import (
 )
 
 // WorldResponse is the wire shape of a generated world. It deliberately
-// mirrors only what world.Generate actually populates today (UWP and
-// TradeCodes) rather than the full world.World struct — see world/generate.go's
-// doc comment for what's not generated yet, and why.
+// mirrors only what world.Generate actually populates today (UWP,
+// TradeCodes, Bases, PBG) rather than the full world.World struct — see
+// world/generate.go's doc comment for what's not generated yet, and why.
+// PBG is rendered as its 3-character string form, same as UWP, rather than
+// its raw ehex.Value struct — consistent wire representation, and it
+// sidesteps deciding how ehex.Value itself should marshal to JSON.
 type WorldResponse struct {
 	Seed       int64             `json:"seed"`
 	UWP        string            `json:"uwp"`
 	TradeCodes []world.TradeCode `json:"tradeCodes"`
+	Bases      []world.Base      `json:"bases"`
+	PBG        string            `json:"pbg"`
 }
 
 func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
@@ -39,5 +44,7 @@ func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
 		Seed:       resolved,
 		UWP:        generated.UWP.String(),
 		TradeCodes: generated.TradeCodes,
+		Bases:      generated.Bases,
+		PBG:        generated.PBG.String(),
 	})
 }

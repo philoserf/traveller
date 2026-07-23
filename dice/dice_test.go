@@ -46,6 +46,19 @@ func TestFluxBounds(t *testing.T) {
 	}
 }
 
+func TestUniformBounds(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(7, 8))
+
+	for range 10000 {
+		v := r.Uniform(9)
+		if v < 1 || v > 9 {
+			t.Fatalf("Uniform(9) = %d, want 1..9", v)
+		}
+	}
+}
+
 func TestDeterminism(t *testing.T) {
 	t.Parallel()
 

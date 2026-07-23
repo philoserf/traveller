@@ -2,6 +2,7 @@ package world
 
 import (
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -126,5 +127,120 @@ func TestGenerateDeterminism(t *testing.T) {
 
 	if len(w1.TradeCodes) != len(w2.TradeCodes) {
 		t.Fatalf("identical seeds produced different trade code counts: %v vs %v", w1.TradeCodes, w2.TradeCodes)
+	}
+
+	if len(w1.Bases) != len(w2.Bases) {
+		t.Fatalf("identical seeds produced different bases: %v vs %v", w1.Bases, w2.Bases)
+	}
+
+	if w1.PBG != w2.PBG {
+		t.Fatalf("identical seeds produced different PBG: %s vs %s", w1.PBG, w2.PBG)
+	}
+}
+
+func TestBaseTargetsOnlyAAndBForNaval(t *testing.T) {
+	t.Parallel()
+
+	for _, s := range []Starport{StarportC, StarportD, StarportE, StarportNone} {
+		if _, ok := navalBaseTarget(s); ok {
+			t.Errorf("navalBaseTarget(%s) = ok, want not ok (Naval Base only available at A/B)", s)
+		}
+	}
+
+	cases := map[Starport]int{StarportA: 6, StarportB: 5}
+	for s, want := range cases {
+		got, ok := navalBaseTarget(s)
+		if !ok || got != want {
+			t.Errorf("navalBaseTarget(%s) = (%d, %v), want (%d, true)", s, got, ok, want)
+		}
+	}
+}
+
+func TestBaseTargetsNotAtEOrX(t *testing.T) {
+	t.Parallel()
+
+	for _, s := range []Starport{StarportE, StarportNone} {
+		if _, ok := scoutBaseTarget(s); ok {
+			t.Errorf("scoutBaseTarget(%s) = ok, want not ok (no bases at Starport E/X)", s)
+		}
+	}
+
+	cases := map[Starport]int{StarportA: 4, StarportB: 5, StarportC: 6, StarportD: 7}
+	for s, want := range cases {
+		got, ok := scoutBaseTarget(s)
+		if !ok || got != want {
+			t.Errorf("scoutBaseTarget(%s) = (%d, %v), want (%d, true)", s, got, ok, want)
+		}
+	}
+}
+
+func TestRollBasesKnownCodesOnly(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(11, 12))
+	starports := []Starport{StarportA, StarportB, StarportC, StarportD, StarportE, StarportNone}
+
+	for range 2000 {
+		for _, s := range starports {
+			for _, b := range rollBases(r, s) {
+				if b != NavalBase && b != ScoutBase {
+					t.Fatalf("rollBases(%s) produced unexpected base %s, want only NavalBase/ScoutBase", s, b)
+				}
+			}
+		}
+	}
+}
+
+func TestRollBasesNoneAtEOrX(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(21, 22))
+
+	for range 2000 {
+		for _, s := range []Starport{StarportE, StarportNone} {
+			if bases := rollBases(r, s); len(bases) != 0 {
+				t.Fatalf("rollBases(%s) = %v, want none (no bases at Starport E/X)", s, bases)
+			}
+		}
+	}
+}
+
+func TestRollBasesNavalOnlyAtAOrB(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(31, 32))
+
+	for range 2000 {
+		for _, s := range []Starport{StarportC, StarportD} {
+			if slices.Contains(rollBases(r, s), NavalBase) {
+				t.Fatalf("rollBases(%s) produced NavalBase, want Naval only at Starport A/B", s)
+			}
+		}
+	}
+}
+
+func TestRollPBGInvariants(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(13, 14))
+
+	for range 10000 {
+		pbg := rollPBG(r, 0)
+		if pbg.PopulationDigit != 0 {
+			t.Fatalf("rollPBG(population=0).PopulationDigit = %s, want 0", pbg.PopulationDigit)
+		}
+
+		pbg = rollPBG(r, 5)
+		if pbg.PopulationDigit < 1 || pbg.PopulationDigit > 9 {
+			t.Fatalf("rollPBG(population=5).PopulationDigit = %s, want 1..9", pbg.PopulationDigit)
+		}
+
+		if pbg.Belts > 3 {
+			t.Fatalf("rollPBG(...).Belts = %s, want 0..3", pbg.Belts)
+		}
+
+		if pbg.GasGiants > 4 {
+			t.Fatalf("rollPBG(...).GasGiants = %s, want 0..4", pbg.GasGiants)
+		}
 	}
 }
