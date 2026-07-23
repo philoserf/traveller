@@ -34,9 +34,12 @@ type StarResponse struct {
 // SystemResponse's own Seed — and there's no other WorldResponse field
 // this doesn't already need.
 type MainworldResponse struct {
-	Orbit      int               `json:"orbit"`
-	AU         float64           `json:"au,omitempty"`
-	Satellite  bool              `json:"satellite"`
+	Orbit     int     `json:"orbit"`
+	AU        float64 `json:"au,omitempty"`
+	Satellite bool    `json:"satellite"`
+	// Close is meaningful only when Satellite is true — Close (tidally
+	// locked) vs Far, mirroring world.Orbit.Close.
+	Close      bool              `json:"close"`
 	GasGiant   *GasGiantResponse `json:"gasGiant,omitempty"`
 	UWP        string            `json:"uwp"`
 	TradeCodes []world.TradeCode `json:"tradeCodes"`
@@ -50,9 +53,13 @@ type MainworldResponse struct {
 
 // OtherBodyResponse is the wire shape of a non-mainworld, non-star body
 // placed in the system: either a Gas Giant, or a placed World with its
-// own UWP/TradeCodes (GasGiant is nil in that case).
+// own UWP/TradeCodes (GasGiant is nil in that case). HostRole is the
+// StellarRole of whichever star placed it — a system's shared
+// orbit-numbering means Orbit alone doesn't say which star that is once
+// more than one star is present.
 type OtherBodyResponse struct {
 	Orbit      int               `json:"orbit"`
+	HostRole   string            `json:"hostRole"`
 	GasGiant   *GasGiantResponse `json:"gasGiant,omitempty"`
 	UWP        string            `json:"uwp,omitempty"`
 	TradeCodes []world.TradeCode `json:"tradeCodes,omitempty"`
@@ -131,12 +138,14 @@ func toOtherBodyResponse(o world.Orbit) OtherBodyResponse {
 	if o.GasGiant != nil {
 		return OtherBodyResponse{
 			Orbit:    o.Number,
+			HostRole: o.HostRole.String(),
 			GasGiant: &GasGiantResponse{Size: string(o.GasGiant.Size), Bracket: o.GasGiant.Bracket},
 		}
 	}
 
 	return OtherBodyResponse{
 		Orbit:      o.Number,
+		HostRole:   o.HostRole.String(),
 		UWP:        o.World.UWP.String(),
 		TradeCodes: o.World.TradeCodes,
 	}
@@ -169,6 +178,7 @@ func toMainworldResponse(sys world.StarSystem, mwOrbit world.Orbit) MainworldRes
 		Orbit:      mwOrbit.Number,
 		AU:         mwOrbit.AU,
 		Satellite:  mwOrbit.Satellite,
+		Close:      mwOrbit.Close,
 		UWP:        mw.UWP.String(),
 		TradeCodes: mw.TradeCodes,
 		TravelZone: mw.TravelZone.String(),

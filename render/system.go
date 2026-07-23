@@ -73,13 +73,7 @@ func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[in
 		// at a sub-orbit distance the book doesn't tabulate. Showing "(0.0
 		// AU)" here would read as a real distance, not an unset field.
 		fmt.Fprintf(b, "**Orbit:** %d\n\n", mwOrbit.Number)
-
-		orbitKind := "Far"
-		if mwOrbit.Close {
-			orbitKind = "Close"
-		}
-
-		fmt.Fprintf(b, "**%s satellite of:** a Gas Giant sharing this orbit\n\n", orbitKind)
+		fmt.Fprintf(b, "**%s satellite of:** a Gas Giant sharing this orbit\n\n", closeFarLabel(mwOrbit.Close))
 	} else {
 		fmt.Fprintf(b, "**Orbit:** %d (%.1f AU)\n\n", mwOrbit.Number, mwOrbit.AU)
 	}
@@ -183,17 +177,22 @@ func otherBodyLine(o world.Orbit, multiStar bool) string {
 	return line
 }
 
+// closeFarLabel is the shared "Close"/"Far" wording for an Orbit.Close
+// value, per Book 3 p.21/24 (2D<=7 tidally locked "Close" vs 2D>=8 "Far").
+func closeFarLabel(isClose bool) string {
+	if isClose {
+		return "Close"
+	}
+
+	return "Far"
+}
+
 // satelliteLine renders one satellite: Close or Far, its UWP, and its
 // Trade Codes.
 func satelliteLine(o world.Orbit) string {
-	orbit := "Far"
-	if o.Close {
-		orbit = "Close"
-	}
-
 	return fmt.Sprintf(
 		"%s satellite: %s — %s",
-		orbit,
+		closeFarLabel(o.Close),
 		o.World.UWP,
 		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
 	)

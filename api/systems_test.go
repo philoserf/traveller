@@ -76,6 +76,14 @@ func TestSystemsRandomSatelliteShape(t *testing.T) {
 	if got.Mainworld.AU != 0 {
 		t.Errorf("Mainworld.AU = %v for a Satellite orbit, want 0 (omitted)", got.Mainworld.AU)
 	}
+
+	// Seed 5's mainworld is a Close satellite (world.TestGenerateSystemPreservesMainworldSatelliteCloseFar
+	// pins the same seed for the same reason on the domain-model side).
+	if !got.Mainworld.Close {
+		t.Error(
+			"seed 5: Mainworld.Close = false, want true (regression: verify against cmd/sysgen -seed 5 if this changes)",
+		)
+	}
 }
 
 func TestSystemsRandomSeedReproducible(t *testing.T) {
@@ -101,6 +109,25 @@ func TestSystemsRandomSeedReproducible(t *testing.T) {
 
 	if len(s1.Stars) != len(s2.Stars) {
 		t.Errorf("same seed produced different star counts: %d vs %d", len(s1.Stars), len(s2.Stars))
+	}
+}
+
+func TestSystemsRandomOtherBodyHostRole(t *testing.T) {
+	t.Parallel()
+
+	rec := doRequest(t, api.NewMux(), "/systems/random?seed=12345")
+
+	var got api.SystemResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	validRoles := map[string]bool{"Primary": true, "Close": true, "Near": true, "Far": true}
+
+	for _, ob := range got.OtherBodies {
+		if !validRoles[ob.HostRole] {
+			t.Errorf("orbit %d: HostRole = %q, want one of Primary/Close/Near/Far", ob.Orbit, ob.HostRole)
+		}
 	}
 }
 

@@ -129,15 +129,21 @@ func runSystem(args []string) error {
 
 	mw := sys.Mainworld
 	if mw.Satellite {
-		fmt.Printf("Mainworld orbit: %d (satellite of a Gas Giant)\n", mw.Orbit)
+		orbitKind := "Far"
+		if mw.Close {
+			orbitKind = "Close"
+		}
+
+		fmt.Printf("Mainworld orbit: %d (%s satellite of a Gas Giant)\n", mw.Orbit, orbitKind)
 	} else {
 		fmt.Printf("Mainworld orbit: %d (%.1f AU)\n", mw.Orbit, mw.AU)
 	}
 
 	printWorldFields(mw.UWP, mw.TradeCodes, mw.Bases, mw.PBG, mw.TravelZone, mw.Importance, mw.Economic, mw.Cultural)
 
+	multiStar := len(sys.Stars) > 1
 	for _, o := range sys.OtherBodies {
-		fmt.Println(otherBodyLine(o))
+		fmt.Println(otherBodyLine(o, multiStar))
 	}
 
 	fmt.Printf("(seed: %d)\n", sys.Seed)
@@ -147,13 +153,19 @@ func runSystem(args []string) error {
 
 // otherBodyLine formats one non-mainworld, non-star body: a Gas Giant, or
 // a placed World with its own Trade Codes — matching render/system.go's
-// otherBodyLine.
-func otherBodyLine(o api.OtherBodyResponse) string {
+// otherBodyLine, including its "(hosted by <Role>)" suffix once more than
+// one star is present (o.HostRole alone doesn't say that on its own).
+func otherBodyLine(o api.OtherBodyResponse, multiStar bool) string {
+	line := fmt.Sprintf("Orbit %d: %s — %s", o.Orbit, o.UWP, strings.Join(world.TradeCodeStrings(o.TradeCodes), " "))
 	if o.GasGiant != nil {
-		return fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", o.Orbit, o.GasGiant.Size, o.GasGiant.Bracket)
+		line = fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", o.Orbit, o.GasGiant.Size, o.GasGiant.Bracket)
 	}
 
-	return fmt.Sprintf("Orbit %d: %s — %s", o.Orbit, o.UWP, strings.Join(world.TradeCodeStrings(o.TradeCodes), " "))
+	if multiStar {
+		line += fmt.Sprintf(" (hosted by %s)", o.HostRole)
+	}
+
+	return line
 }
 
 // printWorldFields prints the fields api.WorldResponse and
