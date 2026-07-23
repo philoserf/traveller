@@ -1,4 +1,9 @@
 // Command server runs the traveller HTTP API.
+//
+//	@title			Traveller API
+//	@version		0.1
+//	@description	API-first Traveller5 (T5) rules engine: world/character/starship generation.
+//	@BasePath		/
 package main
 
 import (

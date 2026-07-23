@@ -46,6 +46,16 @@ type WorldResponse struct {
 	Cultural   CulturalResponse  `json:"cultural"`
 }
 
+// handleWorldsRandom godoc
+//
+//	@Summary		Generate a random world
+//	@Description	Rolls a Traveller5 world: UWP, trade codes, bases, PBG, and the Importance/Economic/Cultural extensions.
+//	@Tags			worlds
+//	@Produce		json
+//	@Param			seed	query		int	false	"PRNG seed (omit for a time-derived seed)"
+//	@Success		200		{object}	WorldResponse
+//	@Failure		400		{object}	errorResponse	"seed is not an integer"
+//	@Router			/worlds/random [get]
 func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
 	var seed *int64
 
