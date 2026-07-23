@@ -52,17 +52,28 @@ func rollStar(r *dice.Roller, primaryFlux int, isPrimary bool) Star {
 	return star
 }
 
-// rollAndPlaceStar rolls a Close/Near/Far star (and, per starPresenceFlux,
+// attachCompanion rolls a Flux; if it meets starPresenceFlux, rolls and
+// returns a Companion star sharing role, per Table 1's "Flux for
+// Companions for each Star present." Shared by every star-rolling site
+// (Primary, and each Close/Near/Far via rollAndPlaceStar) so this rule
+// has exactly one implementation.
+func attachCompanion(r *dice.Roller, primaryFlux int, role StellarRole) *Star {
+	if r.Flux() < starPresenceFlux {
+		return nil
+	}
+
+	companion := rollStar(r, primaryFlux, false)
+	companion.Role = role
+
+	return &companion
+}
+
+// rollAndPlaceStar rolls a Close/Near/Far star (and, per attachCompanion,
 // its own optional Companion), returning it as an Orbit at orbitNumber.
 func rollAndPlaceStar(r *dice.Roller, primaryFlux int, role StellarRole, orbitNumber int) Orbit {
 	star := rollStar(r, primaryFlux, false)
 	star.Role = role
-
-	if r.Flux() >= starPresenceFlux {
-		companion := rollStar(r, primaryFlux, false)
-		companion.Role = role
-		star.Companion = &companion
-	}
+	star.Companion = attachCompanion(r, primaryFlux, role)
 
 	return Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), Star: &star}
 }
@@ -85,12 +96,7 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 	primaryFlux := r.Flux()
 	primary := rollStar(r, primaryFlux, true)
 	primary.Role = Primary
-
-	if r.Flux() >= starPresenceFlux {
-		companion := rollStar(r, primaryFlux, false)
-		companion.Role = Primary
-		primary.Companion = &companion
-	}
+	primary.Companion = attachCompanion(r, primaryFlux, Primary)
 
 	orbits := []Orbit{{Number: primaryOrbitNumber, Star: &primary}}
 
@@ -139,6 +145,13 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 			satelliteOfGasGiant = true
 		}
 	}
+
+	// HZVar/the Belt roll can both go negative enough to land below orbit
+	// 0 (e.g. an M-type primary with hzOrbit=0 and a negative HZVar) —
+	// floored here since orbit 0 is the innermost real orbit, and a
+	// negative number would otherwise collide with primaryOrbitNumber's
+	// own sentinel value and fall outside orbitAUTable's range.
+	mainworldOrbitNumber = max(mainworldOrbitNumber, 0)
 
 	mw.TradeCodes = append(mw.TradeCodes, DeriveOrbitTradeCodes(mw.UWP, mainworldOrbitNumber, hzOrbit, true)...)
 

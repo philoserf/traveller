@@ -14,15 +14,24 @@ import "github.com/philoserf/traveller/dice"
 const starPresenceFlux = 3
 
 // rollSpectralType rolls a star's SpectralType from flux, per Book 3 p.28
-// Table 2's "Sp" column. The row at flux<=-6 is printed "OB" ("Select
-// further between O or B"), resolved here with an extra D6: 1-3 is O,
-// 4-6 is B. Flux>=5 rows are "D" or "BD" (white dwarf / brown dwarf) —
-// both collapse to SpectralDegenerate, matching that constant's own doc
-// comment ("includes brown dwarfs"), a design decision from earlier in
-// this project, not new here.
+// Table 2's "Sp" column. The book prints "OB" ("Select further between O
+// or B") as its own row at flux<=-6, with "A" starting at flux<=-5 — but
+// the flux values this project ever passes in bottom out at -5 (a
+// Primary's raw Flux(), range -5..+5; every other star's is that same
+// range plus a non-negative 1D-1 offset), so a literal "<=-6" threshold
+// is never reachable and OB-class stars could never be generated at all.
+// Reads the row boundary as "-5 or lower" instead — folding the book's
+// unreachable -6 row into A's own -5 row — so this branch (and
+// SpectralO/SpectralB) are actually reachable, at the cost of narrowing
+// A to just flux==-4 alone rather than its literal two-row width.
+// Resolved with an extra D6 for O vs B: 1-3 is O, 4-6 is B. Flux>=5 rows
+// are "D" or "BD" (white dwarf / brown dwarf) — both collapse to
+// SpectralDegenerate, matching that constant's own doc comment
+// ("includes brown dwarfs"), a design decision from earlier in this
+// project, not new here.
 func rollSpectralType(r *dice.Roller, flux int) SpectralType {
 	switch {
-	case flux <= -6:
+	case flux <= -5:
 		if r.D6() <= 3 {
 			return SpectralO
 		}

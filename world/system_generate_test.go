@@ -143,8 +143,11 @@ func TestGenerateSystemPlacesMainworldLast(t *testing.T) {
 // TestGenerateSystemPrimaryAlwaysPresent runs many seeds and checks every
 // invariant that must hold regardless of what the dice produced: exactly
 // one Primary-role star at primaryOrbitNumber, a valid mainworld orbit
-// index, and no more than one Gas Giant (Phase 1 only ever places one, to
-// host a satellite mainworld).
+// index, no more than one Gas Giant (Phase 1 only ever places one, to
+// host a satellite mainworld), and a mainworld orbit number that's always
+// non-negative and never collides with primaryOrbitNumber's sentinel — a
+// regression guard for a real bug: an M-type primary's hzOrbit=0 plus a
+// negative HZVar used to produce orbit -1, exactly primaryOrbitNumber.
 func TestGenerateSystemInvariants(t *testing.T) {
 	t.Parallel()
 
@@ -156,6 +159,10 @@ func TestGenerateSystemInvariants(t *testing.T) {
 
 		if sys.MainworldOrbit < 0 || sys.MainworldOrbit >= len(sys.Orbits) {
 			t.Fatalf("MainworldOrbit = %d out of range for %d orbits", sys.MainworldOrbit, len(sys.Orbits))
+		}
+
+		if n := sys.Orbits[sys.MainworldOrbit].Number; n < 0 {
+			t.Fatalf("mainworld orbit number = %d, want >= 0 (and not primaryOrbitNumber's sentinel)", n)
 		}
 
 		primaryCount, gasGiantCount := 0, 0
@@ -177,5 +184,31 @@ func TestGenerateSystemInvariants(t *testing.T) {
 		if gasGiantCount > 1 {
 			t.Fatalf("found %d Gas Giants, want at most 1", gasGiantCount)
 		}
+	}
+}
+
+// TestRollSpectralTypeReachesOAndB is a regression guard for a real bug:
+// the OB branch's original threshold (flux<=-6) was mathematically
+// unreachable given every flux value this project ever computes (see
+// rollSpectralType's doc comment), so O/B-class stars could never be
+// generated despite SpectralO/SpectralB being fully modeled types.
+func TestRollSpectralTypeReachesOAndB(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(9, 9))
+
+	var sawO, sawB bool
+
+	for range 500 {
+		switch rollSpectralType(r, -5) { //nolint:exhaustive // only checking that O and B are both reachable
+		case SpectralO:
+			sawO = true
+		case SpectralB:
+			sawB = true
+		}
+	}
+
+	if !sawO || !sawB {
+		t.Errorf("rollSpectralType(-5) over 500 rolls: sawO=%v sawB=%v, want both reachable", sawO, sawB)
 	}
 }
