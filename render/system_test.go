@@ -24,15 +24,16 @@ func fixtureMainworld() *world.World {
 	}
 }
 
-// TestSystemGroupsBodiesUnderHostingStar builds a two-star system (a
-// Primary hosting the mainworld — with a satellite of its own — and a
-// Close star hosting a Gas Giant) — confirming the Gas Giant appears
-// nested under the Close star's own "### " group heading (at its own
-// orbit Number), not the Primary's; that the mainworld itself appears as
-// a normal entry under the Primary's group, marked "(Mainworld)"; that
-// its own satellite nests under that entry without the marker (it's a
-// regular moon, not the mainworld itself); and that the old standalone
-// "### Satellites" subsection is gone.
+// TestSystemGroupsBodiesUnderHostingStar builds a three-star system (a
+// Primary hosting the mainworld — with a satellite of its own — a Close
+// star hosting a Gas Giant, and a Near star hosting nothing) — confirming
+// the Gas Giant appears nested under the Close star's own "### " group
+// heading (at its own orbit Number), not the Primary's; that the
+// mainworld itself appears as a normal entry under the Primary's group,
+// marked "(Mainworld)"; that its own satellite nests under that entry
+// without the marker (it's a regular moon, not the mainworld itself);
+// that the Near star's empty group renders "None."; and that the old
+// standalone "### Satellites" subsection is gone.
 func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 	t.Parallel()
 
@@ -44,17 +45,22 @@ func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 		SpectralType: world.SpectralM, SpectralDecimal: 6, LuminosityClass: "V",
 		Role: world.Close, HabitableZoneOrbit: 0,
 	}
+	nearStar := world.Star{
+		SpectralType: world.SpectralK, SpectralDecimal: 1, LuminosityClass: "V",
+		Role: world.Near, HabitableZoneOrbit: 2,
+	}
 	moon := &world.World{UWP: fixtureUWP()}
 
 	sys := world.StarSystem{
 		Orbits: []world.Orbit{
 			{Number: -1, Star: &primary},
 			{Number: 5, Star: &closeStar},
+			{Number: 9, Star: &nearStar},
 			{Number: 3, HostRole: world.Primary, World: fixtureMainworld()},
 			{Number: 3, Satellite: true, Close: true, World: moon},
 			{Number: 2, HostRole: world.Close, GasGiant: &world.GasGiant{Size: 'S', Bracket: "LGG"}},
 		},
-		MainworldOrbit: 2,
+		MainworldOrbit: 3,
 	}
 
 	out := render.System(sys)
@@ -93,6 +99,10 @@ func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 
 	if moonIdx < mwLineIdx {
 		t.Errorf("mainworld's satellite line appears before the mainworld's own line, want nested under it:\n%s", out)
+	}
+
+	if !strings.Contains(out, "### Near: K1 V (Orbit 9, HZ orbit 2)\n\nNone.") {
+		t.Errorf("output missing the Near star's empty group rendering \"None.\":\n%s", out)
 	}
 }
 

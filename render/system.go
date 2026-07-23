@@ -40,10 +40,10 @@ func System(s world.StarSystem) string {
 		}
 
 		for _, body := range bodies {
-			fmt.Fprintf(&b, "- %s\n", otherBodyLine(body, body.World == mw))
+			fmt.Fprintf(&b, "- %s\n", otherBodyLine(body, s.IsMainworld(body)))
 
 			for _, sat := range satellitesOf[body.Number] {
-				fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat, sat.World == mw))
+				fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat, s.IsMainworld(sat)))
 			}
 		}
 

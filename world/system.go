@@ -160,6 +160,21 @@ func (s StarSystem) Worlds() []*World {
 	return worlds
 }
 
+// IsMainworld reports whether o is the system's own mainworld — either as
+// a top-level body (in SystemBodies's bodiesByRole) or as one of a Gas
+// Giant's satellites (in satellitesOf; a mainworld can itself be a
+// satellite). Compares by World pointer identity, not by Number (which a
+// satellite intentionally shares with its parent) or index (already lost
+// once SystemBodies groups Orbits into its maps). Guards against a nil
+// World on either side — s.Orbits[s.MainworldOrbit].World should never be
+// nil per StarSystem's own doc comment, but if it ever were, every Gas
+// Giant orbit (World also nil) would otherwise compare equal to it too.
+func (s StarSystem) IsMainworld(o Orbit) bool {
+	mw := s.Orbits[s.MainworldOrbit].World
+
+	return mw != nil && o.World == mw
+}
+
 // SystemBodies groups every Orbit in s besides every Star (starOrbits
 // collects those separately, sorted by StellarRole — Primary, then
 // Close/Near/Far, the same close-to-far ordering the role constants
@@ -173,8 +188,7 @@ func (s StarSystem) Worlds() []*World {
 // isn't special-cased: it flows through the same two buckets as
 // everything else (bodiesByRole if freestanding, satellitesOf if it's
 // itself a satellite of a Gas Giant) — callers wanting to point it out
-// distinctly can compare a body's World pointer against
-// s.Orbits[s.MainworldOrbit].World. The single source both render.System
+// distinctly should use IsMainworld. The single source both render.System
 // and the JSON API's toSystemResponse group by, so the two stay
 // consistent.
 func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]Orbit) {

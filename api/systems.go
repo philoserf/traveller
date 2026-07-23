@@ -130,8 +130,6 @@ func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 }
 
 func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
-	mwOrbit := sys.Orbits[sys.MainworldOrbit]
-
 	starOrbits, bodiesByRole, satellitesOf := sys.SystemBodies()
 
 	starGroups := make([]StarGroupResponse, 0, len(starOrbits))
@@ -141,7 +139,7 @@ func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
 		bodyResponses := make([]BodyResponse, 0, len(bodies))
 
 		for _, o := range bodies {
-			bodyResponses = append(bodyResponses, toBodyResponse(o, satellitesOf[o.Number], mwOrbit))
+			bodyResponses = append(bodyResponses, toBodyResponse(sys, o, satellitesOf[o.Number]))
 		}
 
 		starGroups = append(starGroups, StarGroupResponse{Star: toStarResponse(so), Bodies: bodyResponses})
@@ -150,18 +148,17 @@ func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
 	return SystemResponse{
 		Seed:       seed,
 		StarGroups: starGroups,
-		Mainworld:  toMainworldResponse(sys, mwOrbit),
+		Mainworld:  toMainworldResponse(sys, sys.Orbits[sys.MainworldOrbit]),
 	}
 }
 
 // toBodyResponse builds the wire shape for a single non-star,
 // non-Satellite Orbit entry — a Gas Giant, or a placed World — with
-// satellites (already collected by Number) nested under it. mwOrbit is
-// the system's mainworld Orbit, compared by World pointer to mark
-// whichever entry (this body, or one of its satellites) is the mainworld
-// itself.
-func toBodyResponse(o world.Orbit, satellites []world.Orbit, mwOrbit world.Orbit) BodyResponse {
-	resp := BodyResponse{Orbit: o.Number, IsMainworld: o.World == mwOrbit.World}
+// satellites (already collected by Number) nested under it. sys.IsMainworld
+// marks whichever entry (this body, or one of its satellites) is the
+// system's own mainworld.
+func toBodyResponse(sys world.StarSystem, o world.Orbit, satellites []world.Orbit) BodyResponse {
+	resp := BodyResponse{Orbit: o.Number, IsMainworld: sys.IsMainworld(o)}
 
 	if o.GasGiant != nil {
 		resp.Ring = o.GasGiant.Ring
@@ -175,7 +172,7 @@ func toBodyResponse(o world.Orbit, satellites []world.Orbit, mwOrbit world.Orbit
 	for _, sat := range satellites {
 		resp.Satellites = append(resp.Satellites, SatelliteResponse{
 			Close:       sat.Close,
-			IsMainworld: sat.World == mwOrbit.World,
+			IsMainworld: sys.IsMainworld(sat),
 			UWP:         sat.World.UWP.String(),
 			TradeCodes:  sat.World.TradeCodes,
 		})

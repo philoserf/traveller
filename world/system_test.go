@@ -171,3 +171,50 @@ func TestSystemBodiesIncludesSatelliteMainworld(t *testing.T) {
 		t.Errorf("satellitesOf[3] doesn't contain the mainworld's own Orbit: %v", sats)
 	}
 }
+
+// TestIsMainworld confirms World-pointer identity correctly distinguishes
+// the mainworld from an unrelated body sharing the same Number band, and
+// that a nil World (either side) never reports a false match — guarding
+// against every Gas Giant orbit (World always nil) comparing equal to an
+// invalid mainworld Orbit whose own World was never set.
+func TestIsMainworld(t *testing.T) {
+	t.Parallel()
+
+	primary := world.Star{Role: world.Primary}
+	mw := world.World{}
+	otherWorld := world.World{}
+	gg := world.GasGiant{Size: 'S', Bracket: "LGG"}
+
+	t.Run("matches the mainworld's own Orbit", func(t *testing.T) {
+		t.Parallel()
+
+		sys := world.StarSystem{
+			Orbits:         []world.Orbit{{Number: -1, Star: &primary}, {Number: 4, World: &mw}},
+			MainworldOrbit: 1,
+		}
+
+		if !sys.IsMainworld(sys.Orbits[1]) {
+			t.Error("IsMainworld(mainworld's own Orbit) = false, want true")
+		}
+
+		if sys.IsMainworld(world.Orbit{Number: 4, World: &otherWorld}) {
+			t.Error("IsMainworld(a different World at the same Number) = true, want false")
+		}
+	})
+
+	t.Run("nil World never false-matches", func(t *testing.T) {
+		t.Parallel()
+
+		// An invalid StarSystem (MainworldOrbit points at a Star, not a
+		// World) — every Gas Giant orbit has a nil World too, and must
+		// not be reported as the mainworld just because both are nil.
+		sys := world.StarSystem{
+			Orbits:         []world.Orbit{{Number: -1, Star: &primary}, {Number: 4, GasGiant: &gg}},
+			MainworldOrbit: 0,
+		}
+
+		if sys.IsMainworld(sys.Orbits[1]) {
+			t.Error("IsMainworld(Gas Giant orbit) = true when mainworld's own World is nil, want false")
+		}
+	})
+}
