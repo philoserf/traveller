@@ -17,7 +17,7 @@ func TestStellarRoleString(t *testing.T) {
 		{world.Close, "Close"},
 		{world.Near, "Near"},
 		{world.Far, "Far"},
-		{world.StellarRole(99), ""},
+		{world.StellarRole(99), "Unknown"},
 	}
 
 	for _, c := range cases {

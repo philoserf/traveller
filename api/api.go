@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // NewMux returns the traveller API's routes, wrapped in jsonErrors so every
@@ -37,6 +38,25 @@ type errorResponse struct {
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, errorResponse{Error: msg})
+}
+
+// parseSeed parses the "seed" query parameter from r. present is false if
+// the parameter was absent (the caller should resolve a fresh seed via
+// dice.ResolveSeed(nil)); err is non-nil if present but not a valid
+// integer. Shared by every /random-style handler so seed validation can't
+// drift between them.
+func parseSeed(r *http.Request) (int64, bool, error) {
+	raw := r.URL.Query().Get("seed")
+	if raw == "" {
+		return 0, false, nil
+	}
+
+	seed, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, false, fmt.Errorf("parsing seed query param: %w", err)
+	}
+
+	return seed, true, nil
 }
 
 // jsonErrorWriter substitutes a JSON body for net/http's default

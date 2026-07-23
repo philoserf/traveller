@@ -29,8 +29,13 @@ const (
 	Far
 )
 
-// String returns the role's display name (Primary/Close/Near/Far), or ""
-// for any other value.
+// String returns the role's display name (Primary/Close/Near/Far), or
+// "Unknown" for any other value. Unlike TravelZone.String()'s "" default
+// (where the zero value is itself the common, expected "not set yet"
+// case), StellarRole's zero value is Primary — a meaningfully valid role
+// — so reaching this default at all means a Star ended up with a role
+// outside the four known constants, worth a visible marker rather than a
+// silently blank label.
 func (role StellarRole) String() string {
 	switch role {
 	case Primary:
@@ -42,7 +47,7 @@ func (role StellarRole) String() string {
 	case Far:
 		return "Far"
 	default:
-		return ""
+		return "Unknown"
 	}
 }
 
@@ -101,6 +106,20 @@ func (s StarSystem) Stars() []*Star {
 	}
 
 	return stars
+}
+
+// GasGiantAt returns the Gas Giant occupying orbit number, or nil if none
+// does. For finding the parent of a satellite sharing that Number — see
+// Orbit's doc comment on why a satellite shares its parent's Number
+// instead of a distinct one.
+func (s StarSystem) GasGiantAt(number int) *GasGiant {
+	for i := range s.Orbits {
+		if s.Orbits[i].Number == number && s.Orbits[i].GasGiant != nil {
+			return s.Orbits[i].GasGiant
+		}
+	}
+
+	return nil
 }
 
 // Worlds returns every world in the system, collected from Orbits.

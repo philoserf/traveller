@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/world"
@@ -59,20 +58,19 @@ type WorldResponse struct {
 //	@Failure		400		{object}	errorResponse	"seed is not an integer"
 //	@Router			/worlds/random [get]
 func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
-	var seed *int64
+	seed, present, err := parseSeed(r)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, "seed must be an integer")
 
-	if raw := r.URL.Query().Get("seed"); raw != "" {
-		parsed, err := strconv.ParseInt(raw, 10, 64)
-		if err != nil {
-			writeJSONError(w, http.StatusBadRequest, "seed must be an integer")
-
-			return
-		}
-
-		seed = &parsed
+		return
 	}
 
-	resolved := dice.ResolveSeed(seed)
+	var seedPtr *int64
+	if present {
+		seedPtr = &seed
+	}
+
+	resolved := dice.ResolveSeed(seedPtr)
 	generated := world.Generate(dice.RollerFromSeed(resolved))
 
 	writeJSON(w, http.StatusOK, WorldResponse{

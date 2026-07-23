@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/world"
@@ -68,20 +67,19 @@ type SystemResponse struct {
 //	@Failure		400		{object}	errorResponse	"seed is not an integer"
 //	@Router			/systems/random [get]
 func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
-	var seed *int64
+	seed, present, err := parseSeed(r)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, "seed must be an integer")
 
-	if raw := r.URL.Query().Get("seed"); raw != "" {
-		parsed, err := strconv.ParseInt(raw, 10, 64)
-		if err != nil {
-			writeJSONError(w, http.StatusBadRequest, "seed must be an integer")
-
-			return
-		}
-
-		seed = &parsed
+		return
 	}
 
-	resolved := dice.ResolveSeed(seed)
+	var seedPtr *int64
+	if present {
+		seedPtr = &seed
+	}
+
+	resolved := dice.ResolveSeed(seedPtr)
 	roller := dice.RollerFromSeed(resolved)
 	mainworld := world.Generate(roller)
 	sys := world.GenerateSystem(roller, mainworld)
@@ -157,12 +155,8 @@ func toMainworldResponse(sys world.StarSystem, mwOrbit world.Orbit) MainworldRes
 	}
 
 	if mwOrbit.Satellite {
-		for _, o := range sys.Orbits {
-			if o.Number == mwOrbit.Number && o.GasGiant != nil {
-				resp.GasGiant = &GasGiantResponse{Size: string(o.GasGiant.Size), Bracket: o.GasGiant.Bracket}
-
-				break
-			}
+		if gg := sys.GasGiantAt(mwOrbit.Number); gg != nil {
+			resp.GasGiant = &GasGiantResponse{Size: string(gg.Size), Bracket: gg.Bracket}
 		}
 	}
 

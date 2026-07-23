@@ -89,16 +89,7 @@ func runWorld(args []string) error {
 		return fmt.Errorf("client: decoding response: %w", err)
 	}
 
-	fmt.Printf("UWP: %s\n", w.UWP)
-	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(w.TradeCodes), " "))
-	fmt.Printf("Bases: %s\n", strings.Join(world.BaseStrings(w.Bases), " "))
-	fmt.Printf("PBG: %s\n", w.PBG)
-	fmt.Printf("Travel Zone: %s\n", w.TravelZone)
-	fmt.Printf("Importance: %+d\n", w.Importance)
-	fmt.Printf("Economic: Resources=%d Labor=%d Infrastructure=%d Efficiency=%+d\n",
-		w.Economic.Resources, w.Economic.Labor, w.Economic.Infrastructure, w.Economic.Efficiency)
-	fmt.Printf("Cultural: Heterogeneity=%d Acceptance=%d Strangeness=%d Symbols=%d\n",
-		w.Cultural.Heterogeneity, w.Cultural.Acceptance, w.Cultural.Strangeness, w.Cultural.Symbols)
+	printWorldFields(w.UWP, w.TradeCodes, w.Bases, w.PBG, w.TravelZone, w.Importance, w.Economic, w.Cultural)
 	fmt.Printf("(seed: %d)\n", w.Seed)
 
 	return nil
@@ -133,18 +124,7 @@ func runSystem(args []string) error {
 	}
 
 	for _, s := range sys.Stars {
-		orbit := "center"
-		if s.Orbit != nil {
-			orbit = fmt.Sprintf("orbit %d", *s.Orbit)
-		}
-
-		companion := ""
-		if s.HasCompanion {
-			companion = ", with a Companion"
-		}
-
-		fmt.Printf("%s: %s%d %s (%s, HZ orbit %d)%s\n",
-			s.Role, s.SpectralType, s.SpectralDecimal, s.LuminosityClass, orbit, s.HabitableZoneOrbit, companion)
+		fmt.Println(starLine(s))
 	}
 
 	mw := sys.Mainworld
@@ -154,19 +134,52 @@ func runSystem(args []string) error {
 		fmt.Printf("Mainworld orbit: %d (%.1f AU)\n", mw.Orbit, mw.AU)
 	}
 
-	fmt.Printf("UWP: %s\n", mw.UWP)
-	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(mw.TradeCodes), " "))
-	fmt.Printf("Bases: %s\n", strings.Join(world.BaseStrings(mw.Bases), " "))
-	fmt.Printf("PBG: %s\n", mw.PBG)
-	fmt.Printf("Travel Zone: %s\n", mw.TravelZone)
-	fmt.Printf("Importance: %+d\n", mw.Importance)
-	fmt.Printf("Economic: Resources=%d Labor=%d Infrastructure=%d Efficiency=%+d\n",
-		mw.Economic.Resources, mw.Economic.Labor, mw.Economic.Infrastructure, mw.Economic.Efficiency)
-	fmt.Printf("Cultural: Heterogeneity=%d Acceptance=%d Strangeness=%d Symbols=%d\n",
-		mw.Cultural.Heterogeneity, mw.Cultural.Acceptance, mw.Cultural.Strangeness, mw.Cultural.Symbols)
+	printWorldFields(mw.UWP, mw.TradeCodes, mw.Bases, mw.PBG, mw.TravelZone, mw.Importance, mw.Economic, mw.Cultural)
 	fmt.Printf("(seed: %d)\n", sys.Seed)
 
 	return nil
+}
+
+// printWorldFields prints the fields api.WorldResponse and
+// api.MainworldResponse share, so runWorld and runSystem don't each keep
+// their own copy of this Printf block.
+func printWorldFields(
+	uwp string, tradeCodes []world.TradeCode, bases []world.Base, pbg, travelZone string,
+	importance int, econ api.EconomicResponse, cult api.CulturalResponse,
+) {
+	fmt.Printf("UWP: %s\n", uwp)
+	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(tradeCodes), " "))
+	fmt.Printf("Bases: %s\n", strings.Join(world.BaseStrings(bases), " "))
+	fmt.Printf("PBG: %s\n", pbg)
+	fmt.Printf("Travel Zone: %s\n", travelZone)
+	fmt.Printf("Importance: %+d\n", importance)
+	fmt.Printf("Economic: Resources=%d Labor=%d Infrastructure=%d Efficiency=%+d\n",
+		econ.Resources, econ.Labor, econ.Infrastructure, econ.Efficiency)
+	fmt.Printf("Cultural: Heterogeneity=%d Acceptance=%d Strangeness=%d Symbols=%d\n",
+		cult.Heterogeneity, cult.Acceptance, cult.Strangeness, cult.Symbols)
+}
+
+// starLine formats one star for display, matching render/system.go's
+// starLine: Degenerate stars (white dwarfs/brown dwarfs) omit
+// SpectralDecimal, since api.StarResponse's SpectralDecimal is
+// meaningless for them (mirroring world.Star's own doc comment).
+func starLine(s api.StarResponse) string {
+	spec := fmt.Sprintf("%s%d %s", s.SpectralType, s.SpectralDecimal, s.LuminosityClass)
+	if s.SpectralType == string(world.SpectralDegenerate) {
+		spec = fmt.Sprintf("%s %s", s.SpectralType, s.LuminosityClass)
+	}
+
+	orbit := "center"
+	if s.Orbit != nil {
+		orbit = fmt.Sprintf("orbit %d", *s.Orbit)
+	}
+
+	companion := ""
+	if s.HasCompanion {
+		companion = ", with a Companion"
+	}
+
+	return fmt.Sprintf("%s: %s (%s, HZ orbit %d)%s", s.Role, spec, orbit, s.HabitableZoneOrbit, companion)
 }
 
 // get performs a GET request against url. It fully drains and closes the
