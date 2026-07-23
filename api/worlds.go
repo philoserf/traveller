@@ -39,6 +39,7 @@ type WorldResponse struct {
 	Seed       int64             `json:"seed"`
 	UWP        string            `json:"uwp"`
 	TradeCodes []world.TradeCode `json:"tradeCodes"`
+	TravelZone string            `json:"travelZone"`
 	Bases      []world.Base      `json:"bases"`
 	PBG        string            `json:"pbg"`
 	Importance int               `json:"importance"`
@@ -77,6 +78,7 @@ func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
 		Seed:       resolved,
 		UWP:        generated.UWP.String(),
 		TradeCodes: generated.TradeCodes,
+		TravelZone: generated.TravelZone.String(),
 		Bases:      generated.Bases,
 		PBG:        generated.PBG.String(),
 		Importance: int(generated.Importance),

@@ -18,6 +18,7 @@ var regina = world.World{
 	TradeCodes: []world.TradeCode{world.Rich, world.PreAgricultural, world.PreHigh},
 	Bases:      []world.Base{world.NavalBase, world.ScoutBase},
 	PBG:        world.PBG{PopulationDigit: 7, Belts: 0, GasGiants: 3},
+	TravelZone: world.ZoneGreen, // Gov+Law=18, Population=8: neither Travel Zone trigger fires
 	Importance: 4,
 	Economic:   world.Economic{Resources: 13, Labor: 7, Infrastructure: 14, Efficiency: 4},
 	Cultural:   world.Cultural{Heterogeneity: 9, Acceptance: 12, Strangeness: 6, Symbols: 13},
@@ -33,6 +34,7 @@ func TestWorldContainsAllFields(t *testing.T) {
 		"Ri", "Pa", "Ph", // Trade Codes
 		"N", "S", // Bases
 		"703",           // PBG
+		"Green",         // Travel Zone
 		"+4",            // Importance
 		"13", "7", "14", // Economic Resources/Labor/Infrastructure
 		"9", "12", "6", // Cultural Heterogeneity/Acceptance/Strangeness
@@ -80,15 +82,17 @@ func TestWorldOmitsEmptyBasesAndTradeCodes(t *testing.T) {
 func TestWorldOmitsUngeneratedTravelZone(t *testing.T) {
 	t.Parallel()
 
-	out := render.World(regina) // regina.TravelZone is unset, matching Generate()'s real output
+	// bare's TravelZone is the zero value, unlike anything world.Generate
+	// itself would ever produce now — this only exercises the defensive
+	// fallback for a hand-built or otherwise-partial World.
+	bare := world.World{UWP: world.UWP{Starport: world.StarportNone}}
+
+	out := render.World(bare)
 	if strings.Contains(out, "Travel Zone") {
 		t.Errorf("render.World should omit Travel Zone when it's not set, got:\n%s", out)
 	}
 
-	zoned := regina
-	zoned.TravelZone = world.ZoneGreen
-
-	out = render.World(zoned)
+	out = render.World(regina)
 	if !strings.Contains(out, "**Travel Zone:** Green") {
 		t.Errorf("render.World should show a set Travel Zone, got:\n%s", out)
 	}

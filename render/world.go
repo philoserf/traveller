@@ -12,14 +12,15 @@ import (
 )
 
 // World renders w as a Markdown world sheet, covering everything
-// world.Generate currently populates (UWP, TradeCodes, Bases, PBG, and the
-// Importance/Economic/Cultural extensions). Two fields Generate doesn't
-// set yet get a graceful fallback instead of a blank or invalid value: the
-// title falls back to the UWP code when Name is empty, and Travel Zone is
-// shown only when TravelZone.String() is non-empty (it isn't, until
-// something actually sets it). Sector, Hex, Worlds, Notes, Nobility, and
-// Allegiance are never rendered at all — see world/generate.go's own doc
-// comment for what's not generated, and why.
+// world.Generate currently populates (UWP, TradeCodes, TravelZone, Bases,
+// PBG, and the Importance/Economic/Cultural extensions). The title falls
+// back to the UWP code when Name is empty — Generate never sets Name.
+// Travel Zone is shown only when TravelZone.String() is non-empty: real
+// generated worlds always have one, but this keeps World's zero value
+// (e.g. from a hand-built fixture, or a future partial construction)
+// rendering cleanly instead of showing a blank label. Sector, Hex, Worlds,
+// Notes, Nobility, and Allegiance are never rendered at all — see
+// world/generate.go's own doc comment for what's not generated, and why.
 func World(w world.World) string {
 	var b strings.Builder
 

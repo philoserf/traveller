@@ -12,6 +12,10 @@ import (
 	"github.com/philoserf/traveller/world"
 )
 
+func isValidTravelZone(z string) bool {
+	return z == "Green" || z == "Amber" || z == "Red"
+}
+
 func doRequest(t *testing.T, mux *http.ServeMux, target string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -81,6 +85,10 @@ func TestWorldsRandom(t *testing.T) {
 
 	if len(got.PBG) != 3 {
 		t.Errorf("PBG = %q, want a 3-character code", got.PBG)
+	}
+
+	if !isValidTravelZone(got.TravelZone) {
+		t.Errorf("TravelZone = %q, want one of Green/Amber/Red", got.TravelZone)
 	}
 
 	for _, b := range got.Bases {

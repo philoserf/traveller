@@ -315,8 +315,8 @@ func GenerateUWP(r *dice.Roller) UWP {
 }
 
 // Generate produces a new World: a rolled UWP, its UWP-derivable trade
-// codes, Bases, PBG, and the Importance/Economic/Cultural extensions.
-// Name, Sector, Hex, TravelZone, Worlds, and Notes are left zero-valued —
+// codes, TravelZone, Bases, PBG, and the Importance/Economic/Cultural
+// extensions. Name, Sector, Hex, Worlds, and Notes are left zero-valued —
 // none of them are generated yet (see DeriveTradeCodes and the world
 // package's generation docs for what's deliberately out of scope, and
 // why). Nobility and Allegiance are permanently out of scope for
@@ -325,6 +325,7 @@ func GenerateUWP(r *dice.Roller) UWP {
 func Generate(r *dice.Roller) World {
 	uwp := GenerateUWP(r)
 	tradeCodes := DeriveTradeCodes(uwp)
+	travelZone := computeTravelZone(uwp)
 	bases := rollBases(r, uwp.Starport)
 	pbg := rollPBG(r, uwp.Population)
 	importance := computeImportance(uwp, tradeCodes, bases)
@@ -332,6 +333,7 @@ func Generate(r *dice.Roller) World {
 	return World{
 		UWP:        uwp,
 		TradeCodes: tradeCodes,
+		TravelZone: travelZone,
 		Bases:      bases,
 		PBG:        pbg,
 		Importance: importance,

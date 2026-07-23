@@ -40,6 +40,9 @@ func TestDeriveTradeCodes(t *testing.T) {
 		{"PreRich", UWP{Atmosphere: 6, Population: 5}, PreRich},
 		{"Rich", UWP{Atmosphere: 6, Population: 7}, Rich},
 		{"Reserve", UWP{Population: 2, Government: 6, Law: 4}, Reserve},
+		{"Dangerous", UWP{Population: 3}, Dangerous},
+		{"Puzzle", UWP{Population: 9, Government: 10, Law: 10}, Puzzle},       // Gov+Law=20
+		{"Forbidden", UWP{Population: 9, Government: 15, Law: 10}, Forbidden}, // Gov+Law=25
 	}
 
 	for _, c := range cases {
@@ -93,7 +96,9 @@ func TestBarrenVsDiebackMutuallyExclusive(t *testing.T) {
 }
 
 // TestExcludedCodesNeverDerived guards against accidentally reintroducing a
-// referee-assigned or orbit-dependent code into the trigger table — see the
+// referee-assigned or orbit-dependent code — or Forbidden/Puzzle/Dangerous,
+// whose real predicate doesn't fit this table's shape (see
+// travelZoneTradeCode instead) — as a tradeCodeTriggers row. See the
 // exclusion list documented on tradeCodeTriggers.
 func TestExcludedCodesNeverDerived(t *testing.T) {
 	t.Parallel()

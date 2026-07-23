@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
 )
 
 // Regina's UWP is A788899-C: Starport A, Size 7, Atmosphere 8,
@@ -67,6 +68,60 @@ func TestComputeImportanceWayStationBonus(t *testing.T) {
 
 	if with != without+1 {
 		t.Errorf("computeImportance with WayStation = %d, want %d (without) + 1", with, without)
+	}
+}
+
+func TestComputeTravelZoneMatchesRegina(t *testing.T) {
+	t.Parallel()
+
+	// Gov+Law=18, Population=8: neither Amber trigger fires.
+	if got, want := computeTravelZone(reginaUWP), ZoneGreen; got != want {
+		t.Errorf("computeTravelZone(Regina) = %v, want %v", got, want)
+	}
+}
+
+// TestComputeTravelZoneBoundaries pins the exact Gov+Law thresholds from
+// Book 3 p.28 ("Z Travel Zones"): Amber at 20, Red at 22, one point below
+// each staying in the lower zone. Population is held above 6 throughout so
+// only the Government+Law trigger is exercised.
+func TestComputeTravelZoneBoundaries(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name       string
+		government ehex.Value
+		law        ehex.Value
+		want       TravelZone
+	}{
+		{"govLaw 19 stays Green", 10, 9, ZoneGreen},
+		{"govLaw 20 triggers Amber", 10, 10, ZoneAmber},
+		{"govLaw 21 stays Amber", 11, 10, ZoneAmber},
+		{"govLaw 22 triggers Red", 11, 11, ZoneRed},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			u := UWP{Population: 9, Government: c.government, Law: c.law}
+			if got := computeTravelZone(u); got != c.want {
+				t.Errorf("computeTravelZone(Gov=%d, Law=%d) = %v, want %v", c.government, c.law, got, c.want)
+			}
+		})
+	}
+}
+
+// TestComputeTravelZonePopulationBoundary pins the Population<=6 Amber
+// trigger independent of Government+Law (held at 0 throughout).
+func TestComputeTravelZonePopulationBoundary(t *testing.T) {
+	t.Parallel()
+
+	if got, want := computeTravelZone(UWP{Population: 6}), ZoneAmber; got != want {
+		t.Errorf("computeTravelZone(Population=6) = %v, want %v", got, want)
+	}
+
+	if got, want := computeTravelZone(UWP{Population: 7}), ZoneGreen; got != want {
+		t.Errorf("computeTravelZone(Population=7) = %v, want %v", got, want)
 	}
 }
 
@@ -174,6 +229,10 @@ func TestRollCulturalPopulationZero(t *testing.T) {
 	}
 }
 
+func isValidTravelZone(z TravelZone) bool {
+	return z == ZoneGreen || z == ZoneAmber || z == ZoneRed
+}
+
 func TestGenerateExtensionsInvariants(t *testing.T) {
 	t.Parallel()
 
@@ -188,6 +247,10 @@ func TestGenerateExtensionsInvariants(t *testing.T) {
 
 		if w.Economic.Efficiency < -5 || w.Economic.Efficiency > 5 {
 			t.Fatalf("Economic.Efficiency = %d, want -5..5 (Flux)", w.Economic.Efficiency)
+		}
+
+		if !isValidTravelZone(w.TravelZone) {
+			t.Fatalf("TravelZone = %v, want one of Green/Amber/Red", w.TravelZone)
 		}
 
 		if w.UWP.Population == 0 {
@@ -224,5 +287,9 @@ func TestGenerateDeterminismIncludesExtensions(t *testing.T) {
 
 	if w1.Cultural != w2.Cultural {
 		t.Errorf("identical seeds produced different Cultural: %+v vs %+v", w1.Cultural, w2.Cultural)
+	}
+
+	if w1.TravelZone != w2.TravelZone {
+		t.Errorf("identical seeds produced different TravelZone: %v vs %v", w1.TravelZone, w2.TravelZone)
 	}
 }

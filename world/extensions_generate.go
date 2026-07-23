@@ -76,6 +76,27 @@ func computeImportance(u UWP, tradeCodes []TradeCode, bases []Base) Importance {
 	return Importance(ix)
 }
 
+// computeTravelZone determines a world's Travel Zone from Population and
+// Government+Law, per Book 3 p.28's "Z Travel Zones" step. Dice-free, like
+// computeImportance — directly testable against fixed fixtures.
+//
+// Class X Starport being "almost always" Red Zone is worded as
+// non-deterministic (referee judgment), so it's deliberately not modeled
+// here — matches the existing precedent for other referee-assigned codes
+// (Colony, MilitaryRule, SectorCapital, Capital, SubsectorCapital).
+func computeTravelZone(u UWP) TravelZone {
+	govLaw := int(u.Government) + int(u.Law)
+
+	switch {
+	case govLaw >= 22:
+		return ZoneRed
+	case int(u.Population) <= 6 || govLaw >= 20:
+		return ZoneAmber
+	default:
+		return ZoneGreen
+	}
+}
+
 // computeLabor: Population-1, floored at 0 (Population=0 would otherwise
 // go negative).
 func computeLabor(population ehex.Value) int {

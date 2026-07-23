@@ -46,16 +46,20 @@ var nonZeroTechLevels = func() []ehex.Value {
 //     Tundra (Tu), TwilightZone (Tz), Farming (Fa).
 //   - Referee-assigned in the rulebook's own text: MilitaryRule (Mr),
 //     SubsectorCapital (Cp), SectorCapital (Cs), Capital (Cx), Colony
-//     (Cy), Forbidden (Fo), DataRepository (Ab), AncientSite (An).
-//   - Puzzle (Pz) and Dangerous (Da) look population-triggered at a
-//     glance (Da: Pop 0-6, Pz: Pop 7-F — together every population
-//     digit), but the rulebook states they're sub-labels applied only to
-//     worlds a referee has already classified Travel Zone Amber ("assigns
-//     to worlds a basic warning level based on experience", Book 3 line
-//     877). Treating them as auto-derived would tag every generated world
-//     Amber, which is not what the rulebook intends.
+//     (Cy), DataRepository (Ab), AncientSite (An).
 //   - Explicitly non-mainworld ("Not MW") in the rulebook: Mining (Mi),
 //     PenalColony (Pe).
+//
+// Forbidden (Fo), Puzzle (Pz), and Dangerous (Da) are never trigger-table
+// rows either, but for a different reason: they ARE derivable (Book 3
+// p.28's "Z Travel Zones" step gives a concrete Population/Government/Law
+// rule — see computeTravelZone and travelZoneTradeCode), just not via
+// this table. Their real predicate is a population threshold OR'd with a
+// two-field sum threshold, which doesn't fit tradeCodeTrigger's
+// per-field AND-of-sets shape. An earlier version of this comment claimed
+// all three were purely referee-assigned, citing the rulebook's flavor
+// text (Book 3 line 877) — that was written without having found the
+// p.28 generation-step table, which gives an actual mechanic.
 //
 // Dieback (Di) was excluded for a while: its Pop/Gov/Law columns are
 // identical to Barren's (Ba) in the printed table, with only a trailing
@@ -158,6 +162,26 @@ func (t tradeCodeTrigger) matches(u UWP) bool {
 		matchesAny(u.TechLevel, t.TechLevel)
 }
 
+// travelZoneTradeCode returns the trade code sub-label for a world's
+// computed Travel Zone, and whether one applies (Green has none). This is
+// a separate mechanism from tradeCodeTriggers: Da/Pz/Fo's real predicate
+// (a population threshold OR'd with a two-field sum threshold) isn't
+// expressible as tradeCodeTrigger's per-field AND-of-sets shape.
+func travelZoneTradeCode(u UWP) (TradeCode, bool) {
+	switch computeTravelZone(u) {
+	case ZoneRed:
+		return Forbidden, true
+	case ZoneAmber:
+		if int(u.Population) <= 6 {
+			return Dangerous, true
+		}
+
+		return Puzzle, true
+	default:
+		return "", false
+	}
+}
+
 // DeriveTradeCodes returns every trade code derivable purely from u's UWP
 // digits. See tradeCodeTriggers' doc comment for what's deliberately
 // excluded, and why.
@@ -168,6 +192,10 @@ func DeriveTradeCodes(u UWP) []TradeCode {
 		if t.matches(u) {
 			codes = append(codes, t.Code)
 		}
+	}
+
+	if code, ok := travelZoneTradeCode(u); ok {
+		codes = append(codes, code)
 	}
 
 	return codes
