@@ -1,9 +1,7 @@
-// Command server runs the traveller HTTP API.
-//
-//	@title			Traveller API
-//	@version		0.1
-//	@description	API-first Traveller5 (T5) rules engine: world/character/starship generation.
-//	@BasePath		/
+// Command server runs the traveller HTTP API — an API-first Traveller5
+// (T5) rules engine: world/character/starship generation. See package
+// api for the routes and api/*.go's handler doc comments for what each
+// one does, or the README's API section for an endpoint table.
 package main
 
 import (

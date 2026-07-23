@@ -6,14 +6,8 @@ type healthzResponse struct {
 	Status string `json:"status"`
 }
 
-// handleHealthz godoc
-//
-//	@Summary		Health check
-//	@Description	Reports whether the server is up.
-//	@Tags			health
-//	@Produce		json
-//	@Success		200	{object}	healthzResponse
-//	@Router			/healthz [get]
+// handleHealthz handles GET /healthz: reports whether the server is up.
+// Responds 200 with a healthzResponse.
 func handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, healthzResponse{Status: "ok"})
 }

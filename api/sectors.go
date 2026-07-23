@@ -23,20 +23,14 @@ type SectorResponse struct {
 	Hexes []HexResponse `json:"hexes"`
 }
 
-// handleSectorsRandom godoc
-//
-//	@Summary		Generate a random sector
-//	@Description	Rolls a full Traveller5 sector: a 32x40 hex grid, each hex
-//	@Description	either empty or holding a complete generated star system.
-//	@Tags			sectors
-//	@Produce		json
-//	@Param			seed		query		int		false	"PRNG seed (omit for a time-derived seed)"
-//	@Param			name		query		string	false	"Sector name (default: Unnamed)"
-//	@Param			density		query		string	false	"Density name, e.g. Standard (default) or Core — see sector.Density"
-//	@Param			subsector	query		string	false	"Single letter A-P — filter the response to that 80-hex block only"
-//	@Success		200			{object}	SectorResponse
-//	@Failure		400			{object}	errorResponse	"seed/density/subsector invalid"
-//	@Router			/sectors/random [get]
+// handleSectorsRandom handles GET /sectors/random: rolls a full
+// Traveller5 sector, a 32x40 hex grid where each hex is either empty or
+// holds a complete generated star system. Optional query params: seed
+// (int, omit for a time-derived seed), name (string, default "Unnamed"),
+// density (string, e.g. Standard (default) or Core — see sector.Density),
+// subsector (single letter A-P, filters the response to that 80-hex
+// block only). Responds 200 with a SectorResponse, or 400 with an
+// errorResponse if seed/density/subsector is invalid.
 func handleSectorsRandom(w http.ResponseWriter, r *http.Request) {
 	seed, present, err := parseSeed(r)
 	if err != nil {

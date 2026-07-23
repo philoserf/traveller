@@ -99,16 +99,11 @@ type SystemResponse struct {
 	Mainworld  MainworldResponse   `json:"mainworld"`
 }
 
-// handleSystemsRandom godoc
-//
-//	@Summary		Generate a random star system
-//	@Description	Rolls a Traveller5 mainworld and the system around it: stars, habitable zone, and mainworld placement.
-//	@Tags			systems
-//	@Produce		json
-//	@Param			seed	query		int	false	"PRNG seed (omit for a time-derived seed)"
-//	@Success		200		{object}	SystemResponse
-//	@Failure		400		{object}	errorResponse	"seed is not an integer"
-//	@Router			/systems/random [get]
+// handleSystemsRandom handles GET /systems/random: rolls a Traveller5
+// mainworld and the system around it — stars, habitable zone, and
+// mainworld placement. Optional query param: seed (int, omit for a
+// time-derived seed). Responds 200 with a SystemResponse, or 400 with an
+// errorResponse if seed is not an integer.
 func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 	seed, present, err := parseSeed(r)
 	if err != nil {

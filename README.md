@@ -7,6 +7,25 @@ Types first, then tools: domain types for worlds, characters, and
 starships live in the `world`, `character`, and `starship` packages,
 built on a shared `ehex` (extended-hex) primitive.
 
+## API
+
+`go run ./cmd/server` starts the HTTP API on `:8080`. All endpoints are
+read-only `GET`s returning JSON; an omitted `seed` resolves to a
+time-derived one, which the response always echoes back so the result
+can be reproduced later. Handler behavior is also documented via Go doc
+comments in `api/*.go` (`go doc ./api`).
+
+| Endpoint              | Query params                                                                                                               | Response          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `GET /healthz`        | —                                                                                                                          | `healthzResponse` |
+| `GET /worlds/random`  | `seed`                                                                                                                     | `WorldResponse`   |
+| `GET /systems/random` | `seed`                                                                                                                     | `SystemResponse`  |
+| `GET /sectors/random` | `seed`, `name` (default "Unnamed"), `density` (default "Standard" — see `sector.Density`), `subsector` (single letter A-P) | `SectorResponse`  |
+
+A bad `seed`/`density`/`subsector` responds `400` with
+`{"error": "..."}` (`errorResponse`). `cmd/client` is a CLI that talks to
+this same API — see its `-h` output for each subcommand's flags.
+
 ## Development
 
 ```sh

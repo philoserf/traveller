@@ -15,7 +15,7 @@ tasks:
       - brew bundle install --file=Brewfile
 
   fmt:
-    desc: Auto-format code (gofumpt/goimports/golines/swaggo, via golangci-lint)
+    desc: Auto-format code (gofumpt/goimports/golines, via golangci-lint)
     cmds:
       - golangci-lint fmt ./...
 

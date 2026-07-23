@@ -77,7 +77,6 @@ formatters:
     - gofumpt
     - goimports
     - golines
-    - swaggo
   settings:
     gofumpt:
       extra-rules: true
