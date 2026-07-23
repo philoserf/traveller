@@ -16,7 +16,7 @@ func isValidTravelZone(z string) bool {
 	return z == "Green" || z == "Amber" || z == "Red"
 }
 
-func doRequest(t *testing.T, mux *http.ServeMux, target string) *httptest.ResponseRecorder {
+func doRequest(t *testing.T, mux http.Handler, target string) *httptest.ResponseRecorder {
 	t.Helper()
 
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, target, nil)
@@ -229,5 +229,37 @@ func TestWrongMethodReturns405(t *testing.T) {
 
 	if rec.Header().Get("Allow") == "" {
 		t.Error("Allow header is empty, want the mux's automatic method list")
+	}
+
+	var body struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error == "" {
+		t.Error("error field is empty, want a message")
+	}
+}
+
+func TestNotFoundReturnsJSON(t *testing.T) {
+	t.Parallel()
+
+	rec := doRequest(t, api.NewMux(), "/nonexistent")
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+
+	var body struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if body.Error == "" {
+		t.Error("error field is empty, want a message")
 	}
 }
