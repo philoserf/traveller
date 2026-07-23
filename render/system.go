@@ -25,7 +25,7 @@ func System(s world.StarSystem) string {
 
 	starOrbits, bodiesByRole, satellitesOf := s.SystemBodies()
 
-	writeMainworld(&b, mwOrbit, satellitesOf)
+	writeMainworld(&b, mwOrbit)
 
 	fmt.Fprint(&b, "\n## System\n\n")
 
@@ -40,10 +40,10 @@ func System(s world.StarSystem) string {
 		}
 
 		for _, body := range bodies {
-			fmt.Fprintf(&b, "- %s\n", otherBodyLine(body))
+			fmt.Fprintf(&b, "- %s\n", otherBodyLine(body, body.World == mw))
 
 			for _, sat := range satellitesOf[body.Number] {
-				fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat))
+				fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat, sat.World == mw))
 			}
 		}
 
@@ -55,9 +55,11 @@ func System(s world.StarSystem) string {
 
 // writeMainworld renders the "## Mainworld" section: orbit placement
 // (Close/Far-aware when it's a satellite of a Gas Giant), UWP, Trade
-// Codes, Bases, PBG, Travel Zone, Extensions, and — for a non-satellite
-// mainworld — its own Satellites subsection.
-func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[int][]world.Orbit) {
+// Codes, Bases, PBG, Travel Zone, and Extensions. The mainworld's own
+// satellites (if any) aren't repeated here — they're already visible,
+// marked "(Mainworld)", nested under its entry in "## System" below,
+// alongside every other body's satellites.
+func writeMainworld(b *strings.Builder, mwOrbit world.Orbit) {
 	mw := mwOrbit.World
 
 	fmt.Fprint(b, "## Mainworld\n\n")
@@ -92,45 +94,33 @@ func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[in
 		mw.Economic.Resources, mw.Economic.Labor, mw.Economic.Infrastructure, mw.Economic.Efficiency)
 	fmt.Fprintf(b, "- **Cultural:** Heterogeneity %d, Acceptance %d, Strangeness %d, Symbols %d\n",
 		mw.Cultural.Heterogeneity, mw.Cultural.Acceptance, mw.Cultural.Strangeness, mw.Cultural.Symbols)
-
-	// A satellite mainworld shares its Number with its host Gas Giant —
-	// any satellitesOf that Number are the Gas Giant's own (already
-	// shown under its own "System" group below), not the mainworld's.
-	// A mainworld never gets satellites of its own when it's itself a
-	// satellite (satellites don't get satellites — see
-	// world.GenerateSystem's topLevel snapshot).
-	if !mwOrbit.Satellite {
-		if mwSatellites := satellitesOf[mwOrbit.Number]; len(mwSatellites) > 0 {
-			fmt.Fprint(b, "\n### Satellites\n\n")
-
-			for _, sat := range mwSatellites {
-				fmt.Fprintf(b, "- %s\n", satelliteLine(sat))
-			}
-		}
-	}
 }
 
-// otherBodyLine renders one non-mainworld, non-star, non-Satellite body:
-// a Gas Giant (Size letter and Bracket), or a placed World with its
-// Trade Codes — either way with a Ring suffix when it has one.
-func otherBodyLine(o world.Orbit) string {
+// otherBodyLine renders one non-star, non-Satellite body: a Gas Giant
+// (Size letter and Bracket), or a placed World with its Trade Codes —
+// either way with a Ring suffix when it has one, and a "(Mainworld)"
+// suffix when isMainworld (a Gas Giant is never the mainworld itself).
+func otherBodyLine(o world.Orbit, isMainworld bool) string {
+	var line string
 	if o.GasGiant != nil {
-		line := fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
+		line = fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
 		if o.GasGiant.Ring {
 			line += ", with a Ring"
 		}
-
-		return line
+	} else {
+		line = fmt.Sprintf(
+			"Orbit %d: %s — %s",
+			o.Number,
+			o.World.UWP,
+			joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
+		)
+		if o.World.Ring {
+			line += ", with a Ring"
+		}
 	}
 
-	line := fmt.Sprintf(
-		"Orbit %d: %s — %s",
-		o.Number,
-		o.World.UWP,
-		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
-	)
-	if o.World.Ring {
-		line += ", with a Ring"
+	if isMainworld {
+		line += " (Mainworld)"
 	}
 
 	return line
@@ -146,15 +136,22 @@ func closeFarLabel(isClose bool) string {
 	return "Far"
 }
 
-// satelliteLine renders one satellite: Close or Far, its UWP, and its
-// Trade Codes.
-func satelliteLine(o world.Orbit) string {
-	return fmt.Sprintf(
+// satelliteLine renders one satellite: Close or Far, its UWP, its Trade
+// Codes, and a "(Mainworld)" suffix when isMainworld — a mainworld that
+// is itself a satellite of a Gas Giant.
+func satelliteLine(o world.Orbit, isMainworld bool) string {
+	line := fmt.Sprintf(
 		"%s satellite: %s — %s",
 		closeFarLabel(o.Close),
 		o.World.UWP,
 		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
 	)
+
+	if isMainworld {
+		line += " (Mainworld)"
+	}
+
+	return line
 }
 
 // starSpec renders a star's spectral classification, e.g. "G7 IV" — or,

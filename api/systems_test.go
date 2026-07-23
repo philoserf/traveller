@@ -199,6 +199,55 @@ func TestSystemsRandomMultiStarBodiesGroupCorrectly(t *testing.T) {
 	}
 }
 
+// TestSystemsRandomExactlyOneBodyIsMainworld confirms the mainworld's own
+// Orbit — no longer excluded from StarGroups (world.SystemBodies) — is
+// marked IsMainworld exactly once across the whole response, whether it's
+// a freestanding body (seed 1) or itself a satellite of a Gas Giant
+// (seed 5, per TestSystemsRandomSatelliteShape).
+func TestSystemsRandomExactlyOneBodyIsMainworld(t *testing.T) {
+	t.Parallel()
+
+	for _, seed := range []string{"1", "5"} {
+		t.Run("seed="+seed, func(t *testing.T) {
+			t.Parallel()
+
+			rec := doRequest(t, api.NewMux(), "/systems/random?seed="+seed)
+
+			var got api.SystemResponse
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatalf("unmarshal response: %v", err)
+			}
+
+			if count := countMainworldEntries(got); count != 1 {
+				t.Errorf("seed %s: found %d IsMainworld entries across StarGroups, want exactly 1", seed, count)
+			}
+		})
+	}
+}
+
+// countMainworldEntries counts how many bodies or satellites across every
+// StarGroup carry IsMainworld — the mainworld's own Orbit should appear,
+// and be marked, exactly once.
+func countMainworldEntries(got api.SystemResponse) int {
+	count := 0
+
+	for _, g := range got.StarGroups {
+		for _, b := range g.Bodies {
+			if b.IsMainworld {
+				count++
+			}
+
+			for _, sat := range b.Satellites {
+				if sat.IsMainworld {
+					count++
+				}
+			}
+		}
+	}
+
+	return count
+}
+
 func TestSystemsRandomBadSeed(t *testing.T) {
 	t.Parallel()
 

@@ -160,9 +160,9 @@ func runSystem(args []string) error {
 	return nil
 }
 
-// bodyLine formats one non-mainworld, non-star, non-satellite body: a Gas
-// Giant, or a placed World with its own Trade Codes — matching
-// render/system.go's otherBodyLine.
+// bodyLine formats one non-star, non-satellite body: a Gas Giant, or a
+// placed World with its own Trade Codes — matching render/system.go's
+// otherBodyLine, including its "(Mainworld)" suffix.
 func bodyLine(b api.BodyResponse) string {
 	var line string
 	if b.GasGiant != nil {
@@ -175,18 +175,28 @@ func bodyLine(b api.BodyResponse) string {
 		line += ", with a Ring"
 	}
 
+	if b.IsMainworld {
+		line += " (Mainworld)"
+	}
+
 	return line
 }
 
 // satelliteLine formats one satellite — matching render/system.go's
-// satelliteLine.
+// satelliteLine, including its "(Mainworld)" suffix.
 func satelliteLine(s api.SatelliteResponse) string {
 	orbit := "Far"
 	if s.Close {
 		orbit = "Close"
 	}
 
-	return fmt.Sprintf("%s satellite: %s — %s", orbit, s.UWP, strings.Join(world.TradeCodeStrings(s.TradeCodes), " "))
+	line := fmt.Sprintf("%s satellite: %s — %s", orbit, s.UWP, strings.Join(world.TradeCodeStrings(s.TradeCodes), " "))
+
+	if s.IsMainworld {
+		line += " (Mainworld)"
+	}
+
+	return line
 }
 
 // printWorldFields prints the fields api.WorldResponse and

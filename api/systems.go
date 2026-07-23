@@ -52,24 +52,30 @@ type MainworldResponse struct {
 }
 
 // SatelliteResponse is the wire shape of a satellite orbiting a Gas Giant
-// or a placed World.
+// or a placed World. IsMainworld is true when this satellite is the
+// system's own mainworld (a mainworld can itself be a satellite of a Gas
+// Giant — see MainworldResponse.Satellite).
 type SatelliteResponse struct {
-	Close      bool              `json:"close"`
-	UWP        string            `json:"uwp"`
-	TradeCodes []world.TradeCode `json:"tradeCodes"`
+	Close       bool              `json:"close"`
+	IsMainworld bool              `json:"isMainworld,omitempty"`
+	UWP         string            `json:"uwp"`
+	TradeCodes  []world.TradeCode `json:"tradeCodes"`
 }
 
-// BodyResponse is the wire shape of a non-mainworld, non-star body placed
-// in the system: either a Gas Giant, or a placed World with its own
-// UWP/TradeCodes (GasGiant is nil in that case), plus any Satellites of
-// its own. Ring is whichever of GasGiant.Ring/World.Ring applies.
+// BodyResponse is the wire shape of a non-star body placed in the system:
+// either a Gas Giant, or a placed World with its own UWP/TradeCodes
+// (GasGiant is nil in that case), plus any Satellites of its own. Ring is
+// whichever of GasGiant.Ring/World.Ring applies. IsMainworld is true when
+// this body is the system's own mainworld (never true for a Gas Giant —
+// the mainworld is always a World).
 type BodyResponse struct {
-	Orbit      int                 `json:"orbit"`
-	Ring       bool                `json:"ring,omitempty"`
-	GasGiant   *GasGiantResponse   `json:"gasGiant,omitempty"`
-	UWP        string              `json:"uwp,omitempty"`
-	TradeCodes []world.TradeCode   `json:"tradeCodes,omitempty"`
-	Satellites []SatelliteResponse `json:"satellites,omitempty"`
+	Orbit       int                 `json:"orbit"`
+	Ring        bool                `json:"ring,omitempty"`
+	IsMainworld bool                `json:"isMainworld,omitempty"`
+	GasGiant    *GasGiantResponse   `json:"gasGiant,omitempty"`
+	UWP         string              `json:"uwp,omitempty"`
+	TradeCodes  []world.TradeCode   `json:"tradeCodes,omitempty"`
+	Satellites  []SatelliteResponse `json:"satellites,omitempty"`
 }
 
 // StarGroupResponse is one star and every non-satellite body it hosts
@@ -124,6 +130,8 @@ func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 }
 
 func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
+	mwOrbit := sys.Orbits[sys.MainworldOrbit]
+
 	starOrbits, bodiesByRole, satellitesOf := sys.SystemBodies()
 
 	starGroups := make([]StarGroupResponse, 0, len(starOrbits))
@@ -133,13 +141,11 @@ func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
 		bodyResponses := make([]BodyResponse, 0, len(bodies))
 
 		for _, o := range bodies {
-			bodyResponses = append(bodyResponses, toBodyResponse(o, satellitesOf[o.Number]))
+			bodyResponses = append(bodyResponses, toBodyResponse(o, satellitesOf[o.Number], mwOrbit))
 		}
 
 		starGroups = append(starGroups, StarGroupResponse{Star: toStarResponse(so), Bodies: bodyResponses})
 	}
-
-	mwOrbit := sys.Orbits[sys.MainworldOrbit]
 
 	return SystemResponse{
 		Seed:       seed,
@@ -148,11 +154,14 @@ func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
 	}
 }
 
-// toBodyResponse builds the wire shape for a single non-mainworld,
-// non-star, non-Satellite Orbit entry — a Gas Giant, or a placed World —
-// with satellites (already collected by Number) nested under it.
-func toBodyResponse(o world.Orbit, satellites []world.Orbit) BodyResponse {
-	resp := BodyResponse{Orbit: o.Number}
+// toBodyResponse builds the wire shape for a single non-star,
+// non-Satellite Orbit entry — a Gas Giant, or a placed World — with
+// satellites (already collected by Number) nested under it. mwOrbit is
+// the system's mainworld Orbit, compared by World pointer to mark
+// whichever entry (this body, or one of its satellites) is the mainworld
+// itself.
+func toBodyResponse(o world.Orbit, satellites []world.Orbit, mwOrbit world.Orbit) BodyResponse {
+	resp := BodyResponse{Orbit: o.Number, IsMainworld: o.World == mwOrbit.World}
 
 	if o.GasGiant != nil {
 		resp.Ring = o.GasGiant.Ring
@@ -165,9 +174,10 @@ func toBodyResponse(o world.Orbit, satellites []world.Orbit) BodyResponse {
 
 	for _, sat := range satellites {
 		resp.Satellites = append(resp.Satellites, SatelliteResponse{
-			Close:      sat.Close,
-			UWP:        sat.World.UWP.String(),
-			TradeCodes: sat.World.TradeCodes,
+			Close:       sat.Close,
+			IsMainworld: sat.World == mwOrbit.World,
+			UWP:         sat.World.UWP.String(),
+			TradeCodes:  sat.World.TradeCodes,
 		})
 	}
 

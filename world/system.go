@@ -160,30 +160,33 @@ func (s StarSystem) Worlds() []*World {
 	return worlds
 }
 
-// SystemBodies groups every Orbit in s besides the mainworld's own and
-// every Star (starOrbits collects those separately, sorted by
-// StellarRole — Primary, then Close/Near/Far, the same close-to-far
-// ordering the role constants themselves are declared in; Orbit.Number
-// can't be the sort key here since it's a sentinel, not a real orbit
-// slot, for the Primary) into: bodiesByRole, every top-level
-// (non-Satellite) Gas Giant/World grouped by the StellarRole that hosts
-// it (Orbit.HostRole) and sorted by orbit Number within each group; and
-// satellitesOf, grouped by the Number they share with their parent and
-// sorted Close before Far — the same close-to-far ordering applied one
-// level up. The single source both render.System and the JSON API's
-// toSystemResponse group by, so the two stay consistent.
+// SystemBodies groups every Orbit in s besides every Star (starOrbits
+// collects those separately, sorted by StellarRole — Primary, then
+// Close/Near/Far, the same close-to-far ordering the role constants
+// themselves are declared in; Orbit.Number can't be the sort key here
+// since it's a sentinel, not a real orbit slot, for the Primary) into:
+// bodiesByRole, every top-level (non-Satellite) Gas Giant/World grouped
+// by the StellarRole that hosts it (Orbit.HostRole) and sorted by orbit
+// Number within each group; and satellitesOf, grouped by the Number they
+// share with their parent and sorted Close before Far — the same
+// close-to-far ordering applied one level up. The mainworld's own Orbit
+// isn't special-cased: it flows through the same two buckets as
+// everything else (bodiesByRole if freestanding, satellitesOf if it's
+// itself a satellite of a Gas Giant) — callers wanting to point it out
+// distinctly can compare a body's World pointer against
+// s.Orbits[s.MainworldOrbit].World. The single source both render.System
+// and the JSON API's toSystemResponse group by, so the two stay
+// consistent.
 func (s StarSystem) SystemBodies() ([]Orbit, map[StellarRole][]Orbit, map[int][]Orbit) {
 	var starOrbits []Orbit
 
 	bodiesByRole := map[StellarRole][]Orbit{}
 	satellitesOf := map[int][]Orbit{}
 
-	for i, o := range s.Orbits {
+	for _, o := range s.Orbits {
 		switch {
 		case o.Star != nil:
 			starOrbits = append(starOrbits, o)
-		case i == s.MainworldOrbit:
-			// excluded: shown separately via its own dedicated section
 		case o.Satellite:
 			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
 		default:

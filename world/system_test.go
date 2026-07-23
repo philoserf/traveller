@@ -101,3 +101,73 @@ func TestSystemBodiesSortsSatellitesCloseToFar(t *testing.T) {
 			sats[0].Close, sats[1].Close)
 	}
 }
+
+// TestSystemBodiesIncludesFreestandingMainworld confirms a non-satellite
+// mainworld's Orbit is no longer excluded from bodiesByRole — it flows
+// through the same bucketing as every other top-level body, so callers
+// (render.System, the API's toSystemResponse) can fold it into their
+// normal body listing rather than needing a separate code path for it.
+func TestSystemBodiesIncludesFreestandingMainworld(t *testing.T) {
+	t.Parallel()
+
+	primary := world.Star{Role: world.Primary}
+	mw := world.World{}
+
+	sys := world.StarSystem{
+		Orbits: []world.Orbit{
+			{Number: -1, Star: &primary},
+			{Number: 4, HostRole: world.Primary, World: &mw},
+		},
+		MainworldOrbit: 1,
+	}
+
+	_, bodiesByRole, _ := sys.SystemBodies()
+
+	bodies := bodiesByRole[world.Primary]
+	if len(bodies) != 1 || bodies[0].World != &mw {
+		t.Errorf("bodiesByRole[Primary] = %v, want exactly the mainworld's own Orbit", bodies)
+	}
+}
+
+// TestSystemBodiesIncludesSatelliteMainworld confirms a mainworld that is
+// itself a satellite of a Gas Giant is no longer excluded from
+// satellitesOf either — it appears alongside the Gas Giant's other real
+// satellites, the same way TestSystemBodiesIncludesFreestandingMainworld
+// confirms for the freestanding case.
+func TestSystemBodiesIncludesSatelliteMainworld(t *testing.T) {
+	t.Parallel()
+
+	primary := world.Star{Role: world.Primary}
+	gg := world.GasGiant{Size: 'S', Bracket: "LGG"}
+	mw := world.World{}
+	otherMoon := world.World{}
+
+	sys := world.StarSystem{
+		Orbits: []world.Orbit{
+			{Number: -1, Star: &primary},
+			{Number: 3, HostRole: world.Primary, GasGiant: &gg},
+			{Number: 3, Satellite: true, Close: true, World: &mw},
+			{Number: 3, Satellite: true, Close: false, World: &otherMoon},
+		},
+		MainworldOrbit: 2,
+	}
+
+	_, _, satellitesOf := sys.SystemBodies()
+
+	sats := satellitesOf[3]
+	if len(sats) != 2 {
+		t.Fatalf("satellitesOf[3] has %d entries, want 2 (the mainworld and the Gas Giant's other moon)", len(sats))
+	}
+
+	found := false
+
+	for _, sat := range sats {
+		if sat.World == &mw {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Errorf("satellitesOf[3] doesn't contain the mainworld's own Orbit: %v", sats)
+	}
+}

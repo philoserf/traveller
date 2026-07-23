@@ -25,10 +25,14 @@ func fixtureMainworld() *world.World {
 }
 
 // TestSystemGroupsBodiesUnderHostingStar builds a two-star system (a
-// Primary and a Close star) with a Gas Giant hosted by the Close star —
-// confirming the Gas Giant appears nested under the Close star's own
-// "### " group heading (at its own orbit Number), not the Primary's, and
-// that the Primary's own (empty) group is shown too.
+// Primary hosting the mainworld — with a satellite of its own — and a
+// Close star hosting a Gas Giant) — confirming the Gas Giant appears
+// nested under the Close star's own "### " group heading (at its own
+// orbit Number), not the Primary's; that the mainworld itself appears as
+// a normal entry under the Primary's group, marked "(Mainworld)"; that
+// its own satellite nests under that entry without the marker (it's a
+// regular moon, not the mainworld itself); and that the old standalone
+// "### Satellites" subsection is gone.
 func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 	t.Parallel()
 
@@ -40,12 +44,14 @@ func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 		SpectralType: world.SpectralM, SpectralDecimal: 6, LuminosityClass: "V",
 		Role: world.Close, HabitableZoneOrbit: 0,
 	}
+	moon := &world.World{UWP: fixtureUWP()}
 
 	sys := world.StarSystem{
 		Orbits: []world.Orbit{
 			{Number: -1, Star: &primary},
 			{Number: 5, Star: &closeStar},
 			{Number: 3, HostRole: world.Primary, World: fixtureMainworld()},
+			{Number: 3, Satellite: true, Close: true, World: moon},
 			{Number: 2, HostRole: world.Close, GasGiant: &world.GasGiant{Size: 'S', Bracket: "LGG"}},
 		},
 		MainworldOrbit: 2,
@@ -55,6 +61,10 @@ func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 
 	if !strings.Contains(out, "## System") {
 		t.Errorf("output missing \"## System\" heading:\n%s", out)
+	}
+
+	if strings.Contains(out, "### Satellites") {
+		t.Errorf("output still contains the old standalone \"### Satellites\" subsection:\n%s", out)
 	}
 
 	closeIdx := strings.Index(out, "### Close: M6 V (Orbit 5, HZ orbit 0)")
@@ -71,25 +81,39 @@ func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 		t.Errorf("Gas Giant line appears before the Close star's group heading, want nested under it:\n%s", out)
 	}
 
-	if !strings.Contains(out, "### Primary: G2 V (HZ orbit 3)\n\nNone.") {
-		t.Errorf("output missing the Primary's own (empty) group:\n%s", out)
+	mwLineIdx := strings.Index(out, "Orbit 3: A788899-C — None (Mainworld)")
+	if mwLineIdx == -1 {
+		t.Fatalf("output missing the mainworld's own line, marked (Mainworld), under Primary's group:\n%s", out)
+	}
+
+	moonIdx := strings.Index(out, "Close satellite: A788899-C — None\n")
+	if moonIdx == -1 {
+		t.Fatalf("output missing the mainworld's own (unmarked) satellite:\n%s", out)
+	}
+
+	if moonIdx < mwLineIdx {
+		t.Errorf("mainworld's satellite line appears before the mainworld's own line, want nested under it:\n%s", out)
 	}
 }
 
 // TestSystemMainworldSatelliteReportsCloseOrFar confirms the mainworld
 // section shows the correct Close/Far phrasing when the mainworld is
 // itself a satellite of a Gas Giant, rather than the old unconditional
-// "Satellite of" text that couldn't distinguish the two.
+// "Satellite of" text that couldn't distinguish the two — and that the
+// same mainworld also appears nested under its host Gas Giant's own entry
+// in "## System", marked "(Mainworld)", now that SystemBodies no longer
+// excludes it.
 func TestSystemMainworldSatelliteReportsCloseOrFar(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name  string
-		close bool
-		want  string
+		name      string
+		close     bool
+		want      string
+		wantInSys string
 	}{
-		{"close", true, "**Close satellite of:**"},
-		{"far", false, "**Far satellite of:**"},
+		{"close", true, "**Close satellite of:**", "Close satellite: A788899-C — None (Mainworld)"},
+		{"far", false, "**Far satellite of:**", "Far satellite: A788899-C — None (Mainworld)"},
 	}
 
 	primary := world.Star{
@@ -114,6 +138,10 @@ func TestSystemMainworldSatelliteReportsCloseOrFar(t *testing.T) {
 
 			if !strings.Contains(out, c.want) {
 				t.Errorf("output missing %q:\n%s", c.want, out)
+			}
+
+			if !strings.Contains(out, c.wantInSys) {
+				t.Errorf("output missing %q under the Gas Giant's entry in \"## System\":\n%s", c.wantInSys, out)
 			}
 		})
 	}
