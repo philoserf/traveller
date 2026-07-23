@@ -18,6 +18,7 @@ type HexResponse struct {
 // every Hex in its 32x40 grid (sector.Sector.Hexes' own documented order),
 // optionally filtered down to a single Subsector — see handleSectorsRandom.
 type SectorResponse struct {
+	Seed  int64         `json:"seed"`
 	Name  string        `json:"name"`
 	Hexes []HexResponse `json:"hexes"`
 }
@@ -97,7 +98,7 @@ func handleSectorsRandom(w http.ResponseWriter, r *http.Request) {
 // independent Roller rather than sharing one sequential stream across
 // the whole grid).
 func toSectorResponse(sectorSeed int64, name string, hexes []sector.Hex) SectorResponse {
-	resp := SectorResponse{Name: name, Hexes: make([]HexResponse, 0, len(hexes))}
+	resp := SectorResponse{Seed: sectorSeed, Name: name, Hexes: make([]HexResponse, 0, len(hexes))}
 
 	for _, hex := range hexes {
 		hr := HexResponse{Location: hex.Location}

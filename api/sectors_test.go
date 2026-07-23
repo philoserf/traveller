@@ -22,6 +22,10 @@ func TestSectorsRandom(t *testing.T) {
 		t.Fatalf("unmarshal response: %v", err)
 	}
 
+	if got.Seed == 0 {
+		t.Error("Seed = 0, want a resolved (non-zero) seed")
+	}
+
 	if got.Name != "Unnamed" {
 		t.Errorf("Name = %q, want %q (default)", got.Name, "Unnamed")
 	}
@@ -51,6 +55,10 @@ func TestSectorsRandomNameAndDensity(t *testing.T) {
 	var got api.SectorResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if got.Seed != 1 {
+		t.Errorf("Seed = %d, want 1 (echoed from the request)", got.Seed)
 	}
 
 	if got.Name != "Deneb" {

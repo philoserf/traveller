@@ -232,6 +232,8 @@ func runSector(args []string) error {
 		printSystem(*hex.System)
 	}
 
+	fmt.Printf("(seed: %d)\n", sec.Seed)
+
 	return nil
 }
 
