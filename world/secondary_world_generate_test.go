@@ -28,8 +28,8 @@ func TestGenerateBigWorldSizeFloor(t *testing.T) {
 
 	for range 1000 {
 		u := generateBigWorld(r, 10)
-		if u.Size < 7 {
-			t.Fatalf("generateBigWorld: Size = %d, want >= 7 (2D+7 floor)", u.Size)
+		if u.Size < 9 {
+			t.Fatalf("generateBigWorld: Size = %d, want >= 9 (2D+7 floor: TwoD6 min 2, +7)", u.Size)
 		}
 	}
 }

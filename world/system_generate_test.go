@@ -290,8 +290,11 @@ func TestGenerateSystemPreservesMainworldSatelliteCloseFar(t *testing.T) {
 // own rolled PBG.GasGiants is 0) — confirming placeMainworld's "If
 // Satellite and No Giants, place a BigWorld in MW Orbit" fallback (Book 3
 // p.24) actually fires: the mainworld ends up an ordinary (non-satellite)
-// planet with a regenerated, BigWorld-range Size (Book 3: "any with
-// Siz=B+ is BW").
+// planet with a regenerated Size. Checked against rollBigWorldSize's own
+// mechanical floor (2D+7, TwoD6 min 2, so >= 9) rather than the book's
+// separate "Siz=B+ is BW" labeling threshold (>= 11) — a legitimate
+// 2D+7 roll of 9 or 10 is still exactly what this fallback should
+// produce, even though the book wouldn't print "BW" next to it.
 func TestGenerateSystemMainworldFallsBackToBigWorld(t *testing.T) {
 	t.Parallel()
 
@@ -314,8 +317,8 @@ func TestGenerateSystemMainworldFallsBackToBigWorld(t *testing.T) {
 		t.Fatalf("seed 34: mainworld UWP unchanged (%s), want a regenerated BigWorld UWP", mw.UWP)
 	}
 
-	if mwOrbit.World.UWP.Size < 11 {
-		t.Errorf("seed 34: mainworld Size = %s, want >= B (BigWorld range, Book 3 p.29 \"Siz=B+ is BW\")",
+	if mwOrbit.World.UWP.Size < 9 {
+		t.Errorf("seed 34: mainworld Size = %s, want >= 9 (2D+7 floor: TwoD6 min 2, +7)",
 			mwOrbit.World.UWP.Size)
 	}
 }

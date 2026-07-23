@@ -227,14 +227,24 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	// "If Satellite and No Giants, place a BigWorld in MW Orbit" (Book 3
 	// p.24) — the system's own rolled Gas Giant count can be 0 even when
 	// Table 2C's own roll says this mainworld orbits one; when both are
-	// true, regenerate the mainworld as a BigWorld (same fully-derived
-	// treatment Generate gives any mainworld, via generateWithSize) and
-	// place it as an ordinary planet instead of manufacturing a Gas
-	// Giant that would contradict PBG. An Asteroid Belt mainworld can
-	// never reach here — kind only gets set to a satellite kind in the
-	// non-belt branch above.
+	// true, regenerate the mainworld as a BigWorld and place it as an
+	// ordinary planet instead of manufacturing a Gas Giant that would
+	// contradict PBG. Only the fields generateWithSize itself computes
+	// are overwritten — Name/Sector/Hex/Nobility/Allegiance/Worlds/Notes/
+	// Ring (left zero by Generate, but not necessarily by an arbitrary
+	// caller of GenerateSystem) are preserved rather than wholesale-
+	// replaced. An Asteroid Belt mainworld can never reach here — kind
+	// only gets set to a satellite kind in the non-belt branch above.
 	if kind != mainworldPlanet && mw.PBG.GasGiants == 0 {
-		mw = generateWithSize(r, rollBigWorldSize)
+		bigWorld := generateWithSize(r, rollBigWorldSize)
+		mw.UWP = bigWorld.UWP
+		mw.TradeCodes = bigWorld.TradeCodes
+		mw.TravelZone = bigWorld.TravelZone
+		mw.Bases = bigWorld.Bases
+		mw.PBG = bigWorld.PBG
+		mw.Importance = bigWorld.Importance
+		mw.Economic = bigWorld.Economic
+		mw.Cultural = bigWorld.Cultural
 		kind = mainworldPlanet
 	}
 

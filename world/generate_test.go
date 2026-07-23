@@ -125,8 +125,11 @@ func TestGenerateWithSizeUsesGivenSizeRoll(t *testing.T) {
 
 	for range 1000 {
 		w := generateWithSize(r, rollBigWorldSize)
-		if w.UWP.Size < 7 {
-			t.Fatalf("generateWithSize(r, rollBigWorldSize): Size = %s, want >= 7 (2D+7 floor)", w.UWP.Size)
+		if w.UWP.Size < 9 {
+			t.Fatalf(
+				"generateWithSize(r, rollBigWorldSize): Size = %s, want >= 9 (2D+7 floor: TwoD6 min 2, +7)",
+				w.UWP.Size,
+			)
 		}
 	}
 }
