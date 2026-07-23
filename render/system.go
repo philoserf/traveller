@@ -8,12 +8,12 @@ import (
 	"github.com/philoserf/traveller/world"
 )
 
-// System renders s as a Markdown system sheet: its stars (spectral type,
-// size, orbit, and HZ orbit), the mainworld's own orbit placement and
-// UWP/TradeCodes/PBG/extensions, and every other body placed in the
-// system (Gas Giants, Belts, secondary worlds — see world.GenerateSystem
-// for what's placed and why), sorted by orbit number. Doesn't call World
-// for the mainworld section — World's own "#"/"##" headers don't compose
+// System renders s as a Markdown system sheet: the mainworld's own orbit
+// placement and UWP/TradeCodes/PBG/extensions, then every star grouped
+// with the bodies it hosts (Gas Giants, Belts, secondary worlds — see
+// world.GenerateSystem for what's placed and why) and their satellites,
+// sorted by orbit number within each star's group. Doesn't call World for
+// the mainworld section — World's own "#"/"##" headers don't compose
 // cleanly nested inside a larger document, so this renders the same
 // fields directly at its own heading level instead.
 func System(s world.StarSystem) string {
@@ -24,38 +24,38 @@ func System(s world.StarSystem) string {
 
 	fmt.Fprintf(&b, "# %s System\n\n", title(*mw))
 
-	fmt.Fprint(&b, "## Stars\n\n")
-
-	for _, star := range s.Stars() {
-		fmt.Fprintf(&b, "- %s\n", starLine(*star))
-	}
-
-	tops, satellitesOf := systemBodies(s)
-	multiStar := len(s.Stars()) > 1
+	satellitesOf, bodiesByRole := systemBodies(s)
 
 	writeMainworld(&b, mwOrbit, satellitesOf)
 
 	fmt.Fprint(&b, "\n## System\n\n")
 
-	if len(tops) == 0 {
-		fmt.Fprint(&b, "None.\n")
-	}
+	for _, o := range s.Orbits {
+		if o.Star == nil {
+			continue
+		}
 
-	for _, o := range tops {
-		if o.Star != nil {
-			fmt.Fprintf(&b, "- Orbit %d: %s\n", o.Number, starLine(*o.Star))
+		fmt.Fprintf(&b, "### %s\n\n", starHeading(o))
+
+		bodies := bodiesByRole[o.Star.Role]
+		if len(bodies) == 0 {
+			fmt.Fprint(&b, "None.\n\n")
 
 			continue
 		}
 
-		fmt.Fprintf(&b, "- %s\n", otherBodyLine(o, multiStar))
+		for _, body := range bodies {
+			fmt.Fprintf(&b, "- %s\n", otherBodyLine(body))
 
-		for _, sat := range satellitesOf[o.Number] {
-			fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat))
+			for _, sat := range satellitesOf[body.Number] {
+				fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat))
+			}
 		}
+
+		fmt.Fprint(&b, "\n")
 	}
 
-	return b.String()
+	return strings.TrimRight(b.String(), "\n") + "\n"
 }
 
 // writeMainworld renders the "## Mainworld" section: orbit placement
@@ -65,7 +65,7 @@ func System(s world.StarSystem) string {
 func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[int][]world.Orbit) {
 	mw := mwOrbit.World
 
-	fmt.Fprint(b, "\n## Mainworld\n\n")
+	fmt.Fprint(b, "## Mainworld\n\n")
 
 	if mwOrbit.Satellite {
 		// AU is left unset for a satellite orbit (see Orbit's doc comment)
@@ -100,7 +100,7 @@ func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[in
 
 	// A satellite mainworld shares its Number with its host Gas Giant —
 	// any satellitesOf that Number are the Gas Giant's own (already
-	// shown under its own "System" listing below), not the mainworld's.
+	// shown under its own "System" group below), not the mainworld's.
 	// A mainworld never gets satellites of its own when it's itself a
 	// satellite (satellites don't get satellites — see
 	// world.GenerateSystem's topLevel snapshot).
@@ -115,63 +115,57 @@ func writeMainworld(b *strings.Builder, mwOrbit world.Orbit, satellitesOf map[in
 	}
 }
 
-// systemBodies splits every Orbit in s besides the mainworld's own and the
-// Primary (whose Number is the primaryOrbitNumber sentinel, not a real
-// numbered slot) into top-level entries — every Close/Near/Far Star, Gas
-// Giant, and placed World — sorted by orbit number, and their satellites,
-// grouped by the Number they share with their parent.
-func systemBodies(s world.StarSystem) ([]world.Orbit, map[int][]world.Orbit) {
-	var tops []world.Orbit
-
+// systemBodies splits every Orbit in s besides the mainworld's own and
+// every Star into: satellitesOf, grouped by the Number they share with
+// their parent; and bodiesByRole, every top-level (non-Satellite) Gas
+// Giant/World grouped by the StellarRole that hosts it (Orbit.HostRole)
+// and sorted by orbit number within each group.
+func systemBodies(s world.StarSystem) (map[int][]world.Orbit, map[world.StellarRole][]world.Orbit) {
 	satellitesOf := map[int][]world.Orbit{}
+	bodiesByRole := map[world.StellarRole][]world.Orbit{}
 
 	for i, o := range s.Orbits {
-		if i == s.MainworldOrbit || o.Star != nil && o.Star.Role == world.Primary {
+		switch {
+		case i == s.MainworldOrbit, o.Star != nil:
 			continue
-		}
-
-		if o.Satellite {
+		case o.Satellite:
 			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
-
-			continue
+		default:
+			bodiesByRole[o.HostRole] = append(bodiesByRole[o.HostRole], o)
 		}
-
-		tops = append(tops, o)
 	}
 
-	sort.Slice(tops, func(i, j int) bool { return tops[i].Number < tops[j].Number })
+	for role := range bodiesByRole {
+		sort.Slice(
+			bodiesByRole[role],
+			func(i, j int) bool { return bodiesByRole[role][i].Number < bodiesByRole[role][j].Number },
+		)
+	}
 
-	return tops, satellitesOf
+	return satellitesOf, bodiesByRole
 }
 
 // otherBodyLine renders one non-mainworld, non-star, non-Satellite body:
 // a Gas Giant (Size letter and Bracket), or a placed World with its
-// Trade Codes — either way with a Ring suffix when it has one. multiStar
-// adds a "(hosted by <Role>)" suffix — the shared orbit-numbering means a
-// body's Number alone doesn't say which star placed it once more than one
-// star is present; omitted in the (common) single-star case where it
-// would only ever read "(hosted by Primary)".
-func otherBodyLine(o world.Orbit, multiStar bool) string {
-	var line string
+// Trade Codes — either way with a Ring suffix when it has one.
+func otherBodyLine(o world.Orbit) string {
 	if o.GasGiant != nil {
-		line = fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
+		line := fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
 		if o.GasGiant.Ring {
 			line += ", with a Ring"
 		}
-	} else {
-		line = fmt.Sprintf(
-			"Orbit %d: %s — %s",
-			o.Number,
-			o.World.UWP,
-			joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
-		)
-		if o.World.Ring {
-			line += ", with a Ring"
-		}
+
+		return line
 	}
 
-	if multiStar {
-		line += fmt.Sprintf(" (hosted by %s)", o.HostRole)
+	line := fmt.Sprintf(
+		"Orbit %d: %s — %s",
+		o.Number,
+		o.World.UWP,
+		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
+	)
+	if o.World.Ring {
+		line += ", with a Ring"
 	}
 
 	return line
@@ -198,15 +192,32 @@ func satelliteLine(o world.Orbit) string {
 	)
 }
 
-// starLine renders one star's spectral classification, role, orbit, HZ
-// orbit, and whether it has a Companion.
-func starLine(star world.Star) string {
-	spec := fmt.Sprintf("%s%d %s", string(star.SpectralType), star.SpectralDecimal, star.LuminosityClass)
+// starSpec renders a star's spectral classification, e.g. "G7 IV" — or,
+// for a Degenerate star (white dwarf/brown dwarf), "D D": SpectralDecimal
+// is meaningless for them (world.Star's own doc comment), so the type
+// letter and LuminosityClass ("D") are shown instead of a decimal.
+func starSpec(star world.Star) string {
 	if star.SpectralType == world.SpectralDegenerate {
-		spec = string(star.SpectralType) + " " + star.LuminosityClass // Degenerate stars have no decimal
+		return string(star.SpectralType) + " " + star.LuminosityClass
 	}
 
-	line := fmt.Sprintf("%s: %s (HZ orbit %d)", star.Role, spec, star.HabitableZoneOrbit)
+	return fmt.Sprintf("%s%d %s", string(star.SpectralType), star.SpectralDecimal, star.LuminosityClass)
+}
+
+// starHeading renders one star's own group heading: role, spectral
+// classification, its own orbit Number (omitted for the Primary, whose
+// Number is the primaryOrbitNumber sentinel, not a real orbit slot — the
+// same o.Number >= 0 check api.toStarResponse uses for this), HZ orbit,
+// and whether it has a Companion.
+func starHeading(o world.Orbit) string {
+	star := *o.Star
+
+	var orbitPart string
+	if o.Number >= 0 {
+		orbitPart = fmt.Sprintf("Orbit %d, ", o.Number)
+	}
+
+	line := fmt.Sprintf("%s: %s (%sHZ orbit %d)", star.Role, starSpec(star), orbitPart, star.HabitableZoneOrbit)
 	if star.Companion != nil {
 		line += ", with a Companion"
 	}

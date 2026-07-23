@@ -24,12 +24,12 @@ func fixtureMainworld() *world.World {
 	}
 }
 
-// TestSystemListsCloseStarAndAttributesHost builds a two-star system (a
+// TestSystemGroupsBodiesUnderHostingStar builds a two-star system (a
 // Primary and a Close star) with a Gas Giant hosted by the Close star —
-// confirming the merged system list surfaces the Close star at its own
-// orbit Number, and tags the Gas Giant's host now that it's ambiguous
-// which star placed it just from the orbit number alone.
-func TestSystemListsCloseStarAndAttributesHost(t *testing.T) {
+// confirming the Gas Giant appears nested under the Close star's own
+// "### " group heading (at its own orbit Number), not the Primary's, and
+// that the Primary's own (empty) group is shown too.
+func TestSystemGroupsBodiesUnderHostingStar(t *testing.T) {
 	t.Parallel()
 
 	primary := world.Star{
@@ -57,43 +57,22 @@ func TestSystemListsCloseStarAndAttributesHost(t *testing.T) {
 		t.Errorf("output missing \"## System\" heading:\n%s", out)
 	}
 
-	if strings.Contains(out, "## Other Bodies") {
-		t.Errorf("output still contains the old \"## Other Bodies\" heading:\n%s", out)
+	closeIdx := strings.Index(out, "### Close: M6 V (Orbit 5, HZ orbit 0)")
+	if closeIdx == -1 {
+		t.Fatalf("output missing the Close star's own group heading:\n%s", out)
 	}
 
-	if !strings.Contains(out, "Orbit 5: Close: M6 V (HZ orbit 0)") {
-		t.Errorf("output missing the Close star's own list entry:\n%s", out)
+	gasGiantIdx := strings.Index(out, "Orbit 2: Gas Giant, Size S (LGG)")
+	if gasGiantIdx == -1 {
+		t.Fatalf("output missing the Gas Giant's own line:\n%s", out)
 	}
 
-	if !strings.Contains(out, "Orbit 2: Gas Giant, Size S (LGG) (hosted by Close)") {
-		t.Errorf("output missing the Gas Giant's host attribution:\n%s", out)
-	}
-}
-
-// TestSystemOmitsHostAttributionForSingleStar confirms the "(hosted
-// by ...)" suffix — only meaningful once a body's Number alone can't say
-// which star placed it — doesn't appear for the common single-star case.
-func TestSystemOmitsHostAttributionForSingleStar(t *testing.T) {
-	t.Parallel()
-
-	primary := world.Star{
-		SpectralType: world.SpectralG, SpectralDecimal: 2, LuminosityClass: "V",
-		Role: world.Primary, HabitableZoneOrbit: 3,
+	if gasGiantIdx < closeIdx {
+		t.Errorf("Gas Giant line appears before the Close star's group heading, want nested under it:\n%s", out)
 	}
 
-	sys := world.StarSystem{
-		Orbits: []world.Orbit{
-			{Number: -1, Star: &primary},
-			{Number: 3, HostRole: world.Primary, World: fixtureMainworld()},
-			{Number: 5, HostRole: world.Primary, GasGiant: &world.GasGiant{Size: 'S', Bracket: "LGG"}},
-		},
-		MainworldOrbit: 1,
-	}
-
-	out := render.System(sys)
-
-	if strings.Contains(out, "hosted by") {
-		t.Errorf("single-star system output shouldn't show host attribution:\n%s", out)
+	if !strings.Contains(out, "### Primary: G2 V (HZ orbit 3)\n\nNone.") {
+		t.Errorf("output missing the Primary's own (empty) group:\n%s", out)
 	}
 }
 

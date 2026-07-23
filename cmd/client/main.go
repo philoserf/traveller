@@ -123,10 +123,6 @@ func runSystem(args []string) error {
 		return fmt.Errorf("client: decoding response: %w", err)
 	}
 
-	for _, s := range sys.Stars {
-		fmt.Println(starLine(s))
-	}
-
 	mw := sys.Mainworld
 	if mw.Satellite {
 		orbitKind := "Far"
@@ -141,9 +137,22 @@ func runSystem(args []string) error {
 
 	printWorldFields(mw.UWP, mw.TradeCodes, mw.Bases, mw.PBG, mw.TravelZone, mw.Importance, mw.Economic, mw.Cultural)
 
-	multiStar := len(sys.Stars) > 1
-	for _, o := range sys.OtherBodies {
-		fmt.Println(otherBodyLine(o, multiStar))
+	for _, group := range sys.StarGroups {
+		fmt.Println(starHeadingLine(group.Star))
+
+		if len(group.Bodies) == 0 {
+			fmt.Println("  None.")
+
+			continue
+		}
+
+		for _, b := range group.Bodies {
+			fmt.Println("  " + bodyLine(b))
+
+			for _, sat := range b.Satellites {
+				fmt.Println("    " + satelliteLine(sat))
+			}
+		}
 	}
 
 	fmt.Printf("(seed: %d)\n", sys.Seed)
@@ -151,21 +160,26 @@ func runSystem(args []string) error {
 	return nil
 }
 
-// otherBodyLine formats one non-mainworld, non-star body: a Gas Giant, or
-// a placed World with its own Trade Codes — matching render/system.go's
-// otherBodyLine, including its "(hosted by <Role>)" suffix once more than
-// one star is present (o.HostRole alone doesn't say that on its own).
-func otherBodyLine(o api.OtherBodyResponse, multiStar bool) string {
-	line := fmt.Sprintf("Orbit %d: %s — %s", o.Orbit, o.UWP, strings.Join(world.TradeCodeStrings(o.TradeCodes), " "))
-	if o.GasGiant != nil {
-		line = fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", o.Orbit, o.GasGiant.Size, o.GasGiant.Bracket)
+// bodyLine formats one non-mainworld, non-star, non-satellite body: a Gas
+// Giant, or a placed World with its own Trade Codes — matching
+// render/system.go's otherBodyLine.
+func bodyLine(b api.BodyResponse) string {
+	if b.GasGiant != nil {
+		return fmt.Sprintf("Orbit %d: Gas Giant, Size %s (%s)", b.Orbit, b.GasGiant.Size, b.GasGiant.Bracket)
 	}
 
-	if multiStar {
-		line += fmt.Sprintf(" (hosted by %s)", o.HostRole)
+	return fmt.Sprintf("Orbit %d: %s — %s", b.Orbit, b.UWP, strings.Join(world.TradeCodeStrings(b.TradeCodes), " "))
+}
+
+// satelliteLine formats one satellite — matching render/system.go's
+// satelliteLine.
+func satelliteLine(s api.SatelliteResponse) string {
+	orbit := "Far"
+	if s.Close {
+		orbit = "Close"
 	}
 
-	return line
+	return fmt.Sprintf("%s satellite: %s — %s", orbit, s.UWP, strings.Join(world.TradeCodeStrings(s.TradeCodes), " "))
 }
 
 // printWorldFields prints the fields api.WorldResponse and
@@ -187,19 +201,21 @@ func printWorldFields(
 		cult.Heterogeneity, cult.Acceptance, cult.Strangeness, cult.Symbols)
 }
 
-// starLine formats one star for display, matching render/system.go's
-// starLine: Degenerate stars (white dwarfs/brown dwarfs) omit
-// SpectralDecimal, since api.StarResponse's SpectralDecimal is
-// meaningless for them (mirroring world.Star's own doc comment).
-func starLine(s api.StarResponse) string {
+// starHeadingLine formats one star's own group heading — matching
+// render/system.go's starHeading: Degenerate stars (white dwarfs/brown
+// dwarfs) omit SpectralDecimal, since api.StarResponse's SpectralDecimal
+// is meaningless for them (mirroring world.Star's own doc comment), and
+// the orbit part is omitted entirely for the Primary (s.Orbit is nil —
+// see StarResponse's own doc comment on the sentinel this maps from).
+func starHeadingLine(s api.StarResponse) string {
 	spec := fmt.Sprintf("%s%d %s", s.SpectralType, s.SpectralDecimal, s.LuminosityClass)
 	if s.SpectralType == string(world.SpectralDegenerate) {
 		spec = fmt.Sprintf("%s %s", s.SpectralType, s.LuminosityClass)
 	}
 
-	orbit := "center"
+	var orbitPart string
 	if s.Orbit != nil {
-		orbit = fmt.Sprintf("orbit %d", *s.Orbit)
+		orbitPart = fmt.Sprintf("Orbit %d, ", *s.Orbit)
 	}
 
 	companion := ""
@@ -207,7 +223,7 @@ func starLine(s api.StarResponse) string {
 		companion = ", with a Companion"
 	}
 
-	return fmt.Sprintf("%s: %s (%s, HZ orbit %d)%s", s.Role, spec, orbit, s.HabitableZoneOrbit, companion)
+	return fmt.Sprintf("%s: %s (%sHZ orbit %d)%s", s.Role, spec, orbitPart, s.HabitableZoneOrbit, companion)
 }
 
 // get performs a GET request against url. It fully drains and closes the

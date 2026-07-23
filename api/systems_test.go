@@ -26,8 +26,8 @@ func TestSystemsRandom(t *testing.T) {
 		t.Error("Seed = 0, want a resolved (non-zero) seed")
 	}
 
-	if len(got.Stars) == 0 {
-		t.Fatal("Stars is empty, want at least the Primary")
+	if len(got.StarGroups) == 0 {
+		t.Fatal("StarGroups is empty, want at least the Primary")
 	}
 
 	if len(got.Mainworld.UWP) != 9 {
@@ -40,8 +40,8 @@ func TestSystemsRandom(t *testing.T) {
 
 	nilOrbitCount := 0
 
-	for _, s := range got.Stars {
-		if s.Orbit == nil {
+	for _, g := range got.StarGroups {
+		if g.Star.Orbit == nil {
 			nilOrbitCount++
 		}
 	}
@@ -107,27 +107,47 @@ func TestSystemsRandomSeedReproducible(t *testing.T) {
 		t.Errorf("same seed produced different mainworld UWPs: %q vs %q", s1.Mainworld.UWP, s2.Mainworld.UWP)
 	}
 
-	if len(s1.Stars) != len(s2.Stars) {
-		t.Errorf("same seed produced different star counts: %d vs %d", len(s1.Stars), len(s2.Stars))
+	if len(s1.StarGroups) != len(s2.StarGroups) {
+		t.Errorf("same seed produced different star counts: %d vs %d", len(s1.StarGroups), len(s2.StarGroups))
 	}
 }
 
-func TestSystemsRandomOtherBodyHostRole(t *testing.T) {
+// TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies
+// pins seed 1 (known, via go run ./cmd/sysgen -seed 1, to place
+// satellites on Orbit 0, 5, and 12 of its single Primary group) —
+// confirming bodies decode nested under their hosting star's group, and
+// that a body with satellites carries them nested rather than flattened
+// into a sibling list (the shape toSystemResponse replaced).
+func TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies(t *testing.T) {
 	t.Parallel()
 
-	rec := doRequest(t, api.NewMux(), "/systems/random?seed=12345")
+	rec := doRequest(t, api.NewMux(), "/systems/random?seed=1")
 
 	var got api.SystemResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
 
-	validRoles := map[string]bool{"Primary": true, "Close": true, "Near": true, "Far": true}
+	if len(got.StarGroups) != 1 {
+		t.Fatalf(
+			"seed 1: StarGroups has %d entries, want 1 (regression: verify against cmd/sysgen -seed 1 if this changes)",
+			len(got.StarGroups),
+		)
+	}
 
-	for _, ob := range got.OtherBodies {
-		if !validRoles[ob.HostRole] {
-			t.Errorf("orbit %d: HostRole = %q, want one of Primary/Close/Near/Far", ob.Orbit, ob.HostRole)
+	bodiesWithSatellites := 0
+
+	for _, body := range got.StarGroups[0].Bodies {
+		if len(body.Satellites) > 0 {
+			bodiesWithSatellites++
 		}
+	}
+
+	if bodiesWithSatellites != 3 {
+		t.Errorf(
+			"seed 1: %d bodies carry nested Satellites, want 3 (orbit 0's world, orbit 5's Gas Giant, orbit 12's world)",
+			bodiesWithSatellites,
+		)
 	}
 }
 

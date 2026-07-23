@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/world"
@@ -51,29 +52,44 @@ type MainworldResponse struct {
 	Cultural   CulturalResponse  `json:"cultural"`
 }
 
-// OtherBodyResponse is the wire shape of a non-mainworld, non-star body
-// placed in the system: either a Gas Giant, or a placed World with its
-// own UWP/TradeCodes (GasGiant is nil in that case). HostRole is the
-// StellarRole of whichever star placed it — a system's shared
-// orbit-numbering means Orbit alone doesn't say which star that is once
-// more than one star is present.
-type OtherBodyResponse struct {
-	Orbit      int               `json:"orbit"`
-	HostRole   string            `json:"hostRole"`
-	GasGiant   *GasGiantResponse `json:"gasGiant,omitempty"`
-	UWP        string            `json:"uwp,omitempty"`
-	TradeCodes []world.TradeCode `json:"tradeCodes,omitempty"`
+// SatelliteResponse is the wire shape of a satellite orbiting a Gas Giant
+// or a placed World.
+type SatelliteResponse struct {
+	Close      bool              `json:"close"`
+	UWP        string            `json:"uwp"`
+	TradeCodes []world.TradeCode `json:"tradeCodes"`
+}
+
+// BodyResponse is the wire shape of a non-mainworld, non-star body placed
+// in the system: either a Gas Giant, or a placed World with its own
+// UWP/TradeCodes (GasGiant is nil in that case), plus any Satellites of
+// its own.
+type BodyResponse struct {
+	Orbit      int                 `json:"orbit"`
+	GasGiant   *GasGiantResponse   `json:"gasGiant,omitempty"`
+	UWP        string              `json:"uwp,omitempty"`
+	TradeCodes []world.TradeCode   `json:"tradeCodes,omitempty"`
+	Satellites []SatelliteResponse `json:"satellites,omitempty"`
+}
+
+// StarGroupResponse is one star and every non-satellite body it hosts
+// (sorted by orbit number) — the shared orbit-numbering across a
+// multi-star system means a body's Orbit alone doesn't say which star
+// placed it, so bodies are nested under their hosting star instead of
+// carrying a separate host reference.
+type StarGroupResponse struct {
+	Star   StarResponse   `json:"star"`
+	Bodies []BodyResponse `json:"bodies"`
 }
 
 // SystemResponse is the wire shape of a generated star system: its
-// stars, its mainworld's placement within them, and every other body
-// placed in the system (Gas Giants, Belts, secondary worlds — see
+// mainworld's placement, and every star with the bodies it hosts (Gas
+// Giants, Belts, secondary worlds, and their satellites — see
 // world.GenerateSystem for what's placed and why).
 type SystemResponse struct {
-	Seed        int64               `json:"seed"`
-	Stars       []StarResponse      `json:"stars"`
-	Mainworld   MainworldResponse   `json:"mainworld"`
-	OtherBodies []OtherBodyResponse `json:"otherBodies"`
+	Seed       int64               `json:"seed"`
+	StarGroups []StarGroupResponse `json:"starGroups"`
+	Mainworld  MainworldResponse   `json:"mainworld"`
 }
 
 // handleSystemsRandom godoc
@@ -108,47 +124,75 @@ func handleSystemsRandom(w http.ResponseWriter, r *http.Request) {
 }
 
 func toSystemResponse(seed int64, sys world.StarSystem) SystemResponse {
-	stars := make([]StarResponse, 0, len(sys.Orbits))
-	otherBodies := make([]OtherBodyResponse, 0, len(sys.Orbits))
+	var starOrbits []world.Orbit
+
+	bodiesByRole := map[world.StellarRole][]world.Orbit{}
+	satellitesOf := map[int][]world.Orbit{}
 
 	for i, o := range sys.Orbits {
 		switch {
 		case o.Star != nil:
-			stars = append(stars, toStarResponse(o))
+			starOrbits = append(starOrbits, o)
 		case i == sys.MainworldOrbit:
 			// handled separately below, via toMainworldResponse
+		case o.Satellite:
+			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
 		default:
-			otherBodies = append(otherBodies, toOtherBodyResponse(o))
+			bodiesByRole[o.HostRole] = append(bodiesByRole[o.HostRole], o)
 		}
+	}
+
+	for role := range bodiesByRole {
+		sort.Slice(
+			bodiesByRole[role],
+			func(i, j int) bool { return bodiesByRole[role][i].Number < bodiesByRole[role][j].Number },
+		)
+	}
+
+	starGroups := make([]StarGroupResponse, 0, len(starOrbits))
+
+	for _, so := range starOrbits {
+		bodies := bodiesByRole[so.Star.Role]
+		bodyResponses := make([]BodyResponse, 0, len(bodies))
+
+		for _, o := range bodies {
+			bodyResponses = append(bodyResponses, toBodyResponse(o, satellitesOf[o.Number]))
+		}
+
+		starGroups = append(starGroups, StarGroupResponse{Star: toStarResponse(so), Bodies: bodyResponses})
 	}
 
 	mwOrbit := sys.Orbits[sys.MainworldOrbit]
 
 	return SystemResponse{
-		Seed:        seed,
-		Stars:       stars,
-		Mainworld:   toMainworldResponse(sys, mwOrbit),
-		OtherBodies: otherBodies,
+		Seed:       seed,
+		StarGroups: starGroups,
+		Mainworld:  toMainworldResponse(sys, mwOrbit),
 	}
 }
 
-// toOtherBodyResponse builds the wire shape for a single non-mainworld,
-// non-star Orbit entry — a Gas Giant, or a placed World.
-func toOtherBodyResponse(o world.Orbit) OtherBodyResponse {
+// toBodyResponse builds the wire shape for a single non-mainworld,
+// non-star, non-Satellite Orbit entry — a Gas Giant, or a placed World —
+// with satellites (already collected by Number) nested under it.
+func toBodyResponse(o world.Orbit, satellites []world.Orbit) BodyResponse {
+	resp := BodyResponse{Orbit: o.Number}
+
 	if o.GasGiant != nil {
-		return OtherBodyResponse{
-			Orbit:    o.Number,
-			HostRole: o.HostRole.String(),
-			GasGiant: &GasGiantResponse{Size: string(o.GasGiant.Size), Bracket: o.GasGiant.Bracket},
-		}
+		resp.GasGiant = &GasGiantResponse{Size: string(o.GasGiant.Size), Bracket: o.GasGiant.Bracket}
+	} else {
+		resp.UWP = o.World.UWP.String()
+		resp.TradeCodes = o.World.TradeCodes
 	}
 
-	return OtherBodyResponse{
-		Orbit:      o.Number,
-		HostRole:   o.HostRole.String(),
-		UWP:        o.World.UWP.String(),
-		TradeCodes: o.World.TradeCodes,
+	for _, sat := range satellites {
+		resp.Satellites = append(resp.Satellites, SatelliteResponse{
+			Close:      sat.Close,
+			UWP:        sat.World.UWP.String(),
+			TradeCodes: sat.World.TradeCodes,
+		})
 	}
+
+	return resp
 }
 
 func toStarResponse(o world.Orbit) StarResponse {
