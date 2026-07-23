@@ -19,6 +19,13 @@ task fmt    # auto-format (mutates files; not run by `task`/CI)
 `.github/workflows/ci.yml` runs the same `task check` a contributor runs
 locally, nothing CI-only.
 
+## License
+
+This repository's original code is MIT licensed — see [LICENSE](LICENSE).
+That covers the Go source only; it grants no rights to the Traveller
+trademark or T5 game content, which remain Far Future Enterprises'
+under the terms below.
+
 ## Legal / trademark notice
 
 **Traveller** is a registered trademark of Far Future Enterprises.
