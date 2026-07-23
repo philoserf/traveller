@@ -30,6 +30,8 @@ func System(s world.StarSystem) string {
 		fmt.Fprintf(&b, "- %s\n", starLine(*star))
 	}
 
+	tops, satellitesOf := otherBodies(s)
+
 	fmt.Fprint(&b, "\n## Mainworld\n\n")
 
 	if mwOrbit.Satellite {
@@ -52,6 +54,10 @@ func System(s world.StarSystem) string {
 		fmt.Fprintf(&b, "**Travel Zone:** %s\n\n", zone)
 	}
 
+	if mw.Ring {
+		fmt.Fprint(&b, "**Ring:** yes\n\n")
+	}
+
 	fmt.Fprint(&b, "### Extensions\n\n")
 	fmt.Fprintf(&b, "- **Importance:** %+d\n", int(mw.Importance))
 	fmt.Fprintf(&b, "- **Economic:** Resources %d, Labor %d, Infrastructure %d, Efficiency %+d\n",
@@ -59,48 +65,103 @@ func System(s world.StarSystem) string {
 	fmt.Fprintf(&b, "- **Cultural:** Heterogeneity %d, Acceptance %d, Strangeness %d, Symbols %d\n",
 		mw.Cultural.Heterogeneity, mw.Cultural.Acceptance, mw.Cultural.Strangeness, mw.Cultural.Symbols)
 
+	// A satellite mainworld shares its Number with its host Gas Giant —
+	// any satellitesOf that Number are the Gas Giant's own (already
+	// shown under its own "Other Bodies" listing below), not the
+	// mainworld's. A mainworld never gets satellites of its own when
+	// it's itself a satellite (satellites don't get satellites — see
+	// world.GenerateSystem's topLevel snapshot).
+	if !mwOrbit.Satellite {
+		if mwSatellites := satellitesOf[mwOrbit.Number]; len(mwSatellites) > 0 {
+			fmt.Fprint(&b, "\n### Satellites\n\n")
+
+			for _, sat := range mwSatellites {
+				fmt.Fprintf(&b, "- %s\n", satelliteLine(sat))
+			}
+		}
+	}
+
 	fmt.Fprint(&b, "\n## Other Bodies\n\n")
 
-	others := otherBodies(s)
-	if len(others) == 0 {
+	if len(tops) == 0 {
 		fmt.Fprint(&b, "None.\n")
 	}
 
-	for _, o := range others {
+	for _, o := range tops {
 		fmt.Fprintf(&b, "- %s\n", otherBodyLine(o))
+
+		for _, sat := range satellitesOf[o.Number] {
+			fmt.Fprintf(&b, "  - %s\n", satelliteLine(sat))
+		}
 	}
 
 	return b.String()
 }
 
-// otherBodies returns every Orbit in s besides the mainworld's own and
-// the stars', sorted by orbit number for a readable listing.
-func otherBodies(s world.StarSystem) []world.Orbit {
-	var others []world.Orbit
+// otherBodies splits every Orbit in s besides the mainworld's own and the
+// stars' into top-level bodies (sorted by orbit number) and their
+// satellites, grouped by the Number they share with their parent.
+func otherBodies(s world.StarSystem) ([]world.Orbit, map[int][]world.Orbit) {
+	var tops []world.Orbit
+
+	satellitesOf := map[int][]world.Orbit{}
 
 	for i, o := range s.Orbits {
 		if i == s.MainworldOrbit || o.Star != nil {
 			continue
 		}
 
-		others = append(others, o)
+		if o.Satellite {
+			satellitesOf[o.Number] = append(satellitesOf[o.Number], o)
+
+			continue
+		}
+
+		tops = append(tops, o)
 	}
 
-	sort.Slice(others, func(i, j int) bool { return others[i].Number < others[j].Number })
+	sort.Slice(tops, func(i, j int) bool { return tops[i].Number < tops[j].Number })
 
-	return others
+	return tops, satellitesOf
 }
 
-// otherBodyLine renders one non-mainworld, non-star body: a Gas Giant
-// (Size letter and Bracket), or a placed World with its Trade Codes.
+// otherBodyLine renders one non-mainworld, non-star, non-Satellite body:
+// a Gas Giant (Size letter and Bracket), or a placed World with its
+// Trade Codes — either way with a Ring suffix when it has one.
 func otherBodyLine(o world.Orbit) string {
 	if o.GasGiant != nil {
-		return fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
+		line := fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
+		if o.GasGiant.Ring {
+			line += ", with a Ring"
+		}
+
+		return line
+	}
+
+	line := fmt.Sprintf(
+		"Orbit %d: %s — %s",
+		o.Number,
+		o.World.UWP,
+		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
+	)
+	if o.World.Ring {
+		line += ", with a Ring"
+	}
+
+	return line
+}
+
+// satelliteLine renders one satellite: Close or Far, its UWP, and its
+// Trade Codes.
+func satelliteLine(o world.Orbit) string {
+	orbit := "Far"
+	if o.Close {
+		orbit = "Close"
 	}
 
 	return fmt.Sprintf(
-		"Orbit %d: %s — %s",
-		o.Number,
+		"%s satellite: %s — %s",
+		orbit,
 		o.World.UWP,
 		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
 	)

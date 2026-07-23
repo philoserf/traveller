@@ -70,6 +70,10 @@ type GasGiant struct {
 	// "IG" (Ice Giant — every second SGG rolled converts to one, same
 	// Size, per the GG table's own note).
 	Bracket string
+	// Ring is Book 3 p.29's "S Number of Satellites": a satellite-count
+	// roll of exactly 0 gives the parent a Ring (and rerolls the count
+	// once more).
+	Ring bool
 }
 
 // Orbit is a single numbered orbit slot within a system. Number may repeat:
@@ -83,10 +87,13 @@ type GasGiant struct {
 type Orbit struct {
 	Number    int
 	Satellite bool
-	AU        float64
-	Star      *Star
-	GasGiant  *GasGiant
-	World     *World
+	// Close is meaningful only when Satellite is true: "Close" (2D<=7,
+	// tidally locked to its parent) vs "Far" (2D>=8) — Book 3 p.21/24.
+	Close    bool
+	AU       float64
+	Star     *Star
+	GasGiant *GasGiant
+	World    *World
 }
 
 // StarSystem is a full system. Orbits is the single source of truth for

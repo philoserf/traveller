@@ -181,6 +181,30 @@ func TestGenerateSystemInvariants(t *testing.T) {
 		if gasGiantCount > maxGG {
 			t.Fatalf("found %d Gas Giants, want at most %d", gasGiantCount, maxGG)
 		}
+
+		assertNoOrphanedSatellites(t, sys)
+	}
+}
+
+// assertNoOrphanedSatellites fails t if any Satellite:true entry's
+// Number doesn't match an existing top-level (non-Satellite) entry —
+// every satellite must share its parent's Number, never a Number nothing
+// else occupies.
+func assertNoOrphanedSatellites(t *testing.T, sys StarSystem) {
+	t.Helper()
+
+	topLevelNumbers := map[int]bool{}
+
+	for _, o := range sys.Orbits {
+		if !o.Satellite && (o.World != nil || o.GasGiant != nil) {
+			topLevelNumbers[o.Number] = true
+		}
+	}
+
+	for _, o := range sys.Orbits {
+		if o.Satellite && !topLevelNumbers[o.Number] {
+			t.Fatalf("orphaned satellite at orbit %d: no top-level body shares that Number", o.Number)
+		}
 	}
 }
 

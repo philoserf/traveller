@@ -154,6 +154,25 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 	placeBelts(r, &orbits, hosts, int(mw.PBG.Belts), maxPopulation)
 	placeOtherWorlds(r, &orbits, hosts, r.TwoD6(), maxPopulation)
 
+	// Every top-level body — the mainworld, its host Gas Giant if any,
+	// and everything just placed above — gets its own satellite roll
+	// (Book 3 p.29: "For Each World in the System" + Gas Giants).
+	// Snapshotting the current top-level bodies first, rather than
+	// ranging over orbits live, is what keeps newly-appended satellites
+	// from being mistaken for more top-level bodies to recurse into —
+	// satellites don't get their own satellites.
+	topLevel := make([]Orbit, 0, len(orbits))
+
+	for _, o := range orbits {
+		if !o.Satellite && (o.World != nil || o.GasGiant != nil) {
+			topLevel = append(topLevel, o)
+		}
+	}
+
+	for _, parent := range topLevel {
+		generateSatellitesForBody(r, &orbits, parent, nearestHZOrbit(hosts, parent.Number), maxPopulation)
+	}
+
 	return StarSystem{
 		Orbits:         orbits,
 		MainworldOrbit: mainworldOrbitIndex,

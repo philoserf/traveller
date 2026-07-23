@@ -19,6 +19,11 @@ type World struct {
 	PBG        PBG
 	Worlds     int
 	Notes      string
+	// Ring is Book 3 p.29's "S Number of Satellites": a satellite-count
+	// roll of exactly 0 gives this world a Ring (and rerolls the count
+	// once more). Only meaningful for a world with satellites generated
+	// at all — see world/satellite_generate.go.
+	Ring bool
 }
 
 // stringsOf converts a slice of any string-backed enum type (TradeCode,
