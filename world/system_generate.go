@@ -187,13 +187,15 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 
 // placeMainworld places mainworld into orbits (which already holds the
 // system's stars): as a Planet, as a Satellite of a freshly rolled Gas
-// Giant, or — if mainworld is an Asteroid Belt — via the Belt placement
-// roll instead of HZ+Var. Merges the newly-derivable orbit-dependent
-// trade codes (DeriveOrbitTradeCodes) into the mainworld's own copy.
-// Returns the updated orbits and the index of the mainworld's own Orbit
-// entry within it — when that entry's Satellite is true, the immediately
-// preceding orbits entry is its host Gas Giant (see the two-Orbit-append
-// below).
+// Giant, as a BigWorld (if Table 2C says Satellite but the system's own
+// rolled PBG.GasGiants is 0 — Book 3 p.24's "If Satellite and No Giants,
+// place a BigWorld in MW Orbit"), or — if mainworld is an Asteroid Belt —
+// via the Belt placement roll instead of HZ+Var. Merges the
+// newly-derivable orbit-dependent trade codes (DeriveOrbitTradeCodes)
+// into the mainworld's own copy. Returns the updated orbits and the
+// index of the mainworld's own Orbit entry within it — when that entry's
+// Satellite is true, the immediately preceding orbits entry is its host
+// Gas Giant (see the two-Orbit-append below).
 func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld World) ([]Orbit, int) {
 	hzOrbit := primary.HabitableZoneOrbit
 	mw := mainworld
@@ -220,6 +222,20 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 
 		orbitNumber = hzOrbit + mainworldHZVar(r.Flux()+dm)
 		kind = rollMainworldPlacementKind(r.Flux())
+	}
+
+	// "If Satellite and No Giants, place a BigWorld in MW Orbit" (Book 3
+	// p.24) — the system's own rolled Gas Giant count can be 0 even when
+	// Table 2C's own roll says this mainworld orbits one; when both are
+	// true, regenerate the mainworld as a BigWorld (same fully-derived
+	// treatment Generate gives any mainworld, via generateWithSize) and
+	// place it as an ordinary planet instead of manufacturing a Gas
+	// Giant that would contradict PBG. An Asteroid Belt mainworld can
+	// never reach here — kind only gets set to a satellite kind in the
+	// non-belt branch above.
+	if kind != mainworldPlanet && mw.PBG.GasGiants == 0 {
+		mw = generateWithSize(r, rollBigWorldSize)
+		kind = mainworldPlanet
 	}
 
 	// HZVar/the Belt roll can both go negative enough to land below orbit

@@ -296,14 +296,17 @@ func rollPBG(r *dice.Roller, population ehex.Value) PBG {
 	}
 }
 
-// GenerateUWP rolls a complete UWP in the order T5 requires: each field may
-// depend only on fields already rolled, ending with TechLevel, which
-// depends on all the others.
-func GenerateUWP(r *dice.Roller) UWP {
+// generateUWPWithSize rolls a complete UWP in the order T5 requires (each
+// field may depend only on fields already rolled, ending with TechLevel,
+// which depends on all the others), taking Size's own roll as a
+// parameter — GenerateUWP always passes rollSize; world/system_generate.go's
+// mainworld BigWorld fallback (Book 3 p.24's "If Satellite and No Giants,
+// place a BigWorld in MW Orbit") passes rollBigWorldSize instead.
+func generateUWPWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) UWP {
 	var u UWP
 
 	u.Starport = rollStarport(r)
-	u.Size = rollSize(r)
+	u.Size = sizeRoll(r)
 	u.Atmosphere = rollAtmosphere(r, u.Size)
 	u.Hydrographics = rollHydrographics(r, u.Size, u.Atmosphere)
 	u.Population = rollPopulation(r)
@@ -314,16 +317,20 @@ func GenerateUWP(r *dice.Roller) UWP {
 	return u
 }
 
-// Generate produces a new World: a rolled UWP, its UWP-derivable trade
-// codes, TravelZone, Bases, PBG, and the Importance/Economic/Cultural
-// extensions. Name, Sector, Hex, Worlds, and Notes are left zero-valued —
-// none of them are generated yet (see DeriveTradeCodes and the world
-// package's generation docs for what's deliberately out of scope, and
-// why). Nobility and Allegiance are permanently out of scope for
-// generation, not just "not yet": both are referee/campaign-assigned in
-// T5, with no dice mechanic given for either.
-func Generate(r *dice.Roller) World {
-	uwp := GenerateUWP(r)
+// GenerateUWP rolls a complete UWP using the standard Size formula
+// (rollSize). See generateUWPWithSize for the size-parameterized version
+// this wraps.
+func GenerateUWP(r *dice.Roller) UWP {
+	return generateUWPWithSize(r, rollSize)
+}
+
+// generateWithSize is Generate's own logic, parameterized by the Size
+// roll for the same reason generateUWPWithSize is — reused by the
+// mainworld BigWorld fallback so a BigWorld mainworld gets the same
+// fully-derived TravelZone/TradeCodes/Bases/PBG/Importance/Economic/
+// Cultural treatment any other mainworld gets, not just a bare UWP swap.
+func generateWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) World {
+	uwp := generateUWPWithSize(r, sizeRoll)
 	travelZone := computeTravelZone(uwp)
 	tradeCodes := deriveTradeCodesForZone(uwp, travelZone)
 	bases := rollBases(r, uwp.Starport)
@@ -340,4 +347,16 @@ func Generate(r *dice.Roller) World {
 		Economic:   rollEconomic(r, uwp, importance, pbg),
 		Cultural:   rollCultural(r, uwp, importance),
 	}
+}
+
+// Generate produces a new World: a rolled UWP, its UWP-derivable trade
+// codes, TravelZone, Bases, PBG, and the Importance/Economic/Cultural
+// extensions. Name, Sector, Hex, Worlds, and Notes are left zero-valued —
+// none of them are generated yet (see DeriveTradeCodes and the world
+// package's generation docs for what's deliberately out of scope, and
+// why). Nobility and Allegiance are permanently out of scope for
+// generation, not just "not yet": both are referee/campaign-assigned in
+// T5, with no dice mechanic given for either.
+func Generate(r *dice.Roller) World {
+	return generateWithSize(r, rollSize)
 }

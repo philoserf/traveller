@@ -168,15 +168,14 @@ func TestGenerateSystemInvariants(t *testing.T) {
 			t.Fatalf("found %d Primary-orbit stars, want exactly 1", primaryCount)
 		}
 
-		// A satellite mainworld's own host Gas Giant is placed
-		// unconditionally (Phase 1's design — the "no Gas Giant exists,
-		// create a BigWorld" fallback is deferred), independent of
-		// whatever PBG.GasGiants rolled, so PBG.GasGiants isn't a hard
-		// ceiling when the mainworld is a satellite.
-		maxGG := int(mw.PBG.GasGiants)
-		if sys.Orbits[sys.MainworldOrbit].Satellite {
-			maxGG = max(maxGG, 1)
-		}
+		// The mainworld BigWorld fallback ("If Satellite and No Giants,
+		// place a BigWorld in MW Orbit") guarantees a satellite mainworld
+		// only ever exists when its own (possibly regenerated)
+		// PBG.GasGiants is >= 1 — so the system's own final mainworld's
+		// PBG.GasGiants (not the pre-GenerateSystem mw passed in above,
+		// which the fallback can replace entirely) is always a hard
+		// ceiling on the total Gas Giant count, satellite host included.
+		maxGG := int(sys.Orbits[sys.MainworldOrbit].World.PBG.GasGiants)
 
 		if gasGiantCount > maxGG {
 			t.Fatalf("found %d Gas Giants, want at most %d", gasGiantCount, maxGG)
@@ -283,6 +282,41 @@ func TestGenerateSystemPreservesMainworldSatelliteCloseFar(t *testing.T) {
 				t.Errorf("seed %d: mainworld satellite Orbit.Close = %v, want %v", c.seed, mwOrbit.Close, c.close)
 			}
 		})
+	}
+}
+
+// TestGenerateSystemMainworldFallsBackToBigWorld pins seed 34 (found by
+// search: its Table 2C roll says the mainworld is a satellite, but its
+// own rolled PBG.GasGiants is 0) — confirming placeMainworld's "If
+// Satellite and No Giants, place a BigWorld in MW Orbit" fallback (Book 3
+// p.24) actually fires: the mainworld ends up an ordinary (non-satellite)
+// planet with a regenerated, BigWorld-range Size (Book 3: "any with
+// Siz=B+ is BW").
+func TestGenerateSystemMainworldFallsBackToBigWorld(t *testing.T) {
+	t.Parallel()
+
+	r := dice.RollerFromSeed(34)
+	mw := Generate(r)
+
+	if mw.PBG.GasGiants != 0 {
+		t.Fatalf("seed 34's mainworld PBG.GasGiants = %d, want 0 — this test needs re-pinning to a fresh seed",
+			mw.PBG.GasGiants)
+	}
+
+	sys := GenerateSystem(r, mw)
+	mwOrbit := sys.Orbits[sys.MainworldOrbit]
+
+	if mwOrbit.Satellite {
+		t.Fatalf("seed 34: mainworld is still a Satellite, want the BigWorld fallback to have converted it to a planet")
+	}
+
+	if mwOrbit.World.UWP == mw.UWP {
+		t.Fatalf("seed 34: mainworld UWP unchanged (%s), want a regenerated BigWorld UWP", mw.UWP)
+	}
+
+	if mwOrbit.World.UWP.Size < 11 {
+		t.Errorf("seed 34: mainworld Size = %s, want >= B (BigWorld range, Book 3 p.29 \"Siz=B+ is BW\")",
+			mwOrbit.World.UWP.Size)
 	}
 }
 

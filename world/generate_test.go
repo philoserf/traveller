@@ -112,6 +112,25 @@ func TestGenerateUWPInvariants(t *testing.T) {
 	}
 }
 
+// TestGenerateWithSizeUsesGivenSizeRoll confirms generateWithSize
+// actually threads its sizeRoll parameter through to the resulting
+// World's UWP — the mainworld BigWorld fallback (world/system_generate.go)
+// depends on generateWithSize(r, rollBigWorldSize) producing a BigWorld-
+// range Size (Book 3 p.29: "Siz= 2D+7", "any with Siz=B+ is BW"), not
+// silently falling back to the standard rollSize formula.
+func TestGenerateWithSizeUsesGivenSizeRoll(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(3, 4))
+
+	for range 1000 {
+		w := generateWithSize(r, rollBigWorldSize)
+		if w.UWP.Size < 7 {
+			t.Fatalf("generateWithSize(r, rollBigWorldSize): Size = %s, want >= 7 (2D+7 floor)", w.UWP.Size)
+		}
+	}
+}
+
 func TestGenerateDeterminism(t *testing.T) {
 	t.Parallel()
 
