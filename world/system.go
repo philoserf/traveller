@@ -99,9 +99,14 @@ type Orbit struct {
 	// — a body's own orbit Number alone doesn't reliably identify which
 	// host star placed it, especially in a multi-star system.
 	HostHZOrbit int
-	Star        *Star
-	GasGiant    *GasGiant
-	World       *World
+	// HostRole is the StellarRole of whichever star actually placed this
+	// body — unambiguous, unlike HostHZOrbit (distinct stars can share
+	// the same HabitableZoneOrbit). Meaningless (Primary, the zero
+	// value) for a Star entry itself or a Satellite entry.
+	HostRole StellarRole
+	Star     *Star
+	GasGiant *GasGiant
+	World    *World
 }
 
 // StarSystem is a full system. Orbits is the single source of truth for

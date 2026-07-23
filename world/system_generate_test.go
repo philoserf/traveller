@@ -190,45 +190,29 @@ func TestGenerateSystemInvariants(t *testing.T) {
 // assertNoPrecludedOrbitViolations fails t if any non-Star, non-Satellite
 // entry sits at or below its host star's own precluded-orbit ceiling
 // (precludedOrbitHost) — the floor placeInOrbit's minOrbit exists to
-// enforce. Orbit only records HostHZOrbit (a value), not which specific
-// Star placed a body, and distinct stars in the same system routinely
-// share the same HabitableZoneOrbit (habitableZoneTable collapses many
-// (SpectralType, LuminosityClass) combos onto few integers) — a body
-// can't always be attributed to one specific host star's own minOrbit
-// from HostHZOrbit alone. Ambiguous keys (two stars sharing an HZ orbit
-// with *different* minOrbits) are skipped rather than guessed at, since
-// checking against the wrong one would produce a false failure just as
-// easily as it might mask a real regression; unambiguous keys (every
-// star sharing that HZ orbit agrees on minOrbit, including the common
-// case of only one star at that value) are still fully checked.
+// enforce. Keyed by Orbit.HostRole, not HostHZOrbit: a system has at most
+// one Star per StellarRole (sys.Stars() never returns two Primaries, two
+// Closes, ...), so this lookup has no collision case to guard against,
+// unlike the HZ-orbit value, which distinct stars can share.
 func assertNoPrecludedOrbitViolations(t *testing.T, sys StarSystem) {
 	t.Helper()
 
-	minOrbitByHZ := map[int]int{}
-	ambiguousHZ := map[int]bool{}
+	minOrbitByRole := map[StellarRole]int{}
 
 	for _, star := range sys.Stars() {
-		minOrbit := precludedOrbitHost(*star)
-
-		if existing, ok := minOrbitByHZ[star.HabitableZoneOrbit]; ok && existing != minOrbit {
-			ambiguousHZ[star.HabitableZoneOrbit] = true
-
-			continue
-		}
-
-		minOrbitByHZ[star.HabitableZoneOrbit] = minOrbit
+		minOrbitByRole[star.Role] = precludedOrbitHost(*star)
 	}
 
 	for _, o := range sys.Orbits {
-		if o.Satellite || o.Star != nil || (o.World == nil && o.GasGiant == nil) || ambiguousHZ[o.HostHZOrbit] {
+		if o.Satellite || o.Star != nil || (o.World == nil && o.GasGiant == nil) {
 			continue
 		}
 
-		if minOrbit, ok := minOrbitByHZ[o.HostHZOrbit]; ok && o.Number < minOrbit {
+		if minOrbit, ok := minOrbitByRole[o.HostRole]; ok && o.Number < minOrbit {
 			t.Fatalf(
-				"orbit %d (hostHZ=%d) is below its host's precluded-orbit floor %d",
+				"orbit %d (host=%v) is below its host's precluded-orbit floor %d",
 				o.Number,
-				o.HostHZOrbit,
+				o.HostRole,
 				minOrbit,
 			)
 		}
@@ -253,13 +237,52 @@ func TestGenerateSystemAvoidsPrecludedOrbitsForGiantPrimary(t *testing.T) {
 	}
 
 	for _, o := range sys.Orbits {
-		if o.Satellite || o.Star != nil || o.HostHZOrbit != primary.HabitableZoneOrbit {
+		if o.Satellite || o.Star != nil || o.HostRole != Primary {
 			continue
 		}
 
 		if o.Number < 1 {
 			t.Fatalf("orbit %d hosted by the Primary (A1 II, precluded ceiling 0), want >= 1", o.Number)
 		}
+	}
+}
+
+// TestGenerateSystemPreservesMainworldSatelliteCloseFar pins two real
+// generated cases (seeds found by search, matching this file's other
+// pinned-seed tests) — one where the mainworld's Book 3 Table 2C roll
+// (rollMainworldPlacementKind) lands mainworldCloseSatellite, one
+// mainworldFarSatellite — and confirms placeMainworld's own Orbit.Close
+// reflects that roll rather than defaulting to false for both.
+func TestGenerateSystemPreservesMainworldSatelliteCloseFar(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		seed  int64
+		close bool
+	}{
+		{"close satellite mainworld", 5, true},
+		{"far satellite mainworld", 15, false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := dice.RollerFromSeed(c.seed)
+			mw := Generate(r)
+			sys := GenerateSystem(r, mw)
+
+			mwOrbit := sys.Orbits[sys.MainworldOrbit]
+			if !mwOrbit.Satellite {
+				t.Fatalf("seed %d's mainworld is no longer a satellite — this test needs re-pinning to a fresh seed",
+					c.seed)
+			}
+
+			if mwOrbit.Close != c.close {
+				t.Errorf("seed %d: mainworld satellite Orbit.Close = %v, want %v", c.seed, mwOrbit.Close, c.close)
+			}
+		})
 	}
 }
 

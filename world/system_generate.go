@@ -199,8 +199,8 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	mw := mainworld
 
 	var (
-		orbitNumber         int
-		satelliteOfGasGiant bool
+		orbitNumber int
+		kind        = mainworldPlanet
 	)
 
 	if slices.Contains(mw.TradeCodes, AsteroidBelt) {
@@ -219,13 +219,7 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 		}
 
 		orbitNumber = hzOrbit + mainworldHZVar(r.Flux()+dm)
-
-		if kind := rollMainworldPlacementKind(
-			r.Flux(),
-		); kind == mainworldCloseSatellite ||
-			kind == mainworldFarSatellite {
-			satelliteOfGasGiant = true
-		}
+		kind = rollMainworldPlacementKind(r.Flux())
 	}
 
 	// HZVar/the Belt roll can both go negative enough to land below orbit
@@ -242,22 +236,35 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 	// every other placement. If nothing in range is free (practically
 	// impossible), keep the original number rather than leave the
 	// mainworld unplaced.
-	primaryHost := starHost{hzOrbit: hzOrbit, minOrbit: precludedOrbitHost(primary), maxOrbit: primaryMaxOrbit}
+	primaryHost := starHost{
+		role: Primary, hzOrbit: hzOrbit, minOrbit: precludedOrbitHost(primary), maxOrbit: primaryMaxOrbit,
+	}
 	if n, ok := placeInOrbit(orbits, primaryHost, orbitNumber); ok {
 		orbitNumber = n
 	}
 
 	mw.TradeCodes = append(mw.TradeCodes, DeriveOrbitTradeCodes(mw.UWP, orbitNumber, hzOrbit, true)...)
 
-	if satelliteOfGasGiant {
+	if kind != mainworldPlanet {
 		gg := rollGasGiant(r)
 		orbits = append(
 			orbits,
-			Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), HostHZOrbit: hzOrbit, GasGiant: &gg},
+			Orbit{
+				Number:      orbitNumber,
+				AU:          orbitAU(orbitNumber),
+				HostHZOrbit: hzOrbit,
+				HostRole:    Primary,
+				GasGiant:    &gg,
+			},
 		)
-		orbits = append(orbits, Orbit{Number: orbitNumber, Satellite: true, World: &mw})
+		orbits = append(orbits, Orbit{
+			Number: orbitNumber, Satellite: true, Close: kind == mainworldCloseSatellite, World: &mw,
+		})
 	} else {
-		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), HostHZOrbit: hzOrbit, World: &mw})
+		orbits = append(
+			orbits,
+			Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), HostHZOrbit: hzOrbit, HostRole: Primary, World: &mw},
+		)
 	}
 
 	return orbits, len(orbits) - 1
@@ -271,14 +278,15 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld Worl
 const primaryMaxOrbit = 20
 
 // starHost is one candidate star a non-mainworld body can be placed
-// around: its own HabitableZoneOrbit, the lowest orbit number it can host
-// (minOrbit — see precludedOrbitHost), and the highest (maxOrbit).
-// Close/Near/Far stars "may fill orbits around them to their own Orbit
-// minus 3" (Book 3 p.21) — maxOrbit can come out negative for a
-// Close/Near/Far star in a low orbit itself ("A Close Star in Orbit 2 can
-// have no Planet Orbits"), which placeInOrbit's range check handles by
-// simply never finding a free slot.
+// around: its own StellarRole (for Orbit.HostRole), HabitableZoneOrbit,
+// the lowest orbit number it can host (minOrbit — see precludedOrbitHost),
+// and the highest (maxOrbit). Close/Near/Far stars "may fill orbits
+// around them to their own Orbit minus 3" (Book 3 p.21) — maxOrbit can
+// come out negative for a Close/Near/Far star in a low orbit itself ("A
+// Close Star in Orbit 2 can have no Planet Orbits"), which placeInOrbit's
+// range check handles by simply never finding a free slot.
 type starHost struct {
+	role     StellarRole
 	hzOrbit  int
 	minOrbit int
 	maxOrbit int
@@ -313,6 +321,7 @@ func availableHosts(orbits []Orbit) []starHost {
 		}
 
 		hosts = append(hosts, starHost{
+			role:     orbits[i].Star.Role,
 			hzOrbit:  orbits[i].Star.HabitableZoneOrbit,
 			minOrbit: precludedOrbitHost(*orbits[i].Star),
 			maxOrbit: maxOrbit,
@@ -404,7 +413,10 @@ func placeGasGiants(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count, in
 		}
 
 		if n, ok := placeInOrbit(*orbits, host, host.hzOrbit+offset); ok {
-			*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, GasGiant: &gg})
+			*orbits = append(
+				*orbits,
+				Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, HostRole: host.role, GasGiant: &gg},
+			)
 		}
 	}
 }
@@ -426,7 +438,10 @@ func placeBelts(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count int, ma
 
 		u := generatePlanetoidWorld(r, maxPopulation)
 		w := worldWithTradeCodes(u, n, host.hzOrbit)
-		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, World: &w})
+		*orbits = append(
+			*orbits,
+			Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, HostRole: host.role, World: &w},
+		)
 	}
 }
 
@@ -458,7 +473,10 @@ func placeOtherWorlds(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count i
 		category := rollSecondaryWorldCategory(r, n-host.hzOrbit)
 		u := generateSecondaryWorldUWP(r, category, maxPopulation)
 		w := worldWithTradeCodes(u, n, host.hzOrbit)
-		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, World: &w})
+		*orbits = append(
+			*orbits,
+			Orbit{Number: n, AU: orbitAU(n), HostHZOrbit: host.hzOrbit, HostRole: host.role, World: &w},
+		)
 	}
 }
 
