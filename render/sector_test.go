@@ -69,7 +69,10 @@ func TestSectorRendersEmptyAndPopulatedHexes(t *testing.T) {
 
 // TestSectorCompactOmitsEmptyHexes confirms SectorCompact emits a table
 // row only for the populated hex — the empty hex is omitted entirely,
-// and there's none of System(...)'s nested star/orbit detail.
+// and there's none of System(...)'s nested star/orbit detail. It also
+// confirms Bases/Zone use "-" rather than "None"/"Green": fixtureMainworld
+// has no Bases and a Green TravelZone, matching Book 3 p.21's own Second
+// Survey Format table convention for Regina (also Green, also shown "-").
 func TestSectorCompactOmitsEmptyHexes(t *testing.T) {
 	t.Parallel()
 
@@ -83,8 +86,22 @@ func TestSectorCompactOmitsEmptyHexes(t *testing.T) {
 		t.Errorf("empty hex 0101 should be omitted entirely:\n%s", out)
 	}
 
-	if !strings.Contains(out, "| 0102 | A788899-C |") {
-		t.Errorf("output missing populated-hex UWP:\n%s", out)
+	rowIdx := strings.Index(out, "| 0102 | A788899-C |")
+	if rowIdx == -1 {
+		t.Fatalf("output missing populated-hex row:\n%s", out)
+	}
+
+	row := out[rowIdx:]
+	if !strings.HasPrefix(row, "| 0102 | A788899-C | None | - |") {
+		t.Errorf("row should show \"-\" for empty Bases, not \"None\":\n%s", row)
+	}
+
+	if !strings.Contains(row, "| - |\n") {
+		t.Errorf("row should end with \"-\" for a Green Zone, not \"Green\":\n%s", row)
+	}
+
+	if strings.Contains(out, "Green") {
+		t.Errorf("compact output should say \"-\", not \"Green\":\n%s", out)
 	}
 
 	if strings.Contains(out, "###") {

@@ -238,9 +238,11 @@ func runSector(args []string) error {
 // printSectorHex prints one hex of a sector's output: the full nested
 // system (printSystem) by default, or — when short is true — a single
 // compact line (location, UWP, Trade Codes, Bases, PBG, Travel Zone, the
-// same fields render.SectorCompact puts in its Markdown table). Empty
-// hexes are printed as "Hex %s: empty" in full mode; short mode omits
-// them entirely, matching render.SectorCompact's own convention.
+// same fields render.SectorCompact puts in its Markdown table, including
+// its "-" for an absent Bases/Green Travel Zone rather than "None"/
+// "Green" — see SectorCompact's own doc comment for why). Empty hexes
+// are printed as "Hex %s: empty" in full mode; short mode omits them
+// entirely, matching render.SectorCompact's own convention.
 func printSectorHex(hex api.HexResponse, short bool) {
 	if hex.System == nil {
 		if !short {
@@ -262,8 +264,8 @@ func printSectorHex(hex api.HexResponse, short bool) {
 	fmt.Printf("%s  %s  %s  %s  %s  %s\n",
 		hex.Location, mw.UWP,
 		world.JoinOrNone(world.TradeCodeStrings(mw.TradeCodes)),
-		world.JoinOrNone(world.BaseStrings(mw.Bases)),
-		mw.PBG, world.OrDash(mw.TravelZone))
+		world.BasesOrDash(mw.Bases),
+		mw.PBG, world.TravelZoneOrDash(mw.TravelZone))
 }
 
 // bodyLine formats one non-star, non-satellite body: a Gas Giant, or a

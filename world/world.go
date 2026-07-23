@@ -44,10 +44,12 @@ func stringsOf[T ~string](vals []T) []string {
 }
 
 // JoinOrNone space-joins items, or returns "None" if items is empty —
-// the shared display convention every renderer of TradeCodeStrings/
-// BaseStrings output uses (package render's Markdown, cmd/client's
-// terminal output) so an empty field reads as an explicit "None" rather
-// than silently going blank.
+// the shared display convention package render's prose output
+// (TradeCodeStrings and BaseStrings alike) uses so an empty field reads
+// as an explicit "None" rather than silently going blank. The Second
+// Survey Format table renderers (render.SectorCompact, cmd/client's
+// printSectorHex) use BasesOrDash for Bases instead — see its own doc
+// comment for why a table needs a different placeholder than prose does.
 func JoinOrNone(items []string) string {
 	if len(items) == 0 {
 		return "None"
@@ -56,14 +58,36 @@ func JoinOrNone(items []string) string {
 	return strings.Join(items, " ")
 }
 
-// OrDash returns s, or "—" if s is empty — the shared placeholder every
-// renderer of an optional already-stringified field (e.g. TravelZone's
-// String(), which is "" for the common no-zone case) uses instead of
-// silently leaving the field blank.
+// OrDash returns s, or "-" if s is empty — the same placeholder Book 3
+// p.21's own Second Survey Format sector-table example uses for an
+// absent field ("BcCeF NS - 703 8": a bare "-" where Regina's Travel
+// Zone column would otherwise go).
 func OrDash(s string) string {
 	if s == "" {
-		return "—"
+		return "-"
 	}
 
 	return s
+}
+
+// BasesOrDash is OrDash for a Base slice: space-joins BaseStrings(bases),
+// or "-" if there are none — the Second Survey Format table's own
+// convention (see OrDash), as opposed to JoinOrNone's "None" for prose.
+func BasesOrDash(bases []Base) string {
+	return OrDash(strings.Join(BaseStrings(bases), " "))
+}
+
+// TravelZoneOrDash is OrDash for an already-stringified TravelZone
+// (TravelZone.String(), or the same string decoded off the wire), with
+// one addition: a Green zone also collapses to "-". Book 3 p.21's Second
+// Survey Format table shows exactly this for Regina — a Green-zone
+// world — despite Green.String() itself reading "Green" everywhere else
+// (e.g. package render's prose output, where spelling it out is correct
+// and this helper doesn't apply).
+func TravelZoneOrDash(s string) string {
+	if s == ZoneGreen.String() {
+		return "-"
+	}
+
+	return OrDash(s)
 }

@@ -40,7 +40,10 @@ func Sector(sec sector.Sector) string {
 // only, none of the star/orbit/satellite detail Sector's full System(...)
 // output includes. Empty hexes are omitted entirely: a "map overview" is
 // meant to be scanned for what's actually there, and most sectors are
-// mostly empty space.
+// mostly empty space. Bases and Travel Zone use "-" for an absent/Green
+// field (world.BasesOrDash/TravelZoneOrDash) rather than the "None"/"Green"
+// package render's prose output uses — this table follows Book 3 p.21's
+// own Second Survey Format convention instead, which is a table too.
 func SectorCompact(sec sector.Sector) string {
 	var b strings.Builder
 
@@ -58,8 +61,8 @@ func SectorCompact(sec sector.Sector) string {
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n",
 			hex.Location, mw.UWP,
 			world.JoinOrNone(world.TradeCodeStrings(mw.TradeCodes)),
-			world.JoinOrNone(world.BaseStrings(mw.Bases)),
-			mw.PBG, world.OrDash(mw.TravelZone.String()))
+			world.BasesOrDash(mw.Bases),
+			mw.PBG, world.TravelZoneOrDash(mw.TravelZone.String()))
 	}
 
 	return b.String()
