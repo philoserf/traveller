@@ -285,3 +285,80 @@ func orbitAU(number int) float64 {
 
 	return orbitAUTable[number]
 }
+
+// lggOffsetByRoll, sggOffsetByRoll, igOffsetByRoll: Book 3 p.29's P2
+// Basic Placement Chart LGG/SGG/IG columns — an orbit offset from the
+// system's HZ orbit ("GG and Belt placement is relative to HZ"). Same
+// 2D6-vs-13-rows reindexing as beltOffsetByRoll/gasGiantSizeByRoll: read
+// directly against the table's first 11 rows.
+var lggOffsetByRoll = map[int]int{
+	2: -4, 3: -3, 4: -2, 5: -1, 6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5, 12: 6,
+}
+
+var sggOffsetByRoll = map[int]int{
+	2: -3, 3: -2, 4: -1, 5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7,
+}
+
+var igOffsetByRoll = map[int]int{
+	2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 10: 8, 11: 9, 12: 10,
+}
+
+func rollLGGOffset(r *dice.Roller) int { return lggOffsetByRoll[r.TwoD6()] }
+func rollSGGOffset(r *dice.Roller) int { return sggOffsetByRoll[r.TwoD6()] }
+func rollIGOffset(r *dice.Roller) int  { return igOffsetByRoll[r.TwoD6()] }
+
+// world1OrbitByRoll, world2OrbitByRoll: P2's World1/World2 columns —
+// literal orbit numbers (not HZ-relative, unlike every other P2 column:
+// "World placement is based on Orbit"), used to place "Other Worlds."
+// Same reindexing as the other P2 columns.
+var world1OrbitByRoll = map[int]int{
+	2: 11, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2, 8: 0, 9: 1, 10: 3, 11: 5, 12: 7,
+}
+
+var world2OrbitByRoll = map[int]int{
+	2: 18, 3: 17, 4: 16, 5: 15, 6: 14, 7: 13, 8: 12, 9: 11, 10: 10, 11: 9, 12: 8,
+}
+
+func rollWorld1Orbit(r *dice.Roller) int { return world1OrbitByRoll[r.TwoD6()] }
+func rollWorld2Orbit(r *dice.Roller) int { return world2OrbitByRoll[r.TwoD6()] }
+
+// secondaryWorldCategory is which of Book 3 p.29's eight non-mainworld
+// world types a placed "Other World" turns out to be.
+type secondaryWorldCategory int
+
+// secondaryWorldCategory values.
+const (
+	categoryInferno secondaryWorldCategory = iota
+	categoryInnerWorld
+	categoryBigWorld
+	categoryStormWorld
+	categoryRadWorld
+	categoryHospitable
+	categoryWorldlet
+	categoryIceworld
+)
+
+// innerHZCategoryByRoll, outerCategoryByRoll: Book 3 p.29's Inner/HZ and
+// Outer world-category tables (1D each). "Inner" is inside HZ-1, "HZ" is
+// HZ-1..HZ+1, "Outer" is beyond HZ+1 — rollSecondaryWorldCategory reads
+// this from the caller's orbit-relative-to-HZ delta.
+var innerHZCategoryByRoll = map[int]secondaryWorldCategory{
+	1: categoryInferno, 2: categoryInnerWorld, 3: categoryBigWorld,
+	4: categoryStormWorld, 5: categoryRadWorld, 6: categoryHospitable,
+}
+
+var outerCategoryByRoll = map[int]secondaryWorldCategory{
+	1: categoryWorldlet, 2: categoryIceworld, 3: categoryBigWorld,
+	4: categoryIceworld, 5: categoryRadWorld, 6: categoryIceworld,
+}
+
+// rollSecondaryWorldCategory rolls a placed "Other World"'s category.
+// delta<=0 covers both "Inner" (delta<=-1) and "HZ" (delta==0) — the book
+// gives them a single shared 1D column, not two.
+func rollSecondaryWorldCategory(r *dice.Roller, delta int) secondaryWorldCategory {
+	if delta <= 0 {
+		return innerHZCategoryByRoll[r.D6()]
+	}
+
+	return outerCategoryByRoll[r.D6()]
+}

@@ -2,17 +2,20 @@ package render
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/philoserf/traveller/world"
 )
 
 // System renders s as a Markdown system sheet: its stars (spectral type,
-// size, orbit, and HZ orbit), then the mainworld's own orbit placement
-// and UWP/TradeCodes/PBG/extensions. Doesn't call World for the mainworld
-// section — World's own "#"/"##" headers don't compose cleanly nested
-// inside a larger document, so this renders the same fields directly at
-// its own heading level instead.
+// size, orbit, and HZ orbit), the mainworld's own orbit placement and
+// UWP/TradeCodes/PBG/extensions, and every other body placed in the
+// system (Gas Giants, Belts, secondary worlds — see world.GenerateSystem
+// for what's placed and why), sorted by orbit number. Doesn't call World
+// for the mainworld section — World's own "#"/"##" headers don't compose
+// cleanly nested inside a larger document, so this renders the same
+// fields directly at its own heading level instead.
 func System(s world.StarSystem) string {
 	mwOrbit := s.Orbits[s.MainworldOrbit]
 	mw := mwOrbit.World
@@ -56,7 +59,51 @@ func System(s world.StarSystem) string {
 	fmt.Fprintf(&b, "- **Cultural:** Heterogeneity %d, Acceptance %d, Strangeness %d, Symbols %d\n",
 		mw.Cultural.Heterogeneity, mw.Cultural.Acceptance, mw.Cultural.Strangeness, mw.Cultural.Symbols)
 
+	fmt.Fprint(&b, "\n## Other Bodies\n\n")
+
+	others := otherBodies(s)
+	if len(others) == 0 {
+		fmt.Fprint(&b, "None.\n")
+	}
+
+	for _, o := range others {
+		fmt.Fprintf(&b, "- %s\n", otherBodyLine(o))
+	}
+
 	return b.String()
+}
+
+// otherBodies returns every Orbit in s besides the mainworld's own and
+// the stars', sorted by orbit number for a readable listing.
+func otherBodies(s world.StarSystem) []world.Orbit {
+	var others []world.Orbit
+
+	for i, o := range s.Orbits {
+		if i == s.MainworldOrbit || o.Star != nil {
+			continue
+		}
+
+		others = append(others, o)
+	}
+
+	sort.Slice(others, func(i, j int) bool { return others[i].Number < others[j].Number })
+
+	return others
+}
+
+// otherBodyLine renders one non-mainworld, non-star body: a Gas Giant
+// (Size letter and Bracket), or a placed World with its Trade Codes.
+func otherBodyLine(o world.Orbit) string {
+	if o.GasGiant != nil {
+		return fmt.Sprintf("Orbit %d: Gas Giant, Size %c (%s)", o.Number, o.GasGiant.Size, o.GasGiant.Bracket)
+	}
+
+	return fmt.Sprintf(
+		"Orbit %d: %s — %s",
+		o.Number,
+		o.World.UWP,
+		joinOrNone(world.TradeCodeStrings(o.World.TradeCodes)),
+	)
 }
 
 // starLine renders one star's spectral classification, role, orbit, HZ

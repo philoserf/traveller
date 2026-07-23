@@ -123,16 +123,12 @@ func TestGenerateSystemDeterminism(t *testing.T) {
 	}
 }
 
-func TestGenerateSystemPlacesMainworldLast(t *testing.T) {
+func TestGenerateSystemMainworldOrbitIndexIsCorrect(t *testing.T) {
 	t.Parallel()
 
 	r := dice.New(rand.NewPCG(20, 20))
 	mw := Generate(r)
 	sys := GenerateSystem(r, mw)
-
-	if sys.MainworldOrbit != len(sys.Orbits)-1 {
-		t.Fatalf("MainworldOrbit = %d, want %d (last entry)", sys.MainworldOrbit, len(sys.Orbits)-1)
-	}
 
 	got := sys.Orbits[sys.MainworldOrbit].World
 	if got == nil || got.UWP != mw.UWP {
@@ -140,14 +136,15 @@ func TestGenerateSystemPlacesMainworldLast(t *testing.T) {
 	}
 }
 
-// TestGenerateSystemPrimaryAlwaysPresent runs many seeds and checks every
-// invariant that must hold regardless of what the dice produced: exactly
-// one Primary-role star at primaryOrbitNumber, a valid mainworld orbit
-// index, no more than one Gas Giant (Phase 1 only ever places one, to
-// host a satellite mainworld), and a mainworld orbit number that's always
-// non-negative and never collides with primaryOrbitNumber's sentinel — a
-// regression guard for a real bug: an M-type primary's hzOrbit=0 plus a
-// negative HZVar used to produce orbit -1, exactly primaryOrbitNumber.
+// TestGenerateSystemInvariants runs many seeds and checks every invariant
+// that must hold regardless of what the dice produced: exactly one
+// Primary-role star at primaryOrbitNumber, a valid mainworld orbit index,
+// a Gas Giant count that never exceeds PBG.GasGiants, no duplicate orbit
+// numbers among non-Satellite entries (the collision guard placeInOrbit
+// exists for), and a mainworld orbit number that's always non-negative
+// and never collides with primaryOrbitNumber's sentinel — a regression
+// guard for a real bug: an M-type primary's hzOrbit=0 plus a negative
+// HZVar used to produce orbit -1, exactly primaryOrbitNumber.
 func TestGenerateSystemInvariants(t *testing.T) {
 	t.Parallel()
 
@@ -165,26 +162,58 @@ func TestGenerateSystemInvariants(t *testing.T) {
 			t.Fatalf("mainworld orbit number = %d, want >= 0 (and not primaryOrbitNumber's sentinel)", n)
 		}
 
-		primaryCount, gasGiantCount := 0, 0
-
-		for _, o := range sys.Orbits {
-			if o.Star != nil && o.Number == primaryOrbitNumber {
-				primaryCount++
-			}
-
-			if o.GasGiant != nil {
-				gasGiantCount++
-			}
-		}
+		primaryCount, gasGiantCount := scanSystemOrbits(t, sys)
 
 		if primaryCount != 1 {
 			t.Fatalf("found %d Primary-orbit stars, want exactly 1", primaryCount)
 		}
 
-		if gasGiantCount > 1 {
-			t.Fatalf("found %d Gas Giants, want at most 1", gasGiantCount)
+		// A satellite mainworld's own host Gas Giant is placed
+		// unconditionally (Phase 1's design — the "no Gas Giant exists,
+		// create a BigWorld" fallback is deferred), independent of
+		// whatever PBG.GasGiants rolled, so PBG.GasGiants isn't a hard
+		// ceiling when the mainworld is a satellite.
+		maxGG := int(mw.PBG.GasGiants)
+		if sys.Orbits[sys.MainworldOrbit].Satellite {
+			maxGG = max(maxGG, 1)
+		}
+
+		if gasGiantCount > maxGG {
+			t.Fatalf("found %d Gas Giants, want at most %d", gasGiantCount, maxGG)
 		}
 	}
+}
+
+// scanSystemOrbits counts Primary-role stars and Gas Giants in sys, and
+// fails t if any non-Satellite entry shares an orbit Number with another
+// — the collision guard placeInOrbit exists for.
+func scanSystemOrbits(t *testing.T, sys StarSystem) (int, int) {
+	t.Helper()
+
+	primaryCount, gasGiantCount := 0, 0
+	seenNumbers := map[int]bool{}
+
+	for _, o := range sys.Orbits {
+		if o.Star != nil && o.Number == primaryOrbitNumber {
+			primaryCount++
+		}
+
+		if o.GasGiant != nil {
+			gasGiantCount++
+		}
+
+		if o.Satellite {
+			continue
+		}
+
+		if seenNumbers[o.Number] {
+			t.Fatalf("orbit %d occupied by more than one non-Satellite entry", o.Number)
+		}
+
+		seenNumbers[o.Number] = true
+	}
+
+	return primaryCount, gasGiantCount
 }
 
 // TestRollSpectralTypeReachesOAndB is a regression guard for a real bug:

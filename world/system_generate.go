@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
 )
 
 // primaryOrbitNumber is the sentinel Orbit.Number for the Primary star
@@ -112,20 +113,62 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 		orbits = append(orbits, rollAndPlaceStar(r, primaryFlux, Far, 11+r.D6()))
 	}
 
-	hzOrbit := primary.HabitableZoneOrbit
+	orbits, mainworldOrbitIndex, _ := placeMainworld(r, orbits, primary, mainworld)
+	satelliteOfGasGiant := orbits[mainworldOrbitIndex].Satellite
+	mw := *orbits[mainworldOrbitIndex].World
 
+	// Book 3 p.29's "W Worlds" formula (Total Worlds = MW + GG + Belts +
+	// 2D) needs Gas Giant / Belt counts as inputs, not outputs — they're
+	// mw.PBG.GasGiants/.Belts, already rolled by Generate (rollPBG's own
+	// doc comment: "describe the whole system, not just this world").
+	// Phase 1 generated them but never consulted them for placement.
+	gasGiantsToPlace := int(mw.PBG.GasGiants)
+	if satelliteOfGasGiant {
+		// The satellite-hosting Gas Giant already placed above counts
+		// against this total, per P1's own sequence ("Place Mainworld"
+		// — including its satellite GG — immediately followed by "Place
+		// Gas Giants" for the rest).
+		gasGiantsToPlace--
+	}
+
+	maxPopulation := ehex.Value(0)
+	if mw.UWP.Population > 0 {
+		maxPopulation = mw.UWP.Population - 1 // Book 3 p.29: "Subject to: Max Pop= MW Pop - 1"
+	}
+
+	hosts := availableHosts(orbits)
+	placeGasGiants(r, &orbits, hosts, gasGiantsToPlace)
+	placeBelts(r, &orbits, hosts, int(mw.PBG.Belts), maxPopulation)
+	placeOtherWorlds(r, &orbits, hosts, r.TwoD6(), maxPopulation)
+
+	return StarSystem{
+		Orbits:         orbits,
+		MainworldOrbit: mainworldOrbitIndex,
+	}
+}
+
+// placeMainworld places mainworld into orbits (which already holds the
+// system's stars): as a Planet, as a Satellite of a freshly rolled Gas
+// Giant, or — if mainworld is an Asteroid Belt — via the Belt placement
+// roll instead of HZ+Var. Merges the newly-derivable orbit-dependent
+// trade codes (DeriveOrbitTradeCodes) into the mainworld's own copy.
+// Returns the updated orbits, the index of the mainworld's own Orbit
+// entry within it, and the Primary's HZ orbit (the caller needs it again
+// for the placement pass that follows).
+func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld World) ([]Orbit, int, int) {
+	hzOrbit := primary.HabitableZoneOrbit
 	mw := mainworld
 
 	var (
-		mainworldOrbitNumber int
-		satelliteOfGasGiant  bool
+		orbitNumber         int
+		satelliteOfGasGiant bool
 	)
 
 	if slices.Contains(mw.TradeCodes, AsteroidBelt) {
 		// "If the Mainworld is an Asteroid Belt, it is placed using the
 		// Belt Column of the Basic Placement Chart without regard to
 		// Habitable Zone" — skips Table 2B's HZ+Var roll entirely.
-		mainworldOrbitNumber = hzOrbit + rollBeltOffset(r)
+		orbitNumber = hzOrbit + rollBeltOffset(r)
 	} else {
 		dm := 0
 
@@ -136,7 +179,7 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 			dm = -2
 		}
 
-		mainworldOrbitNumber = hzOrbit + mainworldHZVar(r.Flux()+dm)
+		orbitNumber = hzOrbit + mainworldHZVar(r.Flux()+dm)
 
 		if kind := rollMainworldPlacementKind(
 			r.Flux(),
@@ -151,20 +194,201 @@ func GenerateSystem(r *dice.Roller, mainworld World) StarSystem {
 	// floored here since orbit 0 is the innermost real orbit, and a
 	// negative number would otherwise collide with primaryOrbitNumber's
 	// own sentinel value and fall outside orbitAUTable's range.
-	mainworldOrbitNumber = max(mainworldOrbitNumber, 0)
+	orbitNumber = max(orbitNumber, 0)
 
-	mw.TradeCodes = append(mw.TradeCodes, DeriveOrbitTradeCodes(mw.UWP, mainworldOrbitNumber, hzOrbit, true)...)
+	// The computed number can independently coincide with a Close/Near/Far
+	// star's own orbit (both are computed separately, with nothing ruling
+	// out a match) — nudge via the same collision handling placeInOrbit
+	// gives every other placement. If Close/Near/Far stars have somehow
+	// occupied every orbit 0-19 (practically impossible — at most 3 of
+	// them), keep the original number rather than leave the mainworld
+	// unplaced.
+	if n, ok := placeInOrbit(orbits, starHost{hzOrbit: hzOrbit, maxOrbit: 19}, orbitNumber); ok {
+		orbitNumber = n
+	}
+
+	mw.TradeCodes = append(mw.TradeCodes, DeriveOrbitTradeCodes(mw.UWP, orbitNumber, hzOrbit, true)...)
 
 	if satelliteOfGasGiant {
 		gg := rollGasGiant(r)
-		orbits = append(orbits, Orbit{Number: mainworldOrbitNumber, AU: orbitAU(mainworldOrbitNumber), GasGiant: &gg})
-		orbits = append(orbits, Orbit{Number: mainworldOrbitNumber, Satellite: true, World: &mw})
+		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), GasGiant: &gg})
+		orbits = append(orbits, Orbit{Number: orbitNumber, Satellite: true, World: &mw})
 	} else {
-		orbits = append(orbits, Orbit{Number: mainworldOrbitNumber, AU: orbitAU(mainworldOrbitNumber), World: &mw})
+		orbits = append(orbits, Orbit{Number: orbitNumber, AU: orbitAU(orbitNumber), World: &mw})
 	}
 
-	return StarSystem{
-		Orbits:         orbits,
-		MainworldOrbit: len(orbits) - 1,
+	return orbits, len(orbits) - 1, hzOrbit
+}
+
+// starHost is one candidate star a non-mainworld body can be placed
+// around: its own HabitableZoneOrbit and the highest orbit number it can
+// host. Close/Near/Far stars "may fill orbits around them to their own
+// Orbit minus 3" (Book 3 p.21) — maxOrbit can come out negative for a
+// Close/Near/Far star in a low orbit itself ("A Close Star in Orbit 2 can
+// have no Planet Orbits"), which placeInOrbit's range check handles by
+// simply never finding a free slot.
+type starHost struct {
+	hzOrbit  int
+	maxOrbit int
+}
+
+// availableHosts returns every star in orbits as a placement candidate,
+// in the order they appear (Primary first, then Close/Near/Far — the
+// order GenerateSystem appends them in).
+func availableHosts(orbits []Orbit) []starHost {
+	var hosts []starHost
+
+	for i := range orbits {
+		if orbits[i].Star == nil {
+			continue
+		}
+
+		maxOrbit := 19
+		if orbits[i].Number != primaryOrbitNumber {
+			maxOrbit = orbits[i].Number - 3
+		}
+
+		hosts = append(hosts, starHost{hzOrbit: orbits[i].Star.HabitableZoneOrbit, maxOrbit: maxOrbit})
 	}
+
+	return hosts
+}
+
+// orbitOccupied reports whether any non-Satellite entry in orbits already
+// uses number — Satellite entries are exempt since they're expected to
+// share a Number with their parent (see Orbit's doc comment).
+func orbitOccupied(orbits []Orbit, number int) bool {
+	for _, o := range orbits {
+		if !o.Satellite && o.Number == number {
+			return true
+		}
+	}
+
+	return false
+}
+
+// placeInOrbit finds a free orbit at or after candidate within host's
+// range, per P2's own note ("If an orbit is duplicated or precluded,
+// adjust to an adjacent or the closest possible orbit"). ok is false if
+// no free slot exists within range — the caller skips this body rather
+// than force an invalid placement. "Precluded" here means only "already
+// occupied": this doesn't implement the Stellar Surface table (oversized
+// stars physically precluding some orbits), deliberately deferred — see
+// the phase 2a plan.
+func placeInOrbit(orbits []Orbit, host starHost, candidate int) (int, bool) {
+	if candidate < 0 {
+		candidate = 0
+	}
+
+	for n := candidate; n <= host.maxOrbit; n++ {
+		if !orbitOccupied(orbits, n) {
+			return n, true
+		}
+	}
+
+	return 0, false
+}
+
+// placeGasGiants places count Gas Giants, rotating through hosts (Book 3
+// p.21: "place the first of the worlds concerned in orbit around the
+// Primary, the second... around the Close..."). Every second SGG rolled
+// converts to an IG (Ice Giant), per the GG table's own note.
+func placeGasGiants(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count int) {
+	if len(hosts) == 0 {
+		return
+	}
+
+	sggCount := 0
+
+	for i := range count {
+		host := hosts[i%len(hosts)]
+		gg := rollGasGiant(r)
+
+		var offset int
+
+		switch gg.Bracket {
+		case "SGG":
+			sggCount++
+
+			if sggCount%2 == 0 {
+				gg.Bracket = "IG"
+				offset = rollIGOffset(r)
+			} else {
+				offset = rollSGGOffset(r)
+			}
+		default: // "LGG"
+			offset = rollLGGOffset(r)
+		}
+
+		if n, ok := placeInOrbit(*orbits, host, host.hzOrbit+offset); ok {
+			*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), GasGiant: &gg})
+		}
+	}
+}
+
+// placeBelts places count Planetoid Belts, rotating through hosts. Each
+// gets its own World (Book 3 p.29: "Planetoids= St000PGL-T").
+func placeBelts(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count int, maxPopulation ehex.Value) {
+	if len(hosts) == 0 {
+		return
+	}
+
+	for i := range count {
+		host := hosts[i%len(hosts)]
+
+		n, ok := placeInOrbit(*orbits, host, host.hzOrbit+rollBeltOffset(r))
+		if !ok {
+			continue
+		}
+
+		u := generatePlanetoidWorld(r, maxPopulation)
+		w := worldWithTradeCodes(u, n, host.hzOrbit)
+		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), World: &w})
+	}
+}
+
+// placeOtherWorlds places count secondary worlds, rotating through hosts.
+// All but the last use P2's World1 column for their orbit; the last uses
+// World2 (farther out) — Book 3 p.29's P1 step: "Place Other Worlds...
+// using P2 World1 Column. Last World, place using P2 World2 Column."
+// Each world's category (Inferno/InnerWorld/BigWorld/StormWorld/RadWorld/
+// Hospitable/Worldlet/Iceworld) comes from its resolved orbit's position
+// relative to its host's own HZ orbit, not the mainworld's.
+func placeOtherWorlds(r *dice.Roller, orbits *[]Orbit, hosts []starHost, count int, maxPopulation ehex.Value) {
+	if len(hosts) == 0 {
+		return
+	}
+
+	for i := range count {
+		host := hosts[i%len(hosts)]
+
+		candidate := rollWorld1Orbit(r)
+		if i == count-1 {
+			candidate = rollWorld2Orbit(r)
+		}
+
+		n, ok := placeInOrbit(*orbits, host, candidate)
+		if !ok {
+			continue
+		}
+
+		category := rollSecondaryWorldCategory(r, n-host.hzOrbit)
+		u := generateSecondaryWorldUWP(r, category, maxPopulation)
+		w := worldWithTradeCodes(u, n, host.hzOrbit)
+		*orbits = append(*orbits, Orbit{Number: n, AU: orbitAU(n), World: &w})
+	}
+}
+
+// worldWithTradeCodes builds a secondary World from u, deriving both its
+// UWP-only and orbit-dependent trade codes (DeriveTradeCodes,
+// DeriveOrbitTradeCodes — the same functions the mainworld uses,
+// isMainworld=false here). Ix/Ex/Cx extensions, Bases, and PBG are
+// mainworld-only concerns (Book 3 p.27: Ix/Ex apply to the entire
+// system, computed once already) — left zero-valued, not omitted by
+// oversight.
+func worldWithTradeCodes(u UWP, orbit, hzOrbit int) World {
+	tradeCodes := DeriveTradeCodes(u)
+	tradeCodes = append(tradeCodes, DeriveOrbitTradeCodes(u, orbit, hzOrbit, false)...)
+
+	return World{UWP: u, TradeCodes: tradeCodes}
 }

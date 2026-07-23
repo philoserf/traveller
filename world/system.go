@@ -65,8 +65,11 @@ type Star struct {
 // UWP World (Book 3's GG table gives it a Size and Bracket only, no
 // Atmosphere/Hydrographics/Population/...).
 type GasGiant struct {
-	Size    byte   // 'L'..'Y', per the GG table (Book 3 p.29)
-	Bracket string // "SGG" (Small Gas Giant) or "LGG" (Large Gas Giant)
+	Size byte // 'L'..'Y', per the GG table (Book 3 p.29)
+	// Bracket is "SGG" (Small Gas Giant), "LGG" (Large Gas Giant), or
+	// "IG" (Ice Giant — every second SGG rolled converts to one, same
+	// Size, per the GG table's own note).
+	Bracket string
 }
 
 // Orbit is a single numbered orbit slot within a system. Number may repeat:
