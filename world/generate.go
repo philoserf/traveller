@@ -324,8 +324,8 @@ func GenerateUWP(r *dice.Roller) UWP {
 // T5, with no dice mechanic given for either.
 func Generate(r *dice.Roller) World {
 	uwp := GenerateUWP(r)
-	tradeCodes := DeriveTradeCodes(uwp)
 	travelZone := computeTravelZone(uwp)
+	tradeCodes := deriveTradeCodesForZone(uwp, travelZone)
 	bases := rollBases(r, uwp.Starport)
 	pbg := rollPBG(r, uwp.Population)
 	importance := computeImportance(uwp, tradeCodes, bases)

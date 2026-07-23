@@ -162,17 +162,20 @@ func (t tradeCodeTrigger) matches(u UWP) bool {
 		matchesAny(u.TechLevel, t.TechLevel)
 }
 
-// travelZoneTradeCode returns the trade code sub-label for a world's
-// computed Travel Zone, and whether one applies (Green has none). This is
-// a separate mechanism from tradeCodeTriggers: Da/Pz/Fo's real predicate
-// (a population threshold OR'd with a two-field sum threshold) isn't
-// expressible as tradeCodeTrigger's per-field AND-of-sets shape.
-func travelZoneTradeCode(u UWP) (TradeCode, bool) {
-	switch computeTravelZone(u) {
+// travelZoneTradeCode returns the trade code sub-label for a precomputed
+// Travel Zone, and whether one applies (Green has none). Takes the zone
+// (and the population that helped compute it) rather than a UWP, so a
+// caller that's already computed the zone doesn't redo that work — see
+// deriveTradeCodesForZone. This is a separate mechanism from
+// tradeCodeTriggers: Da/Pz/Fo's real predicate (a population threshold
+// OR'd with a two-field sum threshold) isn't expressible as
+// tradeCodeTrigger's per-field AND-of-sets shape.
+func travelZoneTradeCode(zone TravelZone, population ehex.Value) (TradeCode, bool) {
+	switch zone {
 	case ZoneRed:
 		return Forbidden, true
 	case ZoneAmber:
-		if int(u.Population) <= 6 {
+		if int(population) <= 6 {
 			return Dangerous, true
 		}
 
@@ -182,10 +185,11 @@ func travelZoneTradeCode(u UWP) (TradeCode, bool) {
 	}
 }
 
-// DeriveTradeCodes returns every trade code derivable purely from u's UWP
-// digits. See tradeCodeTriggers' doc comment for what's deliberately
-// excluded, and why.
-func DeriveTradeCodes(u UWP) []TradeCode {
+// deriveTradeCodesForZone is DeriveTradeCodes' implementation, taking an
+// already-computed TravelZone as input so Generate can share one
+// computeTravelZone call across both TradeCodes and World.TravelZone
+// instead of computing it twice per generated world.
+func deriveTradeCodesForZone(u UWP, zone TravelZone) []TradeCode {
 	var codes []TradeCode
 
 	for _, t := range tradeCodeTriggers {
@@ -194,9 +198,16 @@ func DeriveTradeCodes(u UWP) []TradeCode {
 		}
 	}
 
-	if code, ok := travelZoneTradeCode(u); ok {
+	if code, ok := travelZoneTradeCode(zone, u.Population); ok {
 		codes = append(codes, code)
 	}
 
 	return codes
+}
+
+// DeriveTradeCodes returns every trade code derivable purely from u's UWP
+// digits. See tradeCodeTriggers' doc comment for what's deliberately
+// excluded, and why.
+func DeriveTradeCodes(u UWP) []TradeCode {
+	return deriveTradeCodesForZone(u, computeTravelZone(u))
 }

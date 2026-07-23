@@ -37,9 +37,10 @@ const (
 )
 
 // String returns the zone's display name (Green/Amber/Red), or "" for the
-// zero value or any other byte that isn't one of the three constants —
-// world.Generate doesn't set TravelZone yet, so the zero value is the
-// common case a caller must handle, not a malformed-data edge case.
+// zero value or any other byte that isn't one of the three constants.
+// world.Generate always sets a real zone, so the zero value only arises
+// from a hand-built or otherwise-partial World — not a case Generate's
+// own callers need to handle, but one this method still handles safely.
 func (z TravelZone) String() string {
 	switch z {
 	case ZoneGreen:

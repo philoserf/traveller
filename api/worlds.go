@@ -29,8 +29,9 @@ type CulturalResponse struct {
 
 // WorldResponse is the wire shape of a generated world. It deliberately
 // mirrors only what world.Generate actually populates today (UWP,
-// TradeCodes, Bases, PBG, Importance, Economic, Cultural) rather than the
-// full world.World struct — see world/generate.go's doc comment for
+// TradeCodes, TravelZone, Bases, PBG, Importance, Economic, Cultural)
+// rather than the full world.World struct — see world/generate.go's doc
+// comment for
 // what's not generated yet, and why. PBG is rendered as its 3-character
 // string form, same as UWP, rather than its raw ehex.Value struct —
 // consistent wire representation, and it sidesteps deciding how
@@ -50,7 +51,7 @@ type WorldResponse struct {
 // handleWorldsRandom godoc
 //
 //	@Summary		Generate a random world
-//	@Description	Rolls a Traveller5 world: UWP, trade codes, bases, PBG, and the Importance/Economic/Cultural extensions.
+//	@Description	Rolls a Traveller5 world: UWP, trade codes, travel zone, bases, PBG, and the Ix/Ex/Cx extensions.
 //	@Tags			worlds
 //	@Produce		json
 //	@Param			seed	query		int	false	"PRNG seed (omit for a time-derived seed)"

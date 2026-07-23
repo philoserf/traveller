@@ -12,8 +12,8 @@ import (
 )
 
 // World renders w as a Markdown world sheet, covering everything
-// world.Generate currently populates (UWP, TradeCodes, TravelZone, Bases,
-// PBG, and the Importance/Economic/Cultural extensions). The title falls
+// world.Generate currently populates (UWP, TradeCodes, Bases, PBG,
+// TravelZone, and the Importance/Economic/Cultural extensions). The title falls
 // back to the UWP code when Name is empty — Generate never sets Name.
 // Travel Zone is shown only when TravelZone.String() is non-empty: real
 // generated worlds always have one, but this keeps World's zero value
