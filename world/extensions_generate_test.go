@@ -49,6 +49,27 @@ func TestComputeImportanceMatchesRegina(t *testing.T) {
 	}
 }
 
+// TestComputeImportanceWayStationBonus exercises the WayStation branch
+// directly: rollBases (the only real producer of World.Bases in this
+// codebase) never emits WayStation — it's excluded as a density/frequency
+// placement rather than a per-world roll (see rollBases's doc comment) —
+// so Generate() can never reach this branch. computeImportance itself
+// still implements the full Ix formula for any caller that does supply a
+// WayStation base (e.g. a manually-constructed World), and this pins that
+// behavior instead of leaving it untested.
+func TestComputeImportanceWayStationBonus(t *testing.T) {
+	t.Parallel()
+
+	u := UWP{Starport: StarportC, TechLevel: 5, Population: 8}
+
+	without := computeImportance(u, nil, nil)
+	with := computeImportance(u, nil, []Base{WayStation})
+
+	if with != without+1 {
+		t.Errorf("computeImportance with WayStation = %d, want %d (without) + 1", with, without)
+	}
+}
+
 func TestComputeLaborMatchesRegina(t *testing.T) {
 	t.Parallel()
 

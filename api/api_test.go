@@ -103,8 +103,28 @@ func TestWorldsRandomExtensions(t *testing.T) {
 	if got.Economic.Efficiency < -5 || got.Economic.Efficiency > 5 {
 		t.Errorf("Economic.Efficiency = %d, want -5..5", got.Economic.Efficiency)
 	}
+}
 
-	if got.UWP[4:5] == "0" && got.Cultural != (api.CulturalResponse{}) { // Population digit is the 5th UWP character
+// TestWorldsRandomPopulationZeroCultural pins the Cultural-zero mapping to
+// a fixed seed (36, confirmed to produce Population=0) rather than an
+// unseeded request: that would only visit this branch on the ~1/36 of
+// runs where an uncontrolled roll happens to land on Population=0,
+// silently skipping the check the rest of the time.
+func TestWorldsRandomPopulationZeroCultural(t *testing.T) {
+	t.Parallel()
+
+	rec := doRequest(t, api.NewMux(), "/worlds/random?seed=36")
+
+	var got api.WorldResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if got.UWP[4:5] != "0" { // Population digit is the 5th UWP character
+		t.Fatalf("seed 36 produced UWP %q with a nonzero Population digit — seed choice needs revisiting", got.UWP)
+	}
+
+	if got.Cultural != (api.CulturalResponse{}) {
 		t.Errorf("Population=0 but Cultural = %+v, want all-zero", got.Cultural)
 	}
 }

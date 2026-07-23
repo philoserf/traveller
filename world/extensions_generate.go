@@ -7,6 +7,12 @@ import (
 	"github.com/philoserf/traveller/ehex"
 )
 
+// importanceBonusTradeCodes are the trade codes that each add +1 to Ix.
+// Package-level rather than a literal inside computeImportance so it isn't
+// reallocated on every call — computeImportance runs once per Generate(),
+// which runs once per /worlds/random request.
+var importanceBonusTradeCodes = []TradeCode{Agricultural, PreAgricultural, HighPopulation, Industrial, Rich}
+
 // computeImportance computes a world's Importance (Ix): a sum of modifiers
 // over its already-generated UWP, TradeCodes, and Bases. Dice-free — the
 // rulebook's own Ix formula has no roll in it, just a sum of conditions —
@@ -49,9 +55,8 @@ func computeImportance(u UWP, tradeCodes []TradeCode, bases []Base) Importance {
 		ix--
 	}
 
-	bonusCodes := []TradeCode{Agricultural, PreAgricultural, HighPopulation, Industrial, Rich}
 	for _, tc := range tradeCodes {
-		if slices.Contains(bonusCodes, tc) {
+		if slices.Contains(importanceBonusTradeCodes, tc) {
 			ix++
 		}
 	}
