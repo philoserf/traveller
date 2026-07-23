@@ -315,20 +315,27 @@ func GenerateUWP(r *dice.Roller) UWP {
 }
 
 // Generate produces a new World: a rolled UWP, its UWP-derivable trade
-// codes, Bases, and PBG. Name, Sector, Hex, Importance, Economic, Cultural,
-// TravelZone, Worlds, and Notes are left zero-valued — none of them are
-// generated yet (see DeriveTradeCodes and the world package's generation
-// docs for what's deliberately out of scope, and why). Nobility and
-// Allegiance are permanently out of scope for generation, not just
-// "not yet": both are referee/campaign-assigned in T5, with no dice
-// mechanic given for either.
+// codes, Bases, PBG, and the Importance/Economic/Cultural extensions.
+// Name, Sector, Hex, TravelZone, Worlds, and Notes are left zero-valued —
+// none of them are generated yet (see DeriveTradeCodes and the world
+// package's generation docs for what's deliberately out of scope, and
+// why). Nobility and Allegiance are permanently out of scope for
+// generation, not just "not yet": both are referee/campaign-assigned in
+// T5, with no dice mechanic given for either.
 func Generate(r *dice.Roller) World {
 	uwp := GenerateUWP(r)
+	tradeCodes := DeriveTradeCodes(uwp)
+	bases := rollBases(r, uwp.Starport)
+	pbg := rollPBG(r, uwp.Population)
+	importance := computeImportance(uwp, tradeCodes, bases)
 
 	return World{
 		UWP:        uwp,
-		TradeCodes: DeriveTradeCodes(uwp),
-		Bases:      rollBases(r, uwp.Starport),
-		PBG:        rollPBG(r, uwp.Population),
+		TradeCodes: tradeCodes,
+		Bases:      bases,
+		PBG:        pbg,
+		Importance: importance,
+		Economic:   rollEconomic(r, uwp, importance, pbg),
+		Cultural:   rollCultural(r, uwp, importance),
 	}
 }

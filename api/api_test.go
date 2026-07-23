@@ -90,6 +90,25 @@ func TestWorldsRandom(t *testing.T) {
 	}
 }
 
+func TestWorldsRandomExtensions(t *testing.T) {
+	t.Parallel()
+
+	rec := doRequest(t, api.NewMux(), "/worlds/random")
+
+	var got api.WorldResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if got.Economic.Efficiency < -5 || got.Economic.Efficiency > 5 {
+		t.Errorf("Economic.Efficiency = %d, want -5..5", got.Economic.Efficiency)
+	}
+
+	if got.UWP[4:5] == "0" && got.Cultural != (api.CulturalResponse{}) { // Population digit is the 5th UWP character
+		t.Errorf("Population=0 but Cultural = %+v, want all-zero", got.Cultural)
+	}
+}
+
 func TestWorldsRandomSeedReproducible(t *testing.T) {
 	t.Parallel()
 

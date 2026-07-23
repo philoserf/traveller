@@ -91,6 +91,11 @@ func runWorld(args []string) error {
 	fmt.Printf("Trade Codes: %s\n", strings.Join(world.TradeCodeStrings(w.TradeCodes), " "))
 	fmt.Printf("Bases: %s\n", strings.Join(world.BaseStrings(w.Bases), " "))
 	fmt.Printf("PBG: %s\n", w.PBG)
+	fmt.Printf("Importance: %+d\n", w.Importance)
+	fmt.Printf("Economic: Resources=%d Labor=%d Infrastructure=%d Efficiency=%+d\n",
+		w.Economic.Resources, w.Economic.Labor, w.Economic.Infrastructure, w.Economic.Efficiency)
+	fmt.Printf("Cultural: Heterogeneity=%d Acceptance=%d Strangeness=%d Symbols=%d\n",
+		w.Cultural.Heterogeneity, w.Cultural.Acceptance, w.Cultural.Strangeness, w.Cultural.Symbols)
 	fmt.Printf("(seed: %d)\n", w.Seed)
 
 	return nil
