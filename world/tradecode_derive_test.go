@@ -3,6 +3,8 @@ package world
 import (
 	"slices"
 	"testing"
+
+	"github.com/philoserf/traveller/ehex"
 )
 
 func TestDeriveTradeCodes(t *testing.T) {
@@ -52,11 +54,13 @@ func TestDeriveTradeCodes(t *testing.T) {
 	}
 }
 
-// TestBarrenVsDiebackTechLevelSplit pins the specific distinction the
-// Dieback trigger exists to draw: Dieback requires evidence of past
-// civilization (TechLevel>=1), Barren fires regardless of TechLevel — a
-// TL=0 Pop=0/Gov=0/Law=0 world is Barren only; a TL>=1 one is both.
-func TestBarrenVsDiebackTechLevelSplit(t *testing.T) {
+// TestBarrenVsDiebackMutuallyExclusive pins the specific distinction the
+// Dieback trigger exists to draw: Barren (never populated, TL=0) and
+// Dieback (evidence of past civilization, TL>=1) are alternatives for the
+// same Pop=0/Gov=0/Law=0 condition, matching the rulebook's own Native
+// Intelligent Life table, which draws exactly this TL=0-vs-TL=1+ line and
+// never applies both labels to one world. Never both, for any TL.
+func TestBarrenVsDiebackMutuallyExclusive(t *testing.T) {
 	t.Parallel()
 
 	neverPopulated := UWP{Population: 0, Government: 0, Law: 0, TechLevel: 0}
@@ -70,11 +74,21 @@ func TestBarrenVsDiebackTechLevelSplit(t *testing.T) {
 		t.Errorf("DeriveTradeCodes(TL=0) = %v, want NOT to contain Dieback (no evidence of past civilization)", got)
 	}
 
-	diedBack := UWP{Population: 0, Government: 0, Law: 0, TechLevel: 5}
-	got = DeriveTradeCodes(diedBack)
+	for _, tl := range []ehex.Value{1, 5, 15, 20, ehex.Max} {
+		diedBack := UWP{Population: 0, Government: 0, Law: 0, TechLevel: tl}
+		got = DeriveTradeCodes(diedBack)
 
-	if !slices.Contains(got, Barren) || !slices.Contains(got, Dieback) {
-		t.Errorf("DeriveTradeCodes(TL=5) = %v, want to contain both Barren and Dieback", got)
+		if slices.Contains(got, Barren) {
+			t.Errorf(
+				"DeriveTradeCodes(TL=%d) = %v, want NOT to contain Barren (evidence of past civilization present)",
+				tl,
+				got,
+			)
+		}
+
+		if !slices.Contains(got, Dieback) {
+			t.Errorf("DeriveTradeCodes(TL=%d) = %v, want to contain Dieback", tl, got)
+		}
 	}
 }
 

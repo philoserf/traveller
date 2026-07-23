@@ -21,6 +21,20 @@ type tradeCodeTrigger struct {
 	TechLevel     []ehex.Value
 }
 
+// nonZeroTechLevels is every valid nonzero ehex digit (1..Max). Unlike the
+// other trigger fields, which cap at 15 by game rule (Population,
+// Government, etc.), TechLevel is open-ended, so Dieback's "TechLevel>=1"
+// condition needs the full range rather than a hand-authored literal list —
+// hardcoding it to 1..15 would silently stop matching at TL 16 and up.
+var nonZeroTechLevels = func() []ehex.Value {
+	vs := make([]ehex.Value, 0, int(ehex.Max))
+	for v := ehex.Value(1); v <= ehex.Max; v++ {
+		vs = append(vs, v)
+	}
+
+	return vs
+}()
+
 // tradeCodeTriggers is the set of trade codes derivable purely from a
 // world's UWP digits, transcribed from the T5 Book 3 Trade Classifications
 // table.
@@ -52,10 +66,12 @@ type tradeCodeTrigger struct {
 // and the book's own Native Intelligent Life table draws exactly this
 // distinction elsewhere for Pop=0 worlds: "Extinct Natives" (TL=0) vs.
 // "Catastrophic Extinct Natives" (TL=1+, ruins/evidence of past
-// civilization). Neither source states the equivalence outright, but
-// both point the same way, so Dieback is modeled as Barren's Pop=0/
-// Gov=0/Law=0 condition plus TechLevel>=1 — a strict subset of Barren,
-// not a competing guess at which of two contradictory rulebook
+// civilization) are mutually exclusive categories, since a world has
+// exactly one TL. Neither source states the equivalence outright, but
+// both point the same way, so Barren and Dieback share the Pop=0/Gov=0/
+// Law=0 condition and split on TechLevel (Barren: 0, Dieback: 1+) —
+// never both, matching the NIL table's own mutual exclusivity — rather
+// than a competing guess at which of two contradictory rulebook
 // statements to trust (contrast the Extensions ambiguities this project
 // leaves unresolved, where the rulebook's own text disagrees with
 // itself and there's no way to pick a reading without guessing).
@@ -87,10 +103,13 @@ var tradeCodeTriggers = []tradeCodeTrigger{
 		Atmosphere: []ehex.Value{3, 4, 5, 6, 7, 8, 9, 13, 14, 15}, Hydrographics: []ehex.Value{10},
 	},
 
-	{Code: Barren, Population: []ehex.Value{0}, Government: []ehex.Value{0}, Law: []ehex.Value{0}},
+	{
+		Code: Barren, Population: []ehex.Value{0}, Government: []ehex.Value{0}, Law: []ehex.Value{0},
+		TechLevel: []ehex.Value{0},
+	},
 	{
 		Code: Dieback, Population: []ehex.Value{0}, Government: []ehex.Value{0}, Law: []ehex.Value{0},
-		TechLevel: []ehex.Value{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+		TechLevel: nonZeroTechLevels,
 	},
 	{Code: LowPopulation, Population: []ehex.Value{1, 2, 3}},
 	{Code: NonIndustrial, Population: []ehex.Value{4, 5, 6}},
