@@ -299,10 +299,10 @@ func rollPBG(r *dice.Roller, population ehex.Value) PBG {
 // generateUWPWithSize rolls a complete UWP in the order T5 requires (each
 // field may depend only on fields already rolled, ending with TechLevel,
 // which depends on all the others), taking Size's own roll as a
-// parameter — GenerateUWP always passes RollSize; system/system_generate.go's
-// mainworld BigWorld fallback (Book 3 p.24's "If Satellite and No Giants,
-// place a BigWorld in MW Orbit") passes system's own rollBigWorldSize
-// instead, via GenerateWithSize.
+// parameter — Generate always passes RollSize, via GenerateWithSize;
+// system/system_generate.go's mainworld BigWorld fallback (Book 3 p.24's
+// "If Satellite and No Giants, place a BigWorld in MW Orbit") passes
+// system's own rollBigWorldSize instead, also via GenerateWithSize.
 func generateUWPWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value) UWP {
 	var u UWP
 
@@ -316,13 +316,6 @@ func generateUWPWithSize(r *dice.Roller, sizeRoll func(*dice.Roller) ehex.Value)
 	u.TechLevel = RollTechLevel(r, u)
 
 	return u
-}
-
-// GenerateUWP rolls a complete UWP using the standard Size formula
-// (RollSize). See generateUWPWithSize for the size-parameterized version
-// this wraps.
-func GenerateUWP(r *dice.Roller) UWP {
-	return generateUWPWithSize(r, RollSize)
 }
 
 // GenerateWithSize is Generate's own logic, parameterized by the Size

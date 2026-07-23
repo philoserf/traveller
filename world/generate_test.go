@@ -86,7 +86,7 @@ func TestGenerateUWPInvariants(t *testing.T) {
 	r := dice.New(rand.NewPCG(7, 8))
 
 	for range 20000 {
-		u := GenerateUWP(r)
+		u := generateUWPWithSize(r, RollSize)
 
 		if u.Size == 0 && u.Atmosphere != 0 {
 			t.Fatalf("Size=0 but Atmosphere=%s (want forced 0): %s", u.Atmosphere, u)
