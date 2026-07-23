@@ -60,20 +60,32 @@ func TestDeterminism(t *testing.T) {
 	}
 }
 
-func TestResolveSeedNonZeroUnchanged(t *testing.T) {
+func TestResolveSeedExplicitNonZeroUnchanged(t *testing.T) {
 	t.Parallel()
 
-	if got := dice.ResolveSeed(12345); got != 12345 {
-		t.Errorf("ResolveSeed(12345) = %d, want 12345 (unchanged)", got)
+	seed := int64(12345)
+	if got := dice.ResolveSeed(&seed); got != 12345 {
+		t.Errorf("ResolveSeed(&12345) = %d, want 12345 (unchanged)", got)
 	}
 }
 
-func TestResolveSeedZeroDerivesNonZero(t *testing.T) {
+func TestResolveSeedExplicitZeroUnchanged(t *testing.T) {
 	t.Parallel()
 
-	got := dice.ResolveSeed(0)
+	// The whole point of the *int64 signature: an explicit 0 must be
+	// honored, not silently treated the same as "no seed provided."
+	seed := int64(0)
+	if got := dice.ResolveSeed(&seed); got != 0 {
+		t.Errorf("ResolveSeed(&0) = %d, want 0 (explicit zero honored)", got)
+	}
+}
+
+func TestResolveSeedNilDerivesNonZero(t *testing.T) {
+	t.Parallel()
+
+	got := dice.ResolveSeed(nil)
 	if got == 0 {
-		t.Error("ResolveSeed(0) = 0, want a non-zero time-derived seed")
+		t.Error("ResolveSeed(nil) = 0, want a non-zero time-derived seed")
 	}
 }
 

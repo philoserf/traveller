@@ -38,15 +38,17 @@ func (r *Roller) Flux() int {
 	return a - b
 }
 
-// ResolveSeed returns seed unchanged unless it's 0, in which case it
-// derives one from the current time. 0 is therefore never itself a
-// reproducible, intentional seed — a documented tradeoff, not an oversight.
-func ResolveSeed(seed int64) int64 {
-	if seed == 0 {
+// ResolveSeed returns *seed if seed is non-nil, or a time-derived seed if
+// seed is nil (absent). A pointer, not a plain int64, is the point: it lets
+// a caller represent "no seed was requested" distinctly from "the caller
+// explicitly wants seed 0" — collapsing those (as an earlier version of
+// this function did) means an API consumer can never actually get seed 0.
+func ResolveSeed(seed *int64) int64 {
+	if seed == nil {
 		return time.Now().UnixNano()
 	}
 
-	return seed
+	return *seed
 }
 
 // RollerFromSeed builds a Roller from an already-resolved seed (see

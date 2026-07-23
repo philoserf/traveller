@@ -105,6 +105,34 @@ func TestWorldsRandomSeedReproducible(t *testing.T) {
 	}
 }
 
+func TestWorldsRandomExplicitZeroSeedHonored(t *testing.T) {
+	t.Parallel()
+
+	mux := api.NewMux()
+
+	rec1 := doRequest(t, mux, "/worlds/random?seed=0")
+	rec2 := doRequest(t, mux, "/worlds/random?seed=0")
+
+	var w1, w2 api.WorldResponse
+	if err := json.Unmarshal(rec1.Body.Bytes(), &w1); err != nil {
+		t.Fatalf("unmarshal response 1: %v", err)
+	}
+
+	if err := json.Unmarshal(rec2.Body.Bytes(), &w2); err != nil {
+		t.Fatalf("unmarshal response 2: %v", err)
+	}
+
+	// Regression guard: ?seed=0 must be honored as an explicit seed, not
+	// silently treated the same as no seed param at all.
+	if w1.Seed != 0 {
+		t.Errorf("Seed = %d, want 0 (explicit ?seed=0 should be honored)", w1.Seed)
+	}
+
+	if w1.UWP != w2.UWP {
+		t.Errorf("?seed=0 called twice produced different UWPs: %q vs %q — not actually deterministic", w1.UWP, w2.UWP)
+	}
+}
+
 func TestWorldsRandomBadSeed(t *testing.T) {
 	t.Parallel()
 

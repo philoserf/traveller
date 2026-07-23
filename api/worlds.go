@@ -19,7 +19,7 @@ type WorldResponse struct {
 }
 
 func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
-	seed := int64(0)
+	var seed *int64
 
 	if raw := r.URL.Query().Get("seed"); raw != "" {
 		parsed, err := strconv.ParseInt(raw, 10, 64)
@@ -29,7 +29,7 @@ func handleWorldsRandom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		seed = parsed
+		seed = &parsed
 	}
 
 	resolved := dice.ResolveSeed(seed)

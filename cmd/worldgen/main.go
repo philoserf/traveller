@@ -13,11 +13,19 @@ import (
 )
 
 func main() {
-	seed := flag.Int64("seed", 0, "PRNG seed (0 = derive from current time)")
+	seed := flag.Int64("seed", 0, "PRNG seed (omit the flag entirely to derive one from current time)")
 
 	flag.Parse()
 
-	s := dice.ResolveSeed(*seed)
+	var seedPtr *int64
+
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "seed" {
+			seedPtr = seed
+		}
+	})
+
+	s := dice.ResolveSeed(seedPtr)
 	w := world.Generate(dice.RollerFromSeed(s))
 
 	// This is where a future render.World(w) (markdown) replaces the
