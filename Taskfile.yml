@@ -92,6 +92,7 @@ tasks:
         '
       - go run ./cmd/client healthz
       - go run ./cmd/client world
+      - go run ./cmd/client system
 
   demo:stop:
     internal: true
