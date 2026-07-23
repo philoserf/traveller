@@ -23,6 +23,7 @@ func TestDeriveTradeCodes(t *testing.T) {
 		{"Vacuum", UWP{Atmosphere: 0}, Vacuum},
 		{"WaterWorld", UWP{Size: 5, Atmosphere: 5, Hydrographics: 10}, WaterWorld},
 		{"Barren", UWP{Population: 0, Government: 0, Law: 0}, Barren},
+		{"Dieback", UWP{Population: 0, Government: 0, Law: 0, TechLevel: 5}, Dieback},
 		{"LowPopulation", UWP{Population: 2}, LowPopulation},
 		{"NonIndustrial", UWP{Population: 5}, NonIndustrial},
 		{"PreHigh", UWP{Population: 8}, PreHigh},
@@ -51,6 +52,32 @@ func TestDeriveTradeCodes(t *testing.T) {
 	}
 }
 
+// TestBarrenVsDiebackTechLevelSplit pins the specific distinction the
+// Dieback trigger exists to draw: Dieback requires evidence of past
+// civilization (TechLevel>=1), Barren fires regardless of TechLevel — a
+// TL=0 Pop=0/Gov=0/Law=0 world is Barren only; a TL>=1 one is both.
+func TestBarrenVsDiebackTechLevelSplit(t *testing.T) {
+	t.Parallel()
+
+	neverPopulated := UWP{Population: 0, Government: 0, Law: 0, TechLevel: 0}
+	got := DeriveTradeCodes(neverPopulated)
+
+	if !slices.Contains(got, Barren) {
+		t.Errorf("DeriveTradeCodes(TL=0) = %v, want to contain Barren", got)
+	}
+
+	if slices.Contains(got, Dieback) {
+		t.Errorf("DeriveTradeCodes(TL=0) = %v, want NOT to contain Dieback (no evidence of past civilization)", got)
+	}
+
+	diedBack := UWP{Population: 0, Government: 0, Law: 0, TechLevel: 5}
+	got = DeriveTradeCodes(diedBack)
+
+	if !slices.Contains(got, Barren) || !slices.Contains(got, Dieback) {
+		t.Errorf("DeriveTradeCodes(TL=5) = %v, want to contain both Barren and Dieback", got)
+	}
+}
+
 // TestExcludedCodesNeverDerived guards against accidentally reintroducing a
 // referee-assigned or orbit-dependent code into the trigger table — see the
 // exclusion list documented on tradeCodeTriggers.
@@ -63,7 +90,6 @@ func TestExcludedCodesNeverDerived(t *testing.T) {
 		MilitaryRule, SubsectorCapital, SectorCapital, Capital, Colony, Forbidden, DataRepository, AncientSite,
 		Puzzle, Dangerous,
 		Mining, PenalColony,
-		Dieback,
 	}
 
 	for _, trigger := range tradeCodeTriggers {

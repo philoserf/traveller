@@ -18,6 +18,7 @@ type tradeCodeTrigger struct {
 	Population    []ehex.Value
 	Government    []ehex.Value
 	Law           []ehex.Value
+	TechLevel     []ehex.Value
 }
 
 // tradeCodeTriggers is the set of trade codes derivable purely from a
@@ -41,10 +42,23 @@ type tradeCodeTrigger struct {
 //     Amber, which is not what the rulebook intends.
 //   - Explicitly non-mainworld ("Not MW") in the rulebook: Mining (Mi),
 //     PenalColony (Pe).
-//   - Ambiguous: Dieback (Di) extracts with an identical Pop=0/Gov=0/Law=0
-//     trigger to Barren (Ba) — likely narratively distinct (an ex-Barren
-//     world) rather than digit-distinguishable. Applying both would be
-//     wrong; arbitrarily suppressing one would be a guess. Left out.
+//
+// Dieback (Di) was excluded for a while: its Pop/Gov/Law columns are
+// identical to Barren's (Ba) in the printed table, with only a trailing
+// "(000-T)" annotation Barren lacks. Read directly against the PDF page
+// (not just the pdftotext extraction, ruling out a column-misalignment
+// artifact), "(000-T)" visually completes the UWP format string's
+// "...PGL-T" tail with T left as a variable rather than pinned to 0 —
+// and the book's own Native Intelligent Life table draws exactly this
+// distinction elsewhere for Pop=0 worlds: "Extinct Natives" (TL=0) vs.
+// "Catastrophic Extinct Natives" (TL=1+, ruins/evidence of past
+// civilization). Neither source states the equivalence outright, but
+// both point the same way, so Dieback is modeled as Barren's Pop=0/
+// Gov=0/Law=0 condition plus TechLevel>=1 — a strict subset of Barren,
+// not a competing guess at which of two contradictory rulebook
+// statements to trust (contrast the Extensions ambiguities this project
+// leaves unresolved, where the rulebook's own text disagrees with
+// itself and there's no way to pick a reading without guessing).
 var tradeCodeTriggers = []tradeCodeTrigger{
 	{Code: AsteroidBelt, Size: []ehex.Value{0}, Atmosphere: []ehex.Value{0}, Hydrographics: []ehex.Value{0}},
 	{Code: Desert, Atmosphere: []ehex.Value{2, 3, 4, 5, 6, 7, 8, 9}, Hydrographics: []ehex.Value{0}},
@@ -74,6 +88,10 @@ var tradeCodeTriggers = []tradeCodeTrigger{
 	},
 
 	{Code: Barren, Population: []ehex.Value{0}, Government: []ehex.Value{0}, Law: []ehex.Value{0}},
+	{
+		Code: Dieback, Population: []ehex.Value{0}, Government: []ehex.Value{0}, Law: []ehex.Value{0},
+		TechLevel: []ehex.Value{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+	},
 	{Code: LowPopulation, Population: []ehex.Value{1, 2, 3}},
 	{Code: NonIndustrial, Population: []ehex.Value{4, 5, 6}},
 	{Code: PreHigh, Population: []ehex.Value{8}},
@@ -117,7 +135,8 @@ func (t tradeCodeTrigger) matches(u UWP) bool {
 		matchesAny(u.Hydrographics, t.Hydrographics) &&
 		matchesAny(u.Population, t.Population) &&
 		matchesAny(u.Government, t.Government) &&
-		matchesAny(u.Law, t.Law)
+		matchesAny(u.Law, t.Law) &&
+		matchesAny(u.TechLevel, t.TechLevel)
 }
 
 // DeriveTradeCodes returns every trade code derivable purely from u's UWP
