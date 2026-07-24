@@ -137,8 +137,8 @@ func TestResolveScoutTermDeterminism(t *testing.T) {
 	r1 := dice.New(rand.NewPCG(11, 11))
 	r2 := dice.New(rand.NewPCG(11, 11))
 
-	term1, survived1 := ResolveScoutTerm(r1, upp, C1)
-	term2, survived2 := ResolveScoutTerm(r2, upp, C1)
+	term1, updatedUPP1, survived1 := ResolveScoutTerm(r1, upp, C1)
+	term2, updatedUPP2, survived2 := ResolveScoutTerm(r2, upp, C1)
 
 	if survived1 != survived2 {
 		t.Fatalf("identical seeds produced different survival: %v vs %v", survived1, survived2)
@@ -146,6 +146,10 @@ func TestResolveScoutTermDeterminism(t *testing.T) {
 
 	if term1.RiskResult != term2.RiskResult || term1.RewardResult != term2.RewardResult {
 		t.Fatalf("identical seeds produced different outcomes: %+v vs %+v", term1, term2)
+	}
+
+	if updatedUPP1 != updatedUPP2 {
+		t.Fatalf("identical seeds produced different updated UPPs: %+v vs %+v", updatedUPP1, updatedUPP2)
 	}
 
 	if len(term1.SkillsAwarded) != len(term2.SkillsAwarded) {
@@ -172,7 +176,7 @@ func TestResolveScoutTermSkillCountMatchesDuty(t *testing.T) {
 	r := dice.New(rand.NewPCG(17, 18))
 
 	for range 500 {
-		term, _ := ResolveScoutTerm(r, upp, C1)
+		term, _, _ := ResolveScoutTerm(r, upp, C1)
 
 		if len(term.SkillsAwarded) > 8 {
 			t.Fatalf("term granted %d skills, want at most 8 (Explorer Duty's own ceiling)", len(term.SkillsAwarded))

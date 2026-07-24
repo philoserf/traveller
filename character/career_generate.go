@@ -50,14 +50,15 @@ func highestOf(upp UPP, positions ...Position) Position {
 // pick would be a worse default, not just a different one.
 //
 // Returns the Position chosen for the initial attempt alongside the
-// success bool — not just the bool — so a caller can thread the same
-// Position into ResolveScoutTerm's ControllingCharacteristic instead of
-// re-deriving it from upp a second time. Re-deriving would silently
-// diverge from BeginScout's own choice if a future caller ever persists
-// a Risk roll's characteristic reduction back onto a Character's UPP
-// between terms — resolveScoutRisk's own returned reduced value isn't
-// written back onto upp anywhere in this file today, but nothing stops
-// a future caller from doing so.
+// success bool. career_loop.go's ResolveScoutCareer does not thread
+// this Position into term 1's Controlling Characteristic — its own
+// nextScoutCC, called against an empty used-set, independently
+// computes the identical highestOf(upp, C1, C2, C3) value, since
+// nothing has reduced upp yet at career entry. The two calls are kept
+// separate rather than coupled through a shared return value because
+// nextScoutCC's job (rotate through C1/C2/C3 per Book 1 p.64) only
+// coincides with BeginScout's job (pick the best of C1/C2/C3 to
+// attempt Begin against) on the very first term.
 func BeginScout(r *dice.Roller, upp UPP) (Position, bool) {
 	ccPos := highestOf(upp, C1, C2, C3)
 	if rollAgainstTarget(r, int(upp.Characteristics[ccPos]), 0) {
@@ -232,27 +233,34 @@ func rollScoutSkills(r *dice.Roller, count int) []SkillLevel {
 }
 
 // ResolveScoutTerm resolves one 4-year Scout term (Book 1 p.79) for the
-// controlling characteristic ccPos — the same Position BeginScout chose
-// at career entry, passed in by the caller rather than re-derived from
-// upp here, so the two can't silently diverge once a later phase starts
-// persisting Risk-roll characteristic reductions between terms. Begin
-// happens once at career entry, not per term, so it's its own function
-// (BeginScout) rather than folded in here. Courier Duty skips Risk &
-// Reward entirely (Term.RiskResult stays at its zero value, Unharmed —
-// no harm came to a Scout who never rolled for it) and grants 4 skills;
-// Explorer Duty rolls Risk then, unless Dead, Reward too (Book 1's own
-// worked example, Eneri Dinsha, rolls Reward even after failing Risk —
-// a Wounded or Disabled Scout still gets a Reward chance and skills;
-// only Dead stops everything) and grants 8. The Reward roll uses the
+// controlling characteristic ccPos. Begin happens once at career entry,
+// not per term, so it's its own function (BeginScout) rather than
+// folded in here. Courier Duty skips Risk & Reward entirely
+// (Term.RiskResult stays at its zero value, Unharmed — no harm came to
+// a Scout who never rolled for it) and grants 4 skills; Explorer Duty
+// rolls Risk then, unless Dead, Reward too (Book 1's own worked
+// example, Eneri Dinsha, rolls Reward even after failing Risk — a
+// Wounded or Disabled Scout still gets a Reward chance and skills; only
+// Dead stops everything) and grants 8. The Reward roll uses the
 // Risk-reduced characteristic value, not the original — a Wounded or
 // Disabled Scout's Reward odds reflect their now-lower characteristic,
 // same as the book's own "Roll for Reward against CC+..." wording
 // implies (CC having just been reduced by the preceding Risk roll).
 // Term.RewardResult is "Discovery" or "None" (Term.RewardResult is a
-// string field; there's no separate bool for this). Returns the
-// resolved Term and whether the character survived to potentially serve
-// another (RiskResult.Survived() — false only for Dead).
-func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, bool) {
+// string field; there's no separate bool for this).
+//
+// Returns the resolved Term, an updated UPP, and whether the character
+// survived to potentially serve another (RiskResult.Survived() — false
+// only for Dead). Per Book 1 p.65, a Risk-caused reduction is
+// "permanently reduced," not scoped to the current term — the returned
+// UPP carries that reduction in Characteristics[ccPos] (unchanged for
+// Courier Duty, which never rolls Risk) so a multi-term caller such as
+// career_loop.go's ResolveScoutCareer can thread it into the next
+// term's own Risk roll and Controlling Characteristic selection. upp is
+// passed by value with Characteristics a fixed-size array, so mutating
+// the local copy and returning it has no aliasing effect on the
+// caller's own upp.
+func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP, bool) {
 	cc := upp.Characteristics[ccPos]
 
 	term := Term{Length: 4, ControllingCharacteristic: ccPos, RewardResult: "None"}
@@ -265,9 +273,10 @@ func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, bool) {
 
 		risk, reducedCC := resolveScoutRisk(r, cc, 0)
 		term.RiskResult = risk
+		upp.Characteristics[ccPos] = reducedCC
 
 		if risk == Dead {
-			return term, false
+			return term, upp, false
 		}
 
 		if resolveScoutReward(r, reducedCC, 0) {
@@ -277,5 +286,5 @@ func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, bool) {
 
 	term.SkillsAwarded = rollScoutSkills(r, skillCount)
 
-	return term, term.RiskResult.Survived()
+	return term, upp, term.RiskResult.Survived()
 }
