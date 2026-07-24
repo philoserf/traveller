@@ -179,25 +179,28 @@ var scoutSkillTable = [7][6]string{
 	{"One Art", "One Science", "Seafarer", "Athlete", "Medic", "One Trade"},
 }
 
-// rollScoutSkill rolls one column (uniform pick among all 7 — the book
-// gives no mechanic for which column a Scout draws from beyond "Column
-// 1 is always available," so this generator resolves the choice the
-// same way it resolves every other open player pick) and row (1D),
-// returning the granted skill and true, or false if the roll landed on
-// an entry this generator can't resolve yet: "Major"/"Minor" (Book 1's
-// own footnote — "If the character does not have a Major/Minor this
-// benefit is lost" — and this codebase has no education/schooling
-// generation code anywhere yet, so no character ever has a Major or
-// Minor) or "One Science" (no defined science list exists yet in this
-// codebase, unlike "One Art"/"One Trade," which reuse
-// homeworld_generate.go's own oneArtChoices/theTradeChoices).
-// "C6+1"'s own footnote (lost if C6=Caste) never applies here —
-// GenerateUPP (characteristic_generate.go) only generates Human
-// characters, whose C6 is always Social Standing, never Caste.
-func rollScoutSkill(r *dice.Roller) (SkillLevel, bool) {
+// rollSkillFromTable rolls one column (uniform pick among all 7 — the
+// book gives no mechanic for which column a career draws from beyond
+// "Column 1 is always available," so this generator resolves the choice
+// the same way it resolves every other open player pick) and row (1D) of
+// a 7-column/1D-row skill table — the shape both scoutSkillTable and
+// citizen_generate.go's own citizenTableC share, generalized here after
+// Citizen became the second concrete instance of the identical logic.
+// Returns the granted skill and true, or false if the roll landed on an
+// entry this generator can't resolve yet: "Major"/"Minor" (Book 1's own
+// footnote — "If the character does not have a Major/Minor this benefit
+// is lost" — and this codebase has no education/schooling generation
+// code anywhere yet, so no character ever has a Major or Minor) or "One
+// Science" (no defined science list exists yet in this codebase, unlike
+// "One Art"/"One Trade," which reuse homeworld_generate.go's own
+// oneArtChoices/theTradeChoices). "C6+1"'s own footnote (lost if
+// C6=Caste) never applies here — GenerateUPP (characteristic_generate.go)
+// only generates Human characters, whose C6 is always Social Standing,
+// never Caste.
+func rollSkillFromTable(r *dice.Roller, table [7][6]string) (SkillLevel, bool) {
 	column := r.Uniform(7) - 1
 	row := r.Uniform(6) - 1
-	name := scoutSkillTable[column][row]
+	name := table[column][row]
 
 	if column == 0 {
 		return skillLevel1(name, Personal), true
@@ -215,21 +218,25 @@ func rollScoutSkill(r *dice.Roller) (SkillLevel, bool) {
 	}
 }
 
-// rollScoutSkills rolls count skills via rollScoutSkill. A roll that
-// lands on an unresolvable entry (see rollScoutSkill) grants nothing
-// rather than being rerolled — the book's own wording is that the
-// benefit is "lost," not replaced — so the returned slice can be
-// shorter than count.
-func rollScoutSkills(r *dice.Roller, count int) []SkillLevel {
+// rollSkillsFromTable rolls count skills via rollSkillFromTable. A roll
+// that lands on an unresolvable entry (see rollSkillFromTable) grants
+// nothing rather than being rerolled — the book's own wording is that the
+// benefit is "lost," not replaced — so the returned slice can be shorter
+// than count.
+func rollSkillsFromTable(r *dice.Roller, table [7][6]string, count int) []SkillLevel {
 	var skills []SkillLevel
 
 	for range count {
-		if skill, ok := rollScoutSkill(r); ok {
+		if skill, ok := rollSkillFromTable(r, table); ok {
 			skills = append(skills, skill)
 		}
 	}
 
 	return skills
+}
+
+func rollScoutSkills(r *dice.Roller, count int) []SkillLevel {
+	return rollSkillsFromTable(r, scoutSkillTable, count)
 }
 
 // ResolveScoutTerm resolves one 4-year Scout term (Book 1 p.79) for the

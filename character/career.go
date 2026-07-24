@@ -28,6 +28,7 @@ type Term struct {
 	RewardResult              string
 	SkillsAwarded             []SkillLevel
 	Promoted                  bool
+	CitizenLifeSucceeded      bool // Citizen only
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.
