@@ -1,0 +1,340 @@
+package render_test
+
+import (
+	"math/rand/v2"
+	"strings"
+	"testing"
+
+	"github.com/philoserf/traveller/character"
+	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
+	"github.com/philoserf/traveller/render"
+)
+
+var scoutSheet = character.Character{
+	Species:        "Human",
+	GeneticProfile: "SDEIES",
+	UPP:            character.UPP{Characteristics: [6]ehex.Value{8, 9, 7, 6, 5, 4}},
+	Homeworld:      "A788899-C",
+	Birthworld:     "A788899-C",
+	Careers: []character.Career{
+		{
+			Name: "Scout",
+			Terms: []character.Term{
+				{
+					ControllingCharacteristic: character.C1,
+					RiskResult:                character.Unharmed,
+					RewardResult:              "None",
+					SkillsAwarded: []character.SkillLevel{
+						{Name: "Vacc Suit", Level: 1, Kind: character.Skill},
+					},
+				},
+				{
+					ControllingCharacteristic: character.C2,
+					RiskResult:                character.Wounded,
+					RewardResult:              "Discovery",
+					SkillsAwarded: []character.SkillLevel{
+						{Name: "Zero-G", Level: 0, Kind: character.Skill},
+					},
+				},
+			},
+			MusteringOut: character.MusteringOut{
+				Benefits: []string{"Ship Share"},
+				Money:    []string{"Cr30,000"},
+			},
+		},
+	},
+	Skills: []character.SkillLevel{
+		{Name: "Zero-G", Level: 1, Kind: character.Skill},
+		{Name: "Vacc Suit", Level: 0, Kind: character.Skill},
+	},
+	WoundBadges: 1,
+	Fame:        2,
+	Cash:        30000,
+}
+
+func TestCharacterContainsAllFields(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(scoutSheet)
+
+	want := []string{
+		"Human",
+		"SDEIES",
+		scoutSheet.UPP.String(),
+		"A788899-C",
+		"**Wound Badges:** 1",
+		"**Fame:** 2",
+		"**Cash:** Cr30000",
+		"### Scout",
+		"Term 1 (Str): Unharmed",
+		"Term 2 (Dex): Wounded, Reward: Discovery",
+		"Vacc Suit-1",
+		"Zero-G",
+		"- Benefits: Ship Share",
+		"- Money: Cr30,000",
+	}
+
+	for _, w := range want {
+		if !strings.Contains(out, w) {
+			t.Errorf("render.Character missing %q in output:\n%s", w, out)
+		}
+	}
+}
+
+func TestCharacterTitleFallsBackToUPP(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(scoutSheet) // Name is unset
+	if !strings.HasPrefix(out, "# "+scoutSheet.UPP.String()+"\n") {
+		t.Errorf("render.Character with no Name should title with the UPP code, got:\n%s", out)
+	}
+
+	named := scoutSheet
+	named.Name = "Eneri Dinsha"
+
+	out = render.Character(named)
+	if !strings.HasPrefix(out, "# Eneri Dinsha\n") {
+		t.Errorf("render.Character with a Name set should use it as the title, got:\n%s", out)
+	}
+}
+
+func TestCharacterShowsBirthworldOnlyWhenDifferent(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(scoutSheet) // Birthworld == Homeworld
+	if strings.Contains(out, "Birthworld") {
+		t.Errorf("render.Character should omit Birthworld when equal to Homeworld, got:\n%s", out)
+	}
+
+	moved := scoutSheet
+	moved.Birthworld = "B000000-0"
+
+	out = render.Character(moved)
+	if !strings.Contains(out, "**Birthworld:** B000000-0") {
+		t.Errorf("render.Character should show Birthworld when it differs from Homeworld, got:\n%s", out)
+	}
+}
+
+func TestCharacterShowsRankOnlyWhenSet(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(scoutSheet) // Rank is unset
+	if strings.Contains(out, "Rank") {
+		t.Errorf("render.Character should omit Rank when unset, got:\n%s", out)
+	}
+
+	ranked := scoutSheet
+	ranked.Rank = "Ensign"
+
+	out = render.Character(ranked)
+	if !strings.Contains(out, "**Rank:** Ensign") {
+		t.Errorf("render.Character should show a set Rank, got:\n%s", out)
+	}
+}
+
+// TestCharacterNeverRendersUngeneratedFields guards Name/Birthdate/Age/
+// LifeStage/Notes — nothing in character generates any of these yet, and
+// render.Character has no code path that prints them at all.
+func TestCharacterNeverRendersUngeneratedFields(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(scoutSheet)
+
+	for _, field := range []string{"Birthdate", "Age", "LifeStage", "Notes"} {
+		if strings.Contains(out, field) {
+			t.Errorf("render.Character should never render %q, got:\n%s", field, out)
+		}
+	}
+}
+
+func TestCharacterOmitsEmptySkills(t *testing.T) {
+	t.Parallel()
+
+	bare := character.Character{Skills: nil}
+
+	out := render.Character(bare)
+	if !strings.Contains(out, "## Skills\n\nNone.") {
+		t.Errorf("render.Character with no Skills should show \"None.\", got:\n%s", out)
+	}
+}
+
+func TestCharacterShowsNeverQualifiedCareer(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{{Name: "Scout", Terms: nil}},
+	}
+
+	out := render.Character(c)
+	if !strings.Contains(out, "Never qualified for this career.") {
+		t.Errorf("render.Character with an empty career should say so, got:\n%s", out)
+	}
+
+	if !strings.Contains(out, "- Automatics: None") {
+		t.Errorf(
+			"render.Character's Mustering Out section should still render (all None) for a never-qualified career, got:\n%s",
+			out,
+		)
+	}
+}
+
+func TestCharacterShowsMusteringOutEntitlements(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: "Scout",
+				MusteringOut: character.MusteringOut{
+					Pension:       5000,
+					RetirementPay: 2000,
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "- Pension: Cr5000/year") {
+		t.Errorf("render.Character should show a set Pension, got:\n%s", out)
+	}
+
+	if !strings.Contains(out, "- Retirement Pay: Cr2000/year") {
+		t.Errorf("render.Character should show a set Retirement Pay, got:\n%s", out)
+	}
+
+	if strings.Contains(render.Character(scoutSheet), "Pension") {
+		t.Errorf("render.Character should omit Pension when 0, got:\n%s", render.Character(scoutSheet))
+	}
+}
+
+// TestCharacterOmitsZeroFameAndCash guards against showing "Fame: 0"/
+// "Cash: Cr0" for a Character whose Fame/Cash were never actually
+// computed — see Character's own doc comment on why that would
+// contradict the Benefits/Money lines shown elsewhere on the sheet.
+func TestCharacterOmitsZeroFameAndCash(t *testing.T) {
+	t.Parallel()
+
+	bare := character.Character{}
+
+	out := render.Character(bare)
+	if strings.Contains(out, "Fame") || strings.Contains(out, "Cash") {
+		t.Errorf("render.Character should omit Fame/Cash when 0, got:\n%s", out)
+	}
+
+	if got := render.Character(
+		scoutSheet,
+	); !strings.Contains(got, "**Fame:** 2") ||
+		!strings.Contains(got, "**Cash:** Cr30000") {
+		t.Errorf("render.Character should show a nonzero Fame/Cash, got:\n%s", got)
+	}
+}
+
+// TestCharacterRendersPersonalSkillAsBoost is the regression test for
+// the Personal-kind rendering fix: a characteristic boost (e.g. Scout's
+// own Str+1 Personal skill grant) must not look like a same-named
+// trained skill.
+func TestCharacterRendersPersonalSkillAsBoost(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Skills: []character.SkillLevel{{Name: "Str", Level: 1, Kind: character.Personal}},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "- Str +1") {
+		t.Errorf("render.Character should render a Personal-kind grant as %q, got:\n%s", "Str +1", out)
+	}
+
+	if strings.Contains(out, "Str-1") {
+		t.Errorf("render.Character should not render a Personal-kind grant as skill notation \"Str-1\", got:\n%s", out)
+	}
+}
+
+// TestCharacterJoinsMultipleMusteringOutEntriesWithCommas is the
+// regression test for the join-separator fix: multi-word Mustering Out
+// entries must stay distinguishable when a career earns two or more.
+func TestCharacterJoinsMultipleMusteringOutEntriesWithCommas(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: "Scout",
+				MusteringOut: character.MusteringOut{
+					Benefits: []string{"Forbidden Knowledge", "Ship Share"},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "- Benefits: Forbidden Knowledge, Ship Share") {
+		t.Errorf("render.Character should comma-join multiple Benefits entries, got:\n%s", out)
+	}
+}
+
+// TestCharacterRendersAllPositionsAndRiskResults is a full-coverage
+// black-box pin of positionAbbrev/riskResultLabel's mapping, exercised
+// through the exported render.Character API — this package's existing
+// tests (world_test.go, system_test.go) are all external (package
+// render_test) black-box tests with no direct access to unexported
+// helpers, so this covers all 6 Positions and all 4 RiskResults the same
+// way, matching this project's established "no partial pins" convention.
+func TestCharacterRendersAllPositionsAndRiskResults(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: "Scout",
+				Terms: []character.Term{
+					{ControllingCharacteristic: character.C1, RiskResult: character.Unharmed},
+					{ControllingCharacteristic: character.C2, RiskResult: character.Wounded},
+					{ControllingCharacteristic: character.C3, RiskResult: character.Disabled},
+					{ControllingCharacteristic: character.C4, RiskResult: character.Dead},
+					{ControllingCharacteristic: character.C5, RiskResult: character.Unharmed},
+					{ControllingCharacteristic: character.C6, RiskResult: character.Wounded},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	want := []string{
+		"Term 1 (Str): Unharmed",
+		"Term 2 (Dex): Wounded",
+		"Term 3 (End): Disabled",
+		"Term 4 (Int): Dead",
+		"Term 5 (Edu): Unharmed",
+		"Term 6 (Soc): Wounded",
+	}
+
+	for _, w := range want {
+		if !strings.Contains(out, w) {
+			t.Errorf("render.Character missing %q in output:\n%s", w, out)
+		}
+	}
+}
+
+// TestCharacterHandlesGeneratedOutput is an integration smoke test:
+// render.Character must not panic on real character.GenerateScoutCharacter
+// output, across both the ok and !ok paths — the fixture-based tests
+// above already cover exact formatting.
+func TestCharacterHandlesGeneratedOutput(t *testing.T) {
+	t.Parallel()
+
+	for seed := range uint64(20) {
+		r := dice.New(rand.NewPCG(seed+1, seed+1))
+
+		c, _ := character.GenerateScoutCharacter(r)
+
+		if out := render.Character(c); out == "" {
+			t.Errorf("seed %d: render.Character produced empty output", seed)
+		}
+	}
+}

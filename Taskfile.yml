@@ -95,6 +95,9 @@ tasks:
       - go run ./cmd/client system
       - go run ./cmd/client sector -subsector A
       - go run ./cmd/secgen -subsector A
+      # chargen exits 1 for a died-or-never-qualified character — a valid
+      # RNG outcome, not a demo failure, so tolerate it here.
+      - go run ./cmd/chargen || true
 
   demo:stop:
     internal: true
