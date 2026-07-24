@@ -29,6 +29,21 @@ func continueCitizen(r *dice.Roller) bool {
 	return continueCitizenOutcome(r.TwoD6())
 }
 
+// citizenLifeSuccessCount counts CitizenLifeSucceeded terms — derived
+// from terms rather than a separately-tracked counter, so it can't drift
+// out of sync with the Terms it's counting.
+func citizenLifeSuccessCount(terms []Term) int {
+	n := 0
+
+	for _, t := range terms {
+		if t.CitizenLifeSucceeded {
+			n++
+		}
+	}
+
+	return n
+}
+
 // ResolveCitizenCareer resolves a full multi-term Citizen career (Book 1
 // p.78) by looping ResolveCitizenTerm. BeginCitizen is called for
 // symmetry with ResolveScoutCareer's own Begin-then-loop shape even
@@ -60,8 +75,10 @@ func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
 	for range maxCareerTerms {
 		ccPos := nextCC(upp, citizenLifePositions, usedThisCycle)
 
-		term := ResolveCitizenTerm(r, upp, ccPos)
+		term, jobSkill, hobbySkill := ResolveCitizenTerm(
+			r, upp, ccPos, citizenLifeSuccessCount(career.Terms), career.JobSkill, career.HobbySkill)
 		career.Terms = append(career.Terms, term)
+		career.JobSkill, career.HobbySkill = jobSkill, hobbySkill
 
 		if !continueCitizen(r) {
 			break

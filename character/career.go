@@ -45,6 +45,8 @@ type MusteringOut struct {
 type Career struct {
 	Name         string
 	HasRank      bool
+	JobSkill     string // Citizen only
+	HobbySkill   string // Citizen only
 	Terms        []Term
 	MusteringOut MusteringOut
 }

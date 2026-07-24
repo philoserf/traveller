@@ -156,6 +156,11 @@ func TestResolveCitizenCareerDeterminism(t *testing.T) {
 		t.Fatalf("identical seeds produced different term counts: %d vs %d", len(career1.Terms), len(career2.Terms))
 	}
 
+	if career1.JobSkill != career2.JobSkill || career1.HobbySkill != career2.HobbySkill {
+		t.Fatalf("identical seeds produced different Job/Hobby: (%q,%q) vs (%q,%q)",
+			career1.JobSkill, career1.HobbySkill, career2.JobSkill, career2.HobbySkill)
+	}
+
 	for i := range career1.Terms {
 		t1, t2 := career1.Terms[i], career2.Terms[i]
 
@@ -179,5 +184,49 @@ func TestResolveCitizenCareerDeterminism(t *testing.T) {
 					i, j, t1.SkillsAwarded[j], t2.SkillsAwarded[j])
 			}
 		}
+	}
+}
+
+// TestResolveCitizenCareerPersistsJobAndHobbyAcrossTerms uses the all-12s
+// fixture (Citizen Life always succeeds, since 2D6<=12 always — the same
+// guarantee TestResolveCitizenCareerRespectsMaxTermsCap's Scout analog
+// relies on) to confirm ResolveCitizenCareer's loop actually carries
+// career.JobSkill/HobbySkill forward: term 1 is always a Job success
+// (citizenLifeGrantIsJob(0)==true) that determines JobSkill unless it
+// happens to roll "No Skill" (~1/108 chance), so JobSkill should end up
+// set in the overwhelming majority of trials — if the loop forgot to
+// persist citizenLifeSkillGrant's returned name back onto career.JobSkill,
+// this would stay empty in every trial instead.
+func TestResolveCitizenCareerPersistsJobAndHobbyAcrossTerms(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{12, 12, 12, 12, 12, 12}}
+	r := dice.New(rand.NewPCG(37, 41))
+
+	const trials = 300
+
+	jobSet, hobbySet := 0, 0
+
+	for range trials {
+		career := ResolveCitizenCareer(r, upp)
+		if career.JobSkill != "" {
+			jobSet++
+		}
+
+		if career.HobbySkill != "" {
+			hobbySet++
+		}
+	}
+
+	if jobSet < trials*95/100 {
+		t.Errorf(
+			"JobSkill set in %d/%d trials, want at least 95%% (term 1 is always a guaranteed Job success)",
+			jobSet,
+			trials,
+		)
+	}
+
+	if hobbySet < trials*80/100 {
+		t.Errorf("HobbySkill set in %d/%d trials, want at least 80%%", hobbySet, trials)
 	}
 }
