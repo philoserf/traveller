@@ -27,14 +27,22 @@ var scoutMusterOutBenefits = [12]string{
 	"Life Insurance", "TAS Fellow Membership", "Fame +2", "Knighthood",
 }
 
-// scoutMusterOutRow maps a 1D+DM Mustering Out roll to a 0-based row index
-// into scoutMusterOutMoney/scoutMusterOutBenefits, implementing Book 1
-// p.68's "If the roll is greater than the maximum value on the table, use
-// the maximum value instead." Split out dice-free, same rationale as
-// scoutRiskOutcome/continueScoutOutcome: the clamp boundary is directly
-// testable against a fixed roll instead of a real D6 draw.
+// musterOutRow maps a 1D+DM Mustering Out roll to a 0-based row index,
+// implementing Book 1 p.68's "If the roll is greater than the maximum
+// value on the table, use the maximum value instead" — shared by every
+// career's own Mustering Out table (maxRow is that table's own row count;
+// Scout's own table has 12 rows, Citizen's 11), the second concrete
+// instance of the identical clamp rule that justifies generalizing it
+// out of scoutMusterOutRow's own original, Scout-only body. Split out
+// dice-free, same rationale as scoutRiskOutcome/continueScoutOutcome:
+// the clamp boundary is directly testable against a fixed roll instead
+// of a real D6 draw.
+func musterOutRow(roll, maxRow int) int {
+	return min(roll, maxRow) - 1
+}
+
 func scoutMusterOutRow(roll int) int {
-	return min(roll, 12) - 1
+	return musterOutRow(roll, 12)
 }
 
 // rollScoutMusterOutRow rolls 1D and applies dm, per Book 1 p.79's "DM
