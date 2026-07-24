@@ -130,8 +130,13 @@ func generateSatellite(
 // rolled) for one top-level body — a World or a GasGiant — as new Orbit
 // entries sharing parent.Number with Satellite:true. Each satellite
 // independently rolls Close (2D<=7, tidally locked) or Far (2D>=8) —
-// Book 3 p.21/24; this project doesn't model the book's letter-named
-// sub-orbit slots (Ay/Bee/.../Zee) as real data, the same deliberate
+// Book 3 p.21/24. Book 3 p.24's Table "2C SATELLITE?" also assigns each
+// satellite a cosmetic Flux-rolled orbit letter (Close: Ay-Em, Far:
+// En-Zee — "Note Satellite Orbit Letter"; the Regina worked example
+// rolls one, "Satellite Orbit = Flux = -2 = Orbit Arr") — this is a
+// real, verified rulebook convention, not an invented one, but it has
+// no mechanical effect beyond the Close/Far split this project already
+// tracks, so it's deliberately not modeled as real data here, the same
 // simplification made for the mainworld's own satellite case in #3.
 func generateSatellitesForBody(r *dice.Roller, orbits *[]Orbit, parent Orbit, hzOrbit int, maxPopulation ehex.Value) {
 	delta := parent.Number - hzOrbit

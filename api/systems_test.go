@@ -114,10 +114,13 @@ func TestSystemsRandomSeedReproducible(t *testing.T) {
 
 // TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies
 // pins seed 1 (known, via go run ./cmd/sysgen -seed 1, to place
-// satellites on Orbit 0, 5, and 12 of its single Primary group) —
-// confirming bodies decode nested under their hosting star's group, and
-// that a body with satellites carries them nested rather than flattened
-// into a sibling list (the shape toSystemResponse replaced).
+// satellites on Orbits 1, 3, 5, 6, and 8 of its single Primary group —
+// re-pinned after fixing #23's P2 Basic Placement Chart off-by-one,
+// which shifted where every Gas Giant/Belt/secondary World in this
+// system lands) — confirming bodies decode nested under their hosting
+// star's group, and that a body with satellites carries them nested
+// rather than flattened into a sibling list (the shape toSystemResponse
+// replaced).
 func TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies(t *testing.T) {
 	t.Parallel()
 
@@ -143,9 +146,9 @@ func TestSystemsRandomBodiesNestUnderTheirStarAndSatellitesNestUnderBodies(t *te
 		}
 	}
 
-	if bodiesWithSatellites != 3 {
+	if bodiesWithSatellites != 5 {
 		t.Errorf(
-			"seed 1: %d bodies carry nested Satellites, want 3 (orbit 0's world, orbit 5's Gas Giant, orbit 12's world)",
+			"seed 1: %d bodies carry nested Satellites, want 5 (orbits 1, 3, 5, 6, 8)",
 			bodiesWithSatellites,
 		)
 	}

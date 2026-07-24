@@ -56,11 +56,14 @@ func rollSpectralType(r *dice.Roller, flux int) SpectralType {
 // lookup: given a Flux roll and an already-determined SpectralType, the
 // column for that type gives the star's LuminosityClass.
 //
-// Not enforced here, and documented as a known simplification: the
-// table's own footnotes ("Size IV not for K5-K9 and M0-M9. Size VI not
-// for A0-A9 and F0-F4") restrict some cells by the star's spectral
-// decimal (0-9), which this lookup — keyed only on SpectralType, not the
-// decimal — can't express without a second table dimension.
+// The table's own footnotes ("Size IV not for K5-K9 and M0-M9. Size VI
+// not for A0-A9 and F0-F4") restrict some cells by the star's spectral
+// decimal (0-9), which this table — keyed only on SpectralType, not the
+// decimal — can't express directly. The book gives no reroll or
+// substitution instruction for a forbidden result, so
+// rollLuminosityClass enforces the footnote itself after this table's
+// own lookup, clamping a forbidden result to "V" (the neighboring
+// main-sequence class) — see violatesLuminosityFootnote.
 type stellarSizeRow struct {
 	Flux                int
 	O, B, A, F, G, K, M string
@@ -84,13 +87,42 @@ var stellarSizeTable = []stellarSizeRow{
 	{8, "IV", "IV", "V", "VI", "VI", "VI", "VI"},
 }
 
+// violatesLuminosityFootnote reports whether stellarSizeTable's own
+// margin note ("Size IV not for K5-K9 and M0-M9. Size VI not for A0-A9
+// and F0-F4") forbids pairing SpectralType t at the given SpectralDecimal
+// with LuminosityClass class. Both named ranges are contiguous in
+// spectralOrdinal's own rank*10+decimal encoding (K5-K9 is 55-59, M0-M9
+// is 60-69, together 55-69; A0-A9 is 20-29, F0-F4 is 30-34, together
+// 20-34) — reusing it here, the same ordering precludedOrbitCeiling
+// already keys its own range checks on, instead of a second, independent
+// hand-rolled encoding of spectral order. Checked for the full named
+// ranges even though only K5-K9/IV and F0-F4/VI are actually reachable
+// given stellarSizeTable's own contents today (M never rolls IV and A
+// never rolls VI at any Flux row) — so a future correction to that table
+// can't silently reintroduce an uncaught violation.
+func violatesLuminosityFootnote(t SpectralType, decimal int, class string) bool {
+	ordinal := spectralOrdinal(t, decimal)
+
+	switch class {
+	case "IV":
+		return ordinal >= 55 // K5-K9, M0-M9
+	case "VI":
+		return ordinal >= 20 && ordinal <= 34 // A0-A9, F0-F4
+	default:
+		return false
+	}
+}
+
 // rollLuminosityClass looks up LuminosityClass for an already-determined
-// SpectralType at the given flux, clamping flux to the table's -6..+8
-// range (a companion's size flux is Primary Flux + 1D+2, which can run
-// higher than a single Flux roll's own -5..+5 native range). Degenerate
-// stars skip the table entirely ("If Spectral=BD ignore remaining
-// rolls") — their LuminosityClass is always "D".
-func rollLuminosityClass(flux int, t SpectralType) string {
+// SpectralType and SpectralDecimal at the given flux, clamping flux to
+// the table's -6..+8 range (a companion's size flux is Primary Flux +
+// 1D+2, which can run higher than a single Flux roll's own -5..+5 native
+// range). Degenerate stars skip the table entirely ("If Spectral=BD
+// ignore remaining rolls") — their LuminosityClass is always "D". A
+// table result the footnote forbids for this spectral/decimal
+// combination (violatesLuminosityFootnote) clamps to "V" instead — see
+// stellarSizeRow's own doc comment for why "V" and not a reroll.
+func rollLuminosityClass(flux int, t SpectralType, decimal int) string {
 	if t == SpectralDegenerate {
 		return "D"
 	}
@@ -102,6 +134,8 @@ func rollLuminosityClass(flux int, t SpectralType) string {
 		flux = 8
 	}
 
+	class := "V" // unreachable given the switch below covers every non-Degenerate SpectralType
+
 	for _, row := range stellarSizeTable {
 		if row.Flux != flux {
 			continue
@@ -109,55 +143,58 @@ func rollLuminosityClass(flux int, t SpectralType) string {
 
 		switch t { //nolint:exhaustive // SpectralDegenerate returns above; every other SpectralType value is a table column
 		case SpectralO:
-			return row.O
+			class = row.O
 		case SpectralB:
-			return row.B
+			class = row.B
 		case SpectralA:
-			return row.A
+			class = row.A
 		case SpectralF:
-			return row.F
+			class = row.F
 		case SpectralG:
-			return row.G
+			class = row.G
 		case SpectralK:
-			return row.K
+			class = row.K
 		case SpectralM:
-			return row.M
+			class = row.M
 		}
+
+		break
 	}
 
-	return "V" // unreachable given the switch above covers every non-Degenerate SpectralType
+	if violatesLuminosityFootnote(t, decimal, class) {
+		return "V"
+	}
+
+	return class
 }
 
 // habitableZoneTable is the HZ orbit number by (SpectralType,
-// LuminosityClass), Book 3 p.20/29/30 (H1) — identical across all three
-// pages, used here as the single source. A combination absent from a
-// row (the book's "-" or a blank cell, e.g. O/VI or M/IV) has no entry;
-// habitableZoneOrbit reports ok=false for it.
+// LuminosityClass), Book 3 p.20/29/30 (H1/J1/K1) — byte-identical across
+// all three pages, used here as the single source. Includes the table's
+// own "D" (Degenerate luminosity) column: 1 for O, 0 for every other
+// spectral type — reachable for any SpectralType whose independent size
+// roll landed on "D" (stellarSizeTable's flux+5 row is "D" across every
+// spectral column), not just the SpectralDegenerate star *type*. A
+// combination absent from a row (the book's "-" or a blank cell, e.g.
+// O/VI or M/IV) has no entry; habitableZoneOrbit reports ok=false for it.
 var habitableZoneTable = map[SpectralType]map[string]int{
-	SpectralO: {"Ia": 15, "Ib": 15, "II": 14, "III": 13, "IV": 12, "V": 11},
-	SpectralB: {"Ia": 13, "Ib": 13, "II": 12, "III": 11, "IV": 10, "V": 9},
-	SpectralA: {"Ia": 12, "Ib": 11, "II": 9, "III": 7, "IV": 7, "V": 7},
-	SpectralF: {"Ia": 11, "Ib": 10, "II": 9, "III": 6, "IV": 6, "V": 5, "VI": 3},
-	SpectralG: {"Ia": 12, "Ib": 10, "II": 9, "III": 7, "IV": 5, "V": 3, "VI": 2},
-	SpectralK: {"Ia": 12, "Ib": 10, "II": 9, "III": 8, "IV": 5, "V": 2, "VI": 1},
-	SpectralM: {"Ia": 12, "Ib": 11, "II": 10, "III": 9, "V": 0, "VI": 0},
+	SpectralO: {"Ia": 15, "Ib": 15, "II": 14, "III": 13, "IV": 12, "V": 11, "D": 1},
+	SpectralB: {"Ia": 13, "Ib": 13, "II": 12, "III": 11, "IV": 10, "V": 9, "D": 0},
+	SpectralA: {"Ia": 12, "Ib": 11, "II": 9, "III": 7, "IV": 7, "V": 7, "D": 0},
+	SpectralF: {"Ia": 11, "Ib": 10, "II": 9, "III": 6, "IV": 6, "V": 5, "VI": 3, "D": 0},
+	SpectralG: {"Ia": 12, "Ib": 10, "II": 9, "III": 7, "IV": 5, "V": 3, "VI": 2, "D": 0},
+	SpectralK: {"Ia": 12, "Ib": 10, "II": 9, "III": 8, "IV": 5, "V": 2, "VI": 1, "D": 0},
+	SpectralM: {"Ia": 12, "Ib": 11, "II": 10, "III": 9, "V": 0, "VI": 0, "D": 0},
 }
 
 // habitableZoneOrbit returns the HZ orbit number for a star's
-// SpectralType and LuminosityClass. LuminosityClass "D" (a table row —
-// stellarSizeTable's flux+5 row is "D" across every spectral column, so
-// this is reachable for any SpectralType, not just SpectralDegenerate)
-// isn't in habitableZoneTable — the book's own "D" column is nearly all
-// zero (only O/D is 1) regardless of spectral row, and this
-// implementation doesn't track which O-M row a size roll landing on "D"
-// would otherwise have paired with (rollLuminosityClass discards it), so
-// this collapses every "D"-luminosity star to the table's common case, 0
-// — a documented simplification, not a table lookup.
+// SpectralType and LuminosityClass, straight from habitableZoneTable.
+// The SpectralDegenerate star *type* (as opposed to a normal type whose
+// independent size roll landed on "D" luminosity) has no row at all —
+// ok=false, leaving the caller's HabitableZoneOrbit at its zero value —
+// since Book 3's H1/J1/K1 tables have no O-M spectral column to key a
+// row on for a star that's Degenerate from the type roll onward.
 func habitableZoneOrbit(t SpectralType, luminosityClass string) (int, bool) {
-	if luminosityClass == "D" {
-		return 0, true
-	}
-
 	row, ok := habitableZoneTable[t]
 	if !ok {
 		return 0, false
@@ -198,12 +235,19 @@ const (
 	mainworldFarSatellite
 )
 
-// rollMainworldPlacementKind resolves Table 2C (Book 3 p.24) from a Flux
-// roll. The table's extreme rows (flux<=-6, flux>=6) print "(none)" for
-// Satellite? — treated here as Planet, the same as the table's other
-// non-satellite rows, since "(none)" isn't itself one of the three named
-// outcomes (Planet/Close Satellite/Far Satellite) and this project found
-// no clarifying text for what else it could mean.
+// rollMainworldPlacementKind resolves Table "2C SATELLITE?" (Book 3
+// p.24) from a Flux roll. The table's extreme rows (flux=-6, flux=+6)
+// leave the Satellite? cell genuinely blank in the book — not "(none)"
+// — reachable only via a Referee-imposed DM on Flux (p.24's own 2A
+// note: "Flux= can equal -6 or +6 with Referee imposed DM"). This
+// project's own Flux() is DM-free (dice.go: D6()-D6(), range -5..+5),
+// so those rows never actually fire here; the default->Planet branch
+// below is a harmless unreachable catch-all for them, not a lossy
+// coercion of a real outcome. Separately, "no mainworld" was never a
+// coherent reading of a blank cell here regardless: the mainworld
+// always already exists (world.Generate runs before GenerateSystem ever
+// calls this) — Table 2C only decides where/how it sits, never whether
+// it exists at all.
 //
 // The table's "GG?" column (is a satellite's parent a Gas Giant or a
 // plain world) reads "GG" on every row where Satellite? is anything
@@ -223,43 +267,49 @@ func rollMainworldPlacementKind(flux int) mainworldPlacementKind {
 	}
 }
 
-// gasGiantSizeByRoll maps a 2D6 roll to a Gas Giant's Size letter, Book 3
-// p.29's GG table. That table's own rows are printed 1-13 against a 2D6
-// roll (which only produces 11 distinct values, 2-12) — an indexing
-// mismatch this project couldn't resolve from the source text. Modeled
-// here as a direct 2D6 lookup over the table's first 11 rows (L through
-// W, skipping I/O as ehex digits do), dropping the two largest sizes (X,
-// Y — over 10 Jupiter masses) as unreachable; a documented simplification
-// given the ambiguity, not a claim that giants of that size can't exist.
+// gasGiantSizeByRoll maps a 2D6 roll directly to a Gas Giant's Size
+// letter, Book 3 p.29's GG table — verified against the page image: the
+// table's row number IS the roll value (row 7 = roll 7 = Size S,
+// matching the Regina worked example's "GG Table = 2D = 7 = Siz S"
+// exactly), not an off-by-one index as an earlier reading of this table
+// assumed. Row 1 (Size L) is unreachable via a plain 2D6 roll (minimum
+// 2); row 13 (Size Y) is reserved for the page's own separate "All BD
+// Brown Dwarfs are Siz=Y" rule, not a plain roll outcome either.
 var gasGiantSizeByRoll = map[int]byte{
-	2: 'L', 3: 'M', 4: 'N',
-	5: 'P', 6: 'Q', 7: 'R', 8: 'S', 9: 'T', 10: 'U', 11: 'V', 12: 'W',
+	2: 'M', 3: 'N', 4: 'P', 5: 'Q', 6: 'R',
+	7: 'S', 8: 'T', 9: 'U', 10: 'V', 11: 'W', 12: 'X',
 }
 
-// rollGasGiant rolls a Gas Giant's Size and Bracket. SGG (Small Gas
-// Giant) is 2D6 2-4; LGG (Large Gas Giant) is 2D6 5-12 — matching the
-// GG table's own SGG/LGG split, shifted for the same reindexing as
-// gasGiantSizeByRoll.
+// rollGasGiant rolls a Gas Giant's Size and Bracket. The GG table's own
+// left-margin bracket divides SGG (Small Gas Giant) from LGG (Large Gas
+// Giant) between rows 6 and 7 — SGG for 2D6 2-6, LGG for 7-12 — verified
+// against the page image, and cross-checked against the Regina worked
+// example (2D=7/Size S explicitly labeled "LGG"; 2D=2/Size M labeled
+// "Small Gas Giant SGG"), which only agrees with the bracket read this
+// way.
 func rollGasGiant(r *dice.Roller) GasGiant {
 	roll := r.TwoD6()
 
 	bracket := "LGG"
-	if roll <= 4 {
+	if roll <= 6 {
 		bracket = "SGG"
 	}
 
 	return GasGiant{Size: gasGiantSizeByRoll[roll], Bracket: bracket}
 }
 
-// beltOffsetByRoll maps a 2D6 roll to an orbit offset from the system's
-// HZ orbit, for placing a mainworld that is itself an Asteroid Belt (Book
-// 3 p.29 P2 table, Belt column — "GG and Belt placement is relative to
-// HZ"). Same 2D6-vs-13-rows reindexing as gasGiantSizeByRoll; the "HZ"
-// cell (2D6=4 here) is offset 0, since it sits exactly where 0 falls in
-// the column's numeric sequence.
+// beltOffsetByRoll maps a 2D6 roll directly to an orbit offset from the
+// system's HZ orbit, for placing a mainworld that is itself an Asteroid
+// Belt (Book 3 p.29 P2 "Basic Placement Chart", Belt column — "GG and
+// Belt placement is relative to HZ"). Verified against the page image:
+// the table's row number IS the roll value, the same direct indexing
+// gasGiantSizeByRoll uses — an earlier reading of every P2 column (and
+// of the GG table before it) wrongly shifted each one by one row/roll.
+// Row 1 (offset -2) is unreachable via a plain 2D6 roll (minimum 2),
+// same as the GG table's row 1.
 var beltOffsetByRoll = map[int]int{
-	2: -2, 3: -1, 4: 0,
-	5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8,
+	2: -1, 3: 0, 4: 1,
+	5: 2, 6: 3, 7: 4, 8: 5, 9: 6, 10: 7, 11: 8, 12: 9,
 }
 
 // rollBeltOffset rolls the HZ-relative orbit offset for a mainworld that
@@ -289,18 +339,18 @@ func orbitAU(number int) float64 {
 // lggOffsetByRoll, sggOffsetByRoll, igOffsetByRoll: Book 3 p.29's P2
 // Basic Placement Chart LGG/SGG/IG columns — an orbit offset from the
 // system's HZ orbit ("GG and Belt placement is relative to HZ"). Same
-// 2D6-vs-13-rows reindexing as beltOffsetByRoll/gasGiantSizeByRoll: read
-// directly against the table's first 11 rows.
+// direct row=roll indexing as beltOffsetByRoll/gasGiantSizeByRoll,
+// verified against the page image.
 var lggOffsetByRoll = map[int]int{
-	2: -4, 3: -3, 4: -2, 5: -1, 6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5, 12: 6,
-}
-
-var sggOffsetByRoll = map[int]int{
 	2: -3, 3: -2, 4: -1, 5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7,
 }
 
+var sggOffsetByRoll = map[int]int{
+	2: -2, 3: -1, 4: 0, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8,
+}
+
 var igOffsetByRoll = map[int]int{
-	2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 10: 8, 11: 9, 12: 10,
+	2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11,
 }
 
 func rollLGGOffset(r *dice.Roller) int { return lggOffsetByRoll[r.TwoD6()] }
@@ -310,13 +360,16 @@ func rollIGOffset(r *dice.Roller) int  { return igOffsetByRoll[r.TwoD6()] }
 // world1OrbitByRoll, world2OrbitByRoll: P2's World1/World2 columns —
 // literal orbit numbers (not HZ-relative, unlike every other P2 column:
 // "World placement is based on Orbit"), used to place "Other Worlds."
-// Same reindexing as the other P2 columns.
+// Same direct row=roll indexing as the other P2 columns, verified
+// against the page image — including World1's own real shape, a V
+// bottoming out at orbit 1 for roll 7 (11,10,8,6,4,2,1,3,5,7,9,9), not
+// the smoother, one-roll-earlier valley an earlier reading produced.
 var world1OrbitByRoll = map[int]int{
-	2: 11, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2, 8: 0, 9: 1, 10: 3, 11: 5, 12: 7,
+	2: 10, 3: 8, 4: 6, 5: 4, 6: 2, 7: 1, 8: 3, 9: 5, 10: 7, 11: 9, 12: 9,
 }
 
 var world2OrbitByRoll = map[int]int{
-	2: 18, 3: 17, 4: 16, 5: 15, 6: 14, 7: 13, 8: 12, 9: 11, 10: 10, 11: 9, 12: 8,
+	2: 17, 3: 16, 4: 15, 5: 14, 6: 13, 7: 11, 8: 10, 9: 9, 10: 8, 11: 7, 12: 7,
 }
 
 func rollWorld1Orbit(r *dice.Roller) int { return world1OrbitByRoll[r.TwoD6()] }

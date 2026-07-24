@@ -38,15 +38,14 @@ func rollStar(r *dice.Roller, primaryFlux int, isPrimary bool) Star {
 		decimal = r.Uniform(10) - 1
 	}
 
-	size := rollLuminosityClass(sizeFlux, t)
+	size := rollLuminosityClass(sizeFlux, t, decimal)
 
 	star := Star{SpectralType: t, SpectralDecimal: decimal, LuminosityClass: size}
 
-	// Believed unreachable given how rollLuminosityClass and
-	// habitableZoneTable interlock (see habitableZoneOrbit's doc
-	// comment) — HabitableZoneOrbit is left at its zero value rather
-	// than guessing at a fallback for a combination this project has no
-	// data for.
+	// ok is false only for a genuine SpectralDegenerate t (no O-M row in
+	// habitableZoneTable at all — see habitableZoneOrbit's own doc
+	// comment); HabitableZoneOrbit is left at its zero value for that
+	// case rather than guessing at a fallback the book doesn't give.
 	if hz, ok := habitableZoneOrbit(t, size); ok {
 		star.HabitableZoneOrbit = hz
 	}
