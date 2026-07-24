@@ -11,29 +11,33 @@ import "github.com/philoserf/traveller/dice"
 // "Continue Int" line).
 var scoutRiskRewardPositions = []Position{C1, C2, C3}
 
-// nextScoutCC picks the Risk & Reward Controlling Characteristic for one
-// term and records it in usedThisCycle, implementing Book 1 p.65's generic
+// nextCC picks the Controlling Characteristic for one term from positions
+// and records it in usedThisCycle, implementing Book 1 p.65's generic
 // rule: the player picks any not-yet-used Characteristic from the career's
 // own set; it "cannot be used again until all of the others in the sequence
-// have been used." Scout's CC therefore rotates through C1/C2/C3 rather than
-// staying fixed for the whole career — that fixed-for-career behavior is
-// Rogue's own explicitly-marked "*Special Case" (p.83: a Rogue's Controlling
-// Characteristic "is then used throughout his career, not just in the
-// current Term"), a carve-out that would be redundant if every career
-// already worked that way. Which still-available characteristic to pick is,
-// like BeginScout's own Begin-target choice, an open choice Book 1 leaves to
-// the player; resolved here via highestOf (same rationale as BeginScout's
-// own doc comment: a genuinely better option exists, so a uniform random
-// pick would be a worse default). usedThisCycle resets once all three have
-// been used, starting a fresh three-term cycle.
-func nextScoutCC(upp UPP, usedThisCycle map[Position]bool) Position {
-	if len(usedThisCycle) == len(scoutRiskRewardPositions) {
+// have been used." A career's CC therefore rotates through its own set
+// rather than staying fixed for the whole career — that fixed-for-career
+// behavior is Rogue's own explicitly-marked "*Special Case" (p.83: a
+// Rogue's Controlling Characteristic "is then used throughout his career,
+// not just in the current Term"), a carve-out that would be redundant if
+// every career already worked that way. Which still-available
+// characteristic to pick is, like BeginScout's own Begin-target choice, an
+// open choice Book 1 leaves to the player; resolved here via highestOf
+// (same rationale as BeginScout's own doc comment: a genuinely better
+// option exists, so a uniform random pick would be a worse default).
+// usedThisCycle resets once every position in positions has been used,
+// starting a fresh cycle. Shared by Scout's own C1 C2 C3 set (nextScoutCC,
+// below) and Citizen's C1 C2 C3 C4 set (citizen_loop.go) — the two
+// concrete instances that justify generalizing this out of nextScoutCC's
+// own original, Scout-only body.
+func nextCC(upp UPP, positions []Position, usedThisCycle map[Position]bool) Position {
+	if len(usedThisCycle) == len(positions) {
 		clear(usedThisCycle)
 	}
 
 	var available []Position
 
-	for _, pos := range scoutRiskRewardPositions {
+	for _, pos := range positions {
 		if !usedThisCycle[pos] {
 			available = append(available, pos)
 		}
@@ -43,6 +47,10 @@ func nextScoutCC(upp UPP, usedThisCycle map[Position]bool) Position {
 	usedThisCycle[pos] = true
 
 	return pos
+}
+
+func nextScoutCC(upp UPP, usedThisCycle map[Position]bool) Position {
+	return nextCC(upp, scoutRiskRewardPositions, usedThisCycle)
 }
 
 // continueScoutOutcome is continueScout's own dice-free decision, split out
@@ -73,14 +81,16 @@ func continueScout(r *dice.Roller, upp UPP) bool {
 	return continueScoutOutcome(r.TwoD6(), int(upp.Characteristics[C4]))
 }
 
-// maxScoutTerms is a defensive engineering cap, not a Book 1 rule —
+// maxCareerTerms is a defensive engineering cap, not a Book 1 rule —
 // grounded in Book 1 p.89's traditional human lifespan (74 years) minus the
 // traditional adventuring start (Young Adult, 18), divided into 4-year
-// terms: (74-18)/4 = 14. A career hitting this cap is not a normal outcome
-// Book 1 describes — it guards against an immortal-Courier-Duty Scout
-// looping indefinitely, since Aging (which would otherwise end this
-// naturally) isn't modeled yet.
-const maxScoutTerms = 14
+// terms: (74-18)/4 = 14. Not career-specific: it guards any career whose
+// per-term stop conditions can be beaten often enough to loop for a very
+// long time (an immortal-Courier-Duty Scout; a Citizen whose fixed
+// Continue-10 target succeeds ~92% of the time) from running indefinitely,
+// since Aging (which would otherwise end this naturally) isn't modeled
+// yet. A career hitting this cap is not a normal outcome Book 1 describes.
+const maxCareerTerms = 14
 
 // ResolveScoutCareer resolves a full multi-term Scout career (Book 1 p.79)
 // by looping ResolveScoutTerm. BeginScout's one-time "To Begin" check runs
@@ -97,7 +107,7 @@ const maxScoutTerms = 14
 // end of the Term" — mandatory regardless of the Continue roll; the actual
 // Double Benefits mustering-out payout itself is Muster-Out's own future
 // work, deferred alongside it below), or failed to Continue; otherwise
-// loop, capped defensively at maxScoutTerms.
+// loop, capped defensively at maxCareerTerms.
 //
 // Returns the final UPP alongside the Career — not just the Career — so a
 // caller building a full Character can persist any permanent reduction
@@ -124,7 +134,7 @@ func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 
 	usedThisCycle := make(map[Position]bool, len(scoutRiskRewardPositions))
 
-	for range maxScoutTerms {
+	for range maxCareerTerms {
 		ccPos := nextScoutCC(upp, usedThisCycle)
 
 		term, updatedUPP, survived := ResolveScoutTerm(r, upp, ccPos)

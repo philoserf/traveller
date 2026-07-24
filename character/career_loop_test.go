@@ -107,7 +107,7 @@ func TestResolveScoutCareerNeverQualifiedReturnsZeroTermsCareer(t *testing.T) {
 // TestResolveScoutCareerRespectsMaxTermsCap uses a provably immortal
 // fixture (Str=Dex=End=Int=12: Risk can never fail since TwoD6's maximum is
 // 12, and Continue can never fail for the same reason) to confirm the loop
-// still stops at maxScoutTerms rather than running forever.
+// still stops at maxCareerTerms rather than running forever.
 func TestResolveScoutCareerRespectsMaxTermsCap(t *testing.T) {
 	t.Parallel()
 
@@ -117,8 +117,8 @@ func TestResolveScoutCareerRespectsMaxTermsCap(t *testing.T) {
 		r := dice.New(rand.NewPCG(seed, seed))
 
 		career, _ := ResolveScoutCareer(r, upp)
-		if len(career.Terms) != maxScoutTerms {
-			t.Errorf("seed %d: len(career.Terms) = %d, want %d", seed, len(career.Terms), maxScoutTerms)
+		if len(career.Terms) != maxCareerTerms {
+			t.Errorf("seed %d: len(career.Terms) = %d, want %d", seed, len(career.Terms), maxCareerTerms)
 		}
 	}
 }
@@ -126,7 +126,7 @@ func TestResolveScoutCareerRespectsMaxTermsCap(t *testing.T) {
 // TestResolveScoutCareerCCRotationAcrossTerms reuses the immortal fixture:
 // since Risk can never fail, C1/C2/C3 all stay tied at 12 for the whole
 // career, so highestOf's first-wins-on-tie makes the rotation fully
-// predictable across all maxScoutTerms terms — an end-to-end confirmation
+// predictable across all maxCareerTerms terms — an end-to-end confirmation
 // that ResolveScoutCareer actually rotates the Controlling Characteristic
 // rather than reusing a single fixed one for every term.
 func TestResolveScoutCareerCCRotationAcrossTerms(t *testing.T) {

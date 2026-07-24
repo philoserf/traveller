@@ -126,8 +126,8 @@ func TestBuildScoutCharacterFullTermSurvivor(t *testing.T) {
 		t.Error("ok = false, want true (immortal fixture)")
 	}
 
-	if got := len(c.Careers[0].Terms); got != maxScoutTerms {
-		t.Errorf("len(Terms) = %d, want %d", got, maxScoutTerms)
+	if got := len(c.Careers[0].Terms); got != maxCareerTerms {
+		t.Errorf("len(Terms) = %d, want %d", got, maxCareerTerms)
 	}
 
 	if c.WoundBadges != 0 {

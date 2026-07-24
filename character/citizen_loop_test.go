@@ -1,0 +1,183 @@
+package character
+
+import (
+	"math/rand/v2"
+	"testing"
+
+	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
+)
+
+func TestContinueCitizenOutcomeBoundaries(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		roll int
+		want bool
+	}{
+		{"natural 2 is mandatory continue", 2, true},
+		{"just under the fixed target", 9, true},
+		{"exact match succeeds", 10, true},
+		{"one over the fixed target fails", 11, false},
+		{"well over the fixed target fails", 12, false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := continueCitizenOutcome(c.roll); got != c.want {
+				t.Errorf("continueCitizenOutcome(%d) = %v, want %v", c.roll, got, c.want)
+			}
+		})
+	}
+}
+
+// TestNextCCHandlesFourPositions confirms the generalized nextCC
+// correctly rotates a 4-element set (Citizen's own citizenLifePositions)
+// — not just Scout's already-tested 3-element case.
+func TestNextCCHandlesFourPositions(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{5, 9, 3, 7, 0, 0}}
+	used := make(map[Position]bool)
+
+	want := []Position{C2, C4, C1, C3, C2}
+	for i, w := range want {
+		if got := nextCC(upp, citizenLifePositions, used); got != w {
+			t.Errorf("call %d: nextCC = %v, want %v", i+1, got, w)
+		}
+	}
+}
+
+func TestResolveCitizenCareerAlwaysProducesAtLeastOneTerm(t *testing.T) {
+	t.Parallel()
+
+	upps := []UPP{
+		{},
+		{Characteristics: [6]ehex.Value{2, 2, 2, 2, 2, 2}},
+		{Characteristics: [6]ehex.Value{12, 12, 12, 12, 12, 12}},
+	}
+
+	for i, upp := range upps {
+		r := dice.New(rand.NewPCG(uint64(i)+1, uint64(i)+1))
+
+		career := ResolveCitizenCareer(r, upp)
+		if career.Name != "Citizen" {
+			t.Errorf("career.Name = %q, want %q", career.Name, "Citizen")
+		}
+
+		if len(career.Terms) < 1 {
+			t.Errorf("upp %d: len(career.Terms) = %d, want >= 1 (Begin is Auto)", i, len(career.Terms))
+		}
+	}
+}
+
+// TestResolveCitizenCareerRespectsMaxTermsCap is statistical: Continue's
+// fixed target (10) is UPP-independent, so unlike Scout's all-12s
+// "immortal" fixture, there's no deterministic way to force every trial
+// to reach the cap — instead this confirms the cap is never exceeded,
+// and that it's actually reached often enough (Continue fails only on an
+// 11 or 12, so per-term success is 33/36; (33/36)^14 ≈ 29.6% of trials,
+// ignoring the mandatory-continue-on-2 edge) to trust the upper-bound
+// assertion isn't vacuously true.
+func TestResolveCitizenCareerRespectsMaxTermsCap(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(13, 17))
+
+	const trials = 2000
+
+	atCap := 0
+
+	for range trials {
+		career := ResolveCitizenCareer(r, upp)
+		if len(career.Terms) > maxCareerTerms {
+			t.Fatalf("len(career.Terms) = %d, want <= %d", len(career.Terms), maxCareerTerms)
+		}
+
+		if len(career.Terms) == maxCareerTerms {
+			atCap++
+		}
+	}
+
+	if atCap < 100 {
+		t.Fatalf("only %d of %d trials reached the %d-term cap — want at least 100 to trust the upper bound above",
+			atCap, trials, maxCareerTerms)
+	}
+}
+
+// TestResolveCitizenCareerCCRotation uses a fixture with all four
+// characteristics tied, so highestOf's first-wins-on-tie makes the
+// rotation fully predictable: term 1 must always be C1 through term 4
+// C4 (Begin is Auto and Continue succeeds independently of UPP, so every
+// trial reaches at least 4 terms with overwhelming probability — no
+// filtering needed, but the loop still checks length defensively).
+func TestResolveCitizenCareerCCRotation(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(19, 23))
+
+	want := []Position{C1, C2, C3, C4}
+
+	for range 500 {
+		career := ResolveCitizenCareer(r, upp)
+		if len(career.Terms) < len(want) {
+			continue
+		}
+
+		for i, w := range want {
+			if got := career.Terms[i].ControllingCharacteristic; got != w {
+				t.Fatalf("term %d: ControllingCharacteristic = %v, want %v", i+1, got, w)
+			}
+		}
+
+		return
+	}
+
+	t.Fatal("no trial in 500 reached 4 terms — can't verify CC rotation")
+}
+
+func TestResolveCitizenCareerDeterminism(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{6, 7, 8, 9, 0, 0}}
+
+	r1 := dice.New(rand.NewPCG(29, 31))
+	r2 := dice.New(rand.NewPCG(29, 31))
+
+	career1 := ResolveCitizenCareer(r1, upp)
+	career2 := ResolveCitizenCareer(r2, upp)
+
+	if len(career1.Terms) != len(career2.Terms) {
+		t.Fatalf("identical seeds produced different term counts: %d vs %d", len(career1.Terms), len(career2.Terms))
+	}
+
+	for i := range career1.Terms {
+		t1, t2 := career1.Terms[i], career2.Terms[i]
+
+		if t1.CitizenLifeSucceeded != t2.CitizenLifeSucceeded ||
+			t1.ControllingCharacteristic != t2.ControllingCharacteristic {
+			t.Fatalf("term %d: identical seeds produced different outcomes: %+v vs %+v", i, t1, t2)
+		}
+
+		if len(t1.SkillsAwarded) != len(t2.SkillsAwarded) {
+			t.Fatalf(
+				"term %d: identical seeds produced different skill counts: %v vs %v",
+				i,
+				t1.SkillsAwarded,
+				t2.SkillsAwarded,
+			)
+		}
+
+		for j := range t1.SkillsAwarded {
+			if t1.SkillsAwarded[j] != t2.SkillsAwarded[j] {
+				t.Fatalf("term %d: identical seeds produced different skills at %d: %+v vs %+v",
+					i, j, t1.SkillsAwarded[j], t2.SkillsAwarded[j])
+			}
+		}
+	}
+}
