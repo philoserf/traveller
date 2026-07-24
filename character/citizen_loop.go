@@ -64,7 +64,7 @@ func citizenLifeSuccessCount(terms []Term) int {
 // a Citizen career; ResolveCitizenCareer only reads it, for nextCC's own
 // highestOf tie-breaking.
 func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
-	career := Career{Name: "Citizen"}
+	career := Career{Name: CitizenCareerName}
 
 	if !BeginCitizen() {
 		return career

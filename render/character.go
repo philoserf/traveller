@@ -119,14 +119,7 @@ func writeCareer(b *strings.Builder, c character.Career) {
 		fmt.Fprint(b, "Never qualified for this career.\n\n")
 	} else {
 		for i, t := range c.Terms {
-			fmt.Fprintf(b, "- Term %d (%s): %s",
-				i+1, positionAbbrev(t.ControllingCharacteristic), riskResultLabel(t.RiskResult))
-
-			if t.RewardResult != "" && t.RewardResult != "None" {
-				fmt.Fprintf(b, ", Reward: %s", t.RewardResult)
-			}
-
-			fmt.Fprint(b, "\n")
+			fmt.Fprintf(b, "- %s\n", termOutcomeLine(c, i, t))
 
 			for _, sk := range t.SkillsAwarded {
 				fmt.Fprintf(b, "  - %s\n", skillNotation(sk))
@@ -134,9 +127,49 @@ func writeCareer(b *strings.Builder, c character.Career) {
 		}
 
 		fmt.Fprint(b, "\n")
+
+		if c.JobSkill != "" {
+			fmt.Fprintf(b, "**Job:** %s\n\n", c.JobSkill)
+		}
+
+		if c.HobbySkill != "" {
+			fmt.Fprintf(b, "**Hobby:** %s\n\n", c.HobbySkill)
+		}
 	}
 
 	writeMusteringOut(b, c.MusteringOut)
+}
+
+// termOutcomeLine renders one term's own outcome — Citizen's
+// CitizenLifeSucceeded (no wound/Reward concept) or every other career's
+// RiskResult/RewardResult (Scout's own shape today). Dispatches on
+// c.Name against character.CitizenCareerName rather than a bare string
+// literal or a Career-level bool flag — Name is already the career's own
+// unique identifier, and the shared exported constant (also used by
+// ResolveCitizenCareer's own Career{Name: ...} literal) means the two
+// call sites can't silently drift apart the way two independent "Citizen"
+// literals could.
+func termOutcomeLine(c character.Career, i int, t character.Term) string {
+	prefix := fmt.Sprintf("Term %d (%s)", i+1, positionAbbrev(t.ControllingCharacteristic))
+
+	if c.Name == character.CitizenCareerName {
+		return prefix + ": " + citizenLifeLabel(t.CitizenLifeSucceeded)
+	}
+
+	line := prefix + ": " + riskResultLabel(t.RiskResult)
+	if t.RewardResult != "" && t.RewardResult != "None" {
+		line += ", Reward: " + t.RewardResult
+	}
+
+	return line
+}
+
+func citizenLifeLabel(succeeded bool) string {
+	if succeeded {
+		return "Citizen Life: Success"
+	}
+
+	return "Citizen Life: Failure"
 }
 
 // writeMusteringOut always renders all four benefit lists, even for a

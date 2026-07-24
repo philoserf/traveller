@@ -338,3 +338,96 @@ func TestCharacterHandlesGeneratedOutput(t *testing.T) {
 		}
 	}
 }
+
+var citizenSheet = character.Character{
+	Species:        "Human",
+	GeneticProfile: "SDEIES",
+	UPP:            character.UPP{Characteristics: [6]ehex.Value{8, 9, 7, 6, 5, 4}},
+	Homeworld:      "A788899-C",
+	Careers: []character.Career{
+		{
+			Name:       character.CitizenCareerName,
+			JobSkill:   "Pilot",
+			HobbySkill: "Broker",
+			Terms: []character.Term{
+				{
+					ControllingCharacteristic: character.C1,
+					CitizenLifeSucceeded:      true,
+					SkillsAwarded: []character.SkillLevel{
+						{Name: "Pilot", Level: 4, Kind: character.Skill},
+					},
+				},
+				{
+					ControllingCharacteristic: character.C2,
+					CitizenLifeSucceeded:      false,
+				},
+			},
+			MusteringOut: character.MusteringOut{
+				Benefits: []string{"Str +1"},
+			},
+		},
+	},
+}
+
+// TestCharacterRendersCitizenLifeOutcome confirms Citizen's own term
+// lines show "Citizen Life: Success"/"Citizen Life: Failure", never a
+// RiskResult word ("Unharmed"/"Wounded"/etc.) or a Reward suffix, which
+// have no meaning for Citizen Life.
+func TestCharacterRendersCitizenLifeOutcome(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(citizenSheet)
+
+	want := []string{
+		"Term 1 (Str): Citizen Life: Success",
+		"Term 2 (Dex): Citizen Life: Failure",
+	}
+
+	for _, w := range want {
+		if !strings.Contains(out, w) {
+			t.Errorf("render.Character missing %q in output:\n%s", w, out)
+		}
+	}
+
+	for _, unwanted := range []string{"Unharmed", "Wounded", "Disabled", "Dead", "Reward:"} {
+		if strings.Contains(out, unwanted) {
+			t.Errorf("render.Character should not render %q for a Citizen career, got:\n%s", unwanted, out)
+		}
+	}
+}
+
+func TestCharacterShowsJobAndHobbyOnlyWhenSet(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(citizenSheet)
+	if !strings.Contains(out, "**Job:** Pilot") || !strings.Contains(out, "**Hobby:** Broker") {
+		t.Errorf("render.Character should show a set Job/Hobby, got:\n%s", out)
+	}
+
+	bare := character.Character{
+		Careers: []character.Career{
+			{Name: character.CitizenCareerName, Terms: []character.Term{{ControllingCharacteristic: character.C1}}},
+		},
+	}
+
+	out = render.Character(bare)
+	if strings.Contains(out, "Job") || strings.Contains(out, "Hobby") {
+		t.Errorf("render.Character should omit Job/Hobby when unset, got:\n%s", out)
+	}
+}
+
+// TestCharacterHandlesCitizenGeneratedOutput is the Citizen analog of
+// TestCharacterHandlesGeneratedOutput.
+func TestCharacterHandlesCitizenGeneratedOutput(t *testing.T) {
+	t.Parallel()
+
+	for seed := range uint64(20) {
+		r := dice.New(rand.NewPCG(seed+1, seed+1))
+
+		c := character.GenerateCitizenCharacter(r)
+
+		if out := render.Character(c); out == "" {
+			t.Errorf("seed %d: render.Character produced empty output", seed)
+		}
+	}
+}

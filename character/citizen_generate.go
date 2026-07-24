@@ -5,6 +5,13 @@ import (
 	"github.com/philoserf/traveller/ehex"
 )
 
+// CitizenCareerName is Citizen's own Career.Name value — exported and
+// shared (ResolveCitizenCareer's own Career{Name: CitizenCareerName}
+// literal below, render.Character's career-outcome dispatch) as a single
+// source of truth, rather than two independent "Citizen" string literals
+// that could silently drift apart on a future rename.
+const CitizenCareerName = "Citizen"
+
 // citizenTableC is Book 1 p.78's "C CITIZEN SKILLS" table (7 columns,
 // rows keyed by 1D 1-6), transcribed directly from the page image.
 // Column 1 (Personal) entries are characteristic boosts, normalized to
