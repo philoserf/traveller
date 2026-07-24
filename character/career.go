@@ -34,6 +34,7 @@ type Term struct {
 type MusteringOut struct {
 	Automatics    []string
 	Benefits      []string
+	Money         []string
 	Entitlements  []string
 	Pension       int
 	RetirementPay int
