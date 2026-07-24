@@ -12,7 +12,7 @@ import "github.com/philoserf/traveller/dice"
 var scoutRiskRewardPositions = []Position{C1, C2, C3}
 
 // nextScoutCC picks the Risk & Reward Controlling Characteristic for one
-// term and records it in usedThisCycle, implementing Book 1 p.64's generic
+// term and records it in usedThisCycle, implementing Book 1 p.65's generic
 // rule: the player picks any not-yet-used Characteristic from the career's
 // own set; it "cannot be used again until all of the others in the sequence
 // have been used." Scout's CC therefore rotates through C1/C2/C3 rather than
@@ -88,7 +88,7 @@ const maxScoutTerms = 14
 // slice and upp unchanged — a real, legitimate "never qualified" outcome
 // per Book 1's own "If both Begin and Retry fail, this career may not be
 // used," not an error. Otherwise, each term: pick this term's Controlling
-// Characteristic (nextScoutCC, rotating per p.64), resolve the term
+// Characteristic (nextScoutCC, rotating per p.65), resolve the term
 // (ResolveScoutTerm, which also returns an updated UPP carrying forward any
 // p.65 "permanently reduced" characteristic value), append the Term,
 // replace the working UPP with the updated one, then stop if the character
