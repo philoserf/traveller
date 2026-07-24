@@ -95,9 +95,9 @@ func rollChoice(r *dice.Roller, choices []string) string {
 func homeworldSkillForTradeCode(r *dice.Roller, tc world.TradeCode) (SkillLevel, bool) {
 	switch tc { //nolint:exhaustive // only Ri/In need special handling; everything else falls through to the map
 	case world.Rich:
-		return SkillLevel{Name: rollChoice(r, oneArtChoices), Level: 1, Kind: Skill}, true
+		return skillLevel1(rollChoice(r, oneArtChoices), Skill), true
 	case world.Industrial:
-		return SkillLevel{Name: rollChoice(r, theTradeChoices), Level: 1, Kind: Skill}, true
+		return skillLevel1(rollChoice(r, theTradeChoices), Skill), true
 	}
 
 	name, ok := homeworldSkillByTradeCode[tc]
@@ -105,7 +105,7 @@ func homeworldSkillForTradeCode(r *dice.Roller, tc world.TradeCode) (SkillLevel,
 		return SkillLevel{}, false
 	}
 
-	return SkillLevel{Name: name, Level: 1, Kind: Skill}, true
+	return skillLevel1(name, Skill), true
 }
 
 // rollDeepSpaceBonus rolls Book 1 p.58's "Born In Deep Space" check
@@ -122,8 +122,8 @@ func rollDeepSpaceBonus(r *dice.Roller) []SkillLevel {
 	}
 
 	return []SkillLevel{
-		{Name: "Zero-G", Level: 1, Kind: Skill},
-		{Name: "Vacc Suit", Level: 1, Kind: Skill},
+		skillLevel1("Zero-G", Skill),
+		skillLevel1("Vacc Suit", Skill),
 	}
 }
 

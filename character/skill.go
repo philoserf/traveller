@@ -21,3 +21,11 @@ type SkillLevel struct {
 	Level int
 	Kind  SkillKind
 }
+
+// skillLevel1 builds a freshly-granted, level-1 SkillLevel — the shape
+// every generation-time skill grant across this package takes (a
+// homeworld skill, a career skill, a characteristic boost), so callers
+// don't each repeat the same three-field literal.
+func skillLevel1(name string, kind SkillKind) SkillLevel {
+	return SkillLevel{Name: name, Level: 1, Kind: kind}
+}
