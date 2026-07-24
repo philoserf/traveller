@@ -98,6 +98,7 @@ tasks:
       # chargen exits 1 for a died-or-never-qualified character — a valid
       # RNG outcome, not a demo failure, so tolerate it here.
       - go run ./cmd/chargen || true
+      - go run ./cmd/chargen -career citizen
 
   demo:stop:
     internal: true
