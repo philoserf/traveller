@@ -53,7 +53,7 @@ and the Traveller5 Core Rules in particular, used under Far Future
 Enterprises' Fair Use Policy. This is an unofficial, non-commercial fan
 project and is not affiliated with, endorsed by, or sponsored by Far
 Future Enterprises. Copyright of Traveller game content remains with
-Far Future Enterprises. See <https://farfuture.net> for the current,
+Far Future Enterprises. See [https://farfuture.net](http://archive.today/KGpR8) for the current,
 authoritative text of the Fair Use Policy.
 
 This repository does not redistribute the T5 rulebook PDFs or any
