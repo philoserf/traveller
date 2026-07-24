@@ -2,9 +2,11 @@ package character
 
 import (
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
 )
 
 // TestLifeStageForAge pins every boundary age in Book 1 p.89's own "THE
@@ -114,5 +116,196 @@ func TestRollAgingCheckRate(t *testing.T) {
 	gotPct := 100 * float64(fired) / trials
 	if wantPct := 100.0 * 6 / 36; gotPct < wantPct-1 || gotPct > wantPct+1 {
 		t.Errorf("rollAgingCheck(lifeStage=5) fired %.2f%% of %d trials, want ~%.2f%%", gotPct, trials, wantPct)
+	}
+}
+
+// TestAgingCheckpoints pins every boundary this session's own research
+// turned up: no checkpoints below onset, one at onset, and the full
+// traditional-lifespan (74) count.
+func TestAgingCheckpoints(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		finalAge int
+		want     []int
+	}{
+		{"below onset", 33, nil},
+		{"exactly onset", 34, []int{34}},
+		{"just short of next checkpoint", 37, []int{34}},
+		{"second checkpoint", 38, []int{34, 38}},
+		{"traditional lifespan", 74, []int{34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := agingCheckpoints(c.finalAge); !slices.Equal(got, c.want) {
+				t.Errorf("agingCheckpoints(%d) = %v, want %v", c.finalAge, got, c.want)
+			}
+		})
+	}
+}
+
+// TestAgingPositionsAt is the regression test for Mental Aging's own
+// separate onset (66) gating C4 independently of Physical Aging's onset.
+func TestAgingPositionsAt(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		age  int
+		want []Position
+	}{
+		{"physical onset", 34, []Position{C1, C2, C3}},
+		{"one year short of mental onset", 65, []Position{C1, C2, C3}},
+		{"mental onset", 66, []Position{C1, C2, C3, C4}},
+		{"well past mental onset", 100, []Position{C1, C2, C3, C4}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := agingPositionsAt(c.age); !slices.Equal(got, c.want) {
+				t.Errorf("agingPositionsAt(%d) = %v, want %v", c.age, got, c.want)
+			}
+		})
+	}
+}
+
+// TestClassifyAgingBatch includes the undefined four-simultaneous-zeros
+// case (only possible at age 66+) as its own regression test for treating
+// "three or more" as the book's own most severe named tier.
+func TestClassifyAgingBatch(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		zeroedCount int
+		want        agingSeverity
+	}{
+		{0, agingSeverityNone},
+		{1, agingSeverityNone},
+		{2, agingSeverityMajor},
+		{3, agingSeverityExtreme},
+		{4, agingSeverityExtreme},
+	}
+
+	for _, c := range cases {
+		if got := classifyAgingBatch(c.zeroedCount); got != c.want {
+			t.Errorf("classifyAgingBatch(%d) = %v, want %v", c.zeroedCount, got, c.want)
+		}
+	}
+}
+
+func TestAgingExtremeIllnessIsFatal(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		priorExtremeCount int
+		want              bool
+	}{
+		{0, false},
+		{1, true},
+		{2, true},
+	}
+
+	for _, c := range cases {
+		if got := agingExtremeIllnessIsFatal(c.priorExtremeCount); got != c.want {
+			t.Errorf("agingExtremeIllnessIsFatal(%d) = %v, want %v", c.priorExtremeCount, got, c.want)
+		}
+	}
+}
+
+func TestResolveAgingNoEffectBeforeOnset(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{7, 7, 7, 7, 7, 7}}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	got, survived, notes := ResolveAging(r, upp, 33)
+
+	if got != upp {
+		t.Errorf("ResolveAging before onset changed upp: got %v, want unchanged %v", got, upp)
+	}
+
+	if !survived {
+		t.Error("ResolveAging before onset reported survived = false, want true")
+	}
+
+	if len(notes) != 0 {
+		t.Errorf("ResolveAging before onset returned notes %v, want none", notes)
+	}
+}
+
+// TestResolveAgingNeverTriggersIllnessWithSufficientBuffer is
+// dice-outcome-independent: starting every characteristic at 15, the
+// traditional lifespan (74) runs 11 physical checkpoints and 3 mental
+// ones, so even if every single Aging Check succeeded, no characteristic
+// could drop below 15-11=4 — proving the loop's own bookkeeping (not
+// relying on luck) regardless of what the dice actually produce.
+func TestResolveAgingNeverTriggersIllnessWithSufficientBuffer(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{15, 15, 15, 15, 15, 15}}
+
+	for _, seed := range []uint64{1, 2, 3, 4, 5} {
+		r := dice.New(rand.NewPCG(seed, seed))
+
+		got, survived, notes := ResolveAging(r, upp, 74)
+		if !survived {
+			t.Errorf("seed %d: survived = false, want true", seed)
+		}
+
+		if len(notes) != 0 {
+			t.Errorf("seed %d: notes = %v, want none", seed, notes)
+		}
+
+		for i, c := range got.Characteristics {
+			if c < 4 || c > 15 {
+				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, 15]", seed, i, c)
+			}
+		}
+	}
+}
+
+// TestResolveAgingProducesIllnessAndDeathOverManyTrials is the
+// statistical proof that the illness/death paths actually fire:
+// Str/Dex/End/Int all start at 1, so any single successful Aging Check
+// immediately zeros that characteristic, and finalAge=110 runs well past
+// 71 (Life Stage clamps at 9, its own high success rate) with every
+// checkpoint from 66 on checking all four at once.
+func TestResolveAgingProducesIllnessAndDeathOverManyTrials(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{1, 1, 1, 1, 12, 12}}
+
+	const trials = 100
+
+	died, illOnly := 0, 0
+
+	for seed := uint64(1); seed <= trials; seed++ {
+		r := dice.New(rand.NewPCG(seed, seed))
+
+		got, survived, notes := ResolveAging(r, upp, 110)
+
+		if !survived {
+			died++
+
+			if !slices.Contains(got.Characteristics[:], ehex.Value(0)) {
+				t.Errorf("seed %d: died with no characteristic left at 0: %v", seed, got.Characteristics)
+			}
+		} else if len(notes) > 0 {
+			illOnly++
+		}
+	}
+
+	if died == 0 {
+		t.Errorf("0 of %d trials died from Aging, want at least 1 (fatal path never exercised)", trials)
+	}
+
+	if died+illOnly == 0 {
+		t.Errorf("0 of %d trials produced any illness or death notes, want at least 1", trials)
 	}
 }
