@@ -67,7 +67,7 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
-		Skills:         skills,
+		Skills:         aggregateSkills(skills),
 	}, ok
 }
 

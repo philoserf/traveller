@@ -80,6 +80,6 @@ func buildEntertainerCharacter(
 		Fame:    totalFame,
 		Cash:    bonuses.Cash,
 		Careers: []Career{career},
-		Skills:  skills,
+		Skills:  aggregateSkills(skills),
 	}, ok
 }

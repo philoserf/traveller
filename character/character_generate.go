@@ -233,7 +233,7 @@ func buildRiskCareerCharacter(
 		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
-		Skills:         skills,
+		Skills:         aggregateSkills(skills),
 		Medals:         allMedalsFromTerms(career.Terms),
 		WoundBadges:    scoutWoundBadges(career),
 	}, ok

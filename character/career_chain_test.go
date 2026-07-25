@@ -191,7 +191,18 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	wantFame := scoutSeg.Fame + spacerSeg.Fame
 	wantCash := scoutSeg.Cash + spacerSeg.Cash
 	wantWoundBadges := scoutSeg.WoundBadges + spacerSeg.WoundBadges
-	wantSkills := len(homeworldSkills) + len(scoutSeg.Skills) + len(spacerSeg.Skills)
+
+	// aggregateSkills (character/skill.go) merges same-name/same-Kind
+	// grants across the WHOLE chain, not per segment — a skill repeated
+	// between homeworld/Scout/Spacer collapses to one higher-level
+	// entry, so the raw concatenated length is only an upper bound, not
+	// the expected count.
+	rawSkills := make([]SkillLevel, 0, len(homeworldSkills)+len(scoutSeg.Skills)+len(spacerSeg.Skills))
+
+	rawSkills = append(rawSkills, homeworldSkills...)
+	rawSkills = append(rawSkills, scoutSeg.Skills...)
+	rawSkills = append(rawSkills, spacerSeg.Skills...)
+	wantSkills := aggregateSkills(rawSkills)
 
 	if got.Fame != wantFame {
 		t.Errorf("Fame = %d, want %d (sum of both segments)", got.Fame, wantFame)
@@ -205,8 +216,8 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 		t.Errorf("WoundBadges = %d, want %d (sum of both segments)", got.WoundBadges, wantWoundBadges)
 	}
 
-	if len(got.Skills) != wantSkills {
-		t.Errorf("len(Skills) = %d, want %d (homeworld + both segments)", len(got.Skills), wantSkills)
+	if !slices.Equal(got.Skills, wantSkills) {
+		t.Errorf("Skills = %+v, want %+v (homeworld + both segments, aggregated)", got.Skills, wantSkills)
 	}
 
 	if got.Homeworld != homeworld {
@@ -370,8 +381,8 @@ func TestCareerChainAgeTargetAtOrBelow18ProducesNoCareers(t *testing.T) {
 	GenerateUPP(r) // replay the same prefix GenerateCareerChainCharacter itself consumes
 	_, homeworldSkills := GenerateHomeworldSkills(r)
 
-	if len(got.Skills) != len(homeworldSkills) {
-		t.Errorf("len(Skills) = %d, want %d (homeworld skills only)", len(got.Skills), len(homeworldSkills))
+	if want := aggregateSkills(homeworldSkills); !slices.Equal(got.Skills, want) {
+		t.Errorf("Skills = %+v, want %+v (homeworld skills only, aggregated)", got.Skills, want)
 	}
 }
 
@@ -500,5 +511,48 @@ func TestCareerChainFunctionaryBeginCanFailLikeAnyOtherCareer(t *testing.T) {
 
 	if got.Careers[1].Name != FunctionaryCareerName || len(got.Careers[1].Terms) != 0 {
 		t.Fatalf("Careers[1] = %+v, want a zero-term failed Functionary attempt", got.Careers[1])
+	}
+}
+
+// TestCareerChainMergesASkillRepeatedAcrossCareers confirms
+// aggregateSkills (character/skill.go) applies across the WHOLE chain,
+// not just within one career — a skill granted more than once between
+// Scholar and Functionary shows up as one merged, higher-level entry,
+// not several separate level-1 lines.
+func TestCareerChainMergesASkillRepeatedAcrossCareers(t *testing.T) {
+	t.Parallel()
+
+	const seed = 7 // confirmed by direct inspection: Bureaucrat is granted 4 times total across this chain
+
+	got, ok, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(seed, seed)),
+		[]string{"scholar", "functionary"},
+		0,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	var bureaucratEntries int
+
+	var mergedLevel int
+
+	for _, s := range got.Skills {
+		if s.Name == "Bureaucrat" {
+			bureaucratEntries++
+			mergedLevel = s.Level
+		}
+	}
+
+	if bureaucratEntries != 1 {
+		t.Fatalf("found %d separate \"Bureaucrat\" entries in Skills, want exactly 1 merged entry", bureaucratEntries)
+	}
+
+	if mergedLevel != 4 {
+		t.Errorf("merged Bureaucrat Level = %d, want 4", mergedLevel)
 	}
 }

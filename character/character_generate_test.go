@@ -230,13 +230,21 @@ func TestBuildScoutCharacterSkillsIncludeHomeworldSkills(t *testing.T) {
 	}
 
 	// Qualified path: homeworld skills still lead, career skills follow.
+	// Seed 1 confirmed by direct inspection to re-grant "Vacc Suit"
+	// during the (immortal, 14-term) career itself, so aggregateSkills
+	// merging is actually exercised — pinning the exact merged Level
+	// (not just ">= 1") means a regression that stops calling
+	// aggregateSkills (character_generate.go's own buildRiskCareerCharacter)
+	// would leave Skills[0] at Level 1 and fail this assertion, rather
+	// than passing trivially.
 	upp := UPP{Characteristics: [6]ehex.Value{12, 12, 12, 12, 12, 0}}
-	r2 := dice.New(rand.NewPCG(7, 7))
+	r2 := dice.New(rand.NewPCG(1, 1))
 
 	qualified, _ := buildScoutCharacter(r2, upp, "hw", homeworldSkills)
-	if len(qualified.Skills) < len(homeworldSkills) ||
-		!slices.Equal(qualified.Skills[:len(homeworldSkills)], homeworldSkills) {
-		t.Errorf("qualified Skills = %v, want to start with homeworldSkills %v", qualified.Skills, homeworldSkills)
+
+	want := SkillLevel{Name: "Vacc Suit", Level: 3, Kind: Skill}
+	if len(qualified.Skills) == 0 || qualified.Skills[0] != want {
+		t.Errorf("qualified Skills[0] = %+v, want %+v (merged with a later in-career grant)", qualified.Skills[0], want)
 	}
 }
 

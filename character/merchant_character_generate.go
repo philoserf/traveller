@@ -78,6 +78,6 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
-		Skills:         skills,
+		Skills:         aggregateSkills(skills),
 	}, ok
 }

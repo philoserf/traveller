@@ -70,6 +70,6 @@ func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		Fame:           bonuses.Fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
-		Skills:         skills,
+		Skills:         aggregateSkills(skills),
 	}
 }

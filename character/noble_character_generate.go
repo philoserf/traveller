@@ -69,6 +69,6 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
-		Skills:         skills,
+		Skills:         aggregateSkills(skills),
 	}, ok
 }

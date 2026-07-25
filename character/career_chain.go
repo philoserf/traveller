@@ -494,7 +494,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		Cash:           acc.cash,
 		WoundBadges:    acc.woundBadges,
 		Careers:        acc.careers,
-		Skills:         acc.skills,
+		Skills:         aggregateSkills(acc.skills),
 		Medals:         acc.medals,
 	}, survived, nil
 }

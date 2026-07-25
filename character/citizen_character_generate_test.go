@@ -90,8 +90,17 @@ func TestBuildCitizenCharacterSkillsIncludeHomeworldSkills(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 
 	c := buildCitizenCharacter(r, upp, "hw", homeworldSkills)
-	if len(c.Skills) < len(homeworldSkills) || !slices.Equal(c.Skills[:len(homeworldSkills)], homeworldSkills) {
-		t.Errorf("Skills = %v, want to start with homeworldSkills %v", c.Skills, homeworldSkills)
+
+	// Seed 7 confirmed by direct inspection to re-grant "Vacc Suit"
+	// during the career itself, merging with the homeworld grant via
+	// aggregateSkills — pinning the exact merged Level (not just ">=
+	// 1") means a regression that stops calling aggregateSkills
+	// (citizen_character_generate.go's own buildCitizenCharacter) would
+	// leave Skills[0] at Level 1 and fail this assertion, rather than
+	// passing trivially.
+	want := SkillLevel{Name: "Vacc Suit", Level: 2, Kind: Skill}
+	if len(c.Skills) == 0 || c.Skills[0] != want {
+		t.Errorf("Skills[0] = %+v, want %+v (merged with a later in-career grant)", c.Skills[0], want)
 	}
 }
 
