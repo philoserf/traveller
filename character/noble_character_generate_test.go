@@ -90,8 +90,10 @@ func TestBuildNobleCharacterQualified(t *testing.T) {
 	}
 
 	// >=, not ==: Mustering Out can additionally grant "Fame +2" on top of
-	// Base Fame, and this fixture doesn't control for that, so an exact
-	// equality would be flaky against real dice.
+	// Base Fame, and nobleExileFame adds +1 per Exile suffered along the
+	// way — this fixture doesn't control for either, so an exact equality
+	// would be flaky against real dice; both only ever add, never
+	// subtract, so >= nobleBaseFame alone still holds.
 	if want := nobleBaseFame(upp.Characteristics[C6]); c.Fame < want {
 		t.Errorf("Fame = %d, want >= %d (nobleBaseFame)", c.Fame, want)
 	}

@@ -45,14 +45,15 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
-	// Base Fame is p.85's own "Nobles have a Base Fame..." — scoped to
-	// characters who actually became a Noble (ok), not to anyone whose
-	// Soc merely met the prerequisite. A never-qualified character never
-	// entered the career at all, matching Scout's own precedent that
-	// Fame stays 0 (bonuses.Fame alone) on a never-qualified path.
+	// Base Fame (p.85's "Base Fame equal to 1.5 times Soc") and Exile Fame
+	// (p.91's "Per Exile +1") are both scoped to characters who actually
+	// became a Noble (ok), not to anyone whose Soc merely met the
+	// prerequisite. A never-qualified character never entered the career
+	// at all, matching Scout's own precedent that Fame stays 0
+	// (bonuses.Fame alone) on a never-qualified path.
 	fame := bonuses.Fame
 	if ok {
-		fame += nobleBaseFame(upp.Characteristics[C6])
+		fame += nobleBaseFame(upp.Characteristics[C6]) + nobleExileFame(career.Terms)
 	}
 
 	return Character{

@@ -66,6 +66,28 @@ func BeginNoble(soc ehex.Value) bool {
 	return soc >= 11
 }
 
+// nobleIntrigueCounts derives successfulIntrigues and timesExiled from
+// terms — shared by returnIntrigueMod (their combined Mod, p.85) and
+// nobleExileFame (p.91's own "Per Exile +1" Fame source), so the
+// counting loop itself only exists once.
+func nobleIntrigueCounts(terms []Term) (int, int) {
+	successfulIntrigues, timesExiled := 0, 0
+
+	for _, t := range terms {
+		if t.NobleAction != "Intrigue" {
+			continue
+		}
+
+		if t.NobleSucceeded {
+			successfulIntrigues++
+		} else {
+			timesExiled++
+		}
+	}
+
+	return successfulIntrigues, timesExiled
+}
+
 // returnIntrigueMod is the shared Return & Intrigue Mod, Book 1 p.85's
 // own "Mod= -Successful Intrigues. Mod=+Times Exiled." — derived from
 // priorTerms rather than tracked as separate mutable counters, so it
@@ -92,21 +114,19 @@ func BeginNoble(soc ehex.Value) bool {
 // direction; the "two independent mods" reading would be the outlier
 // against this book's own established Career Resolution convention.
 func returnIntrigueMod(priorTerms []Term) int {
-	successfulIntrigues, timesExiled := 0, 0
-
-	for _, t := range priorTerms {
-		if t.NobleAction != "Intrigue" {
-			continue
-		}
-
-		if t.NobleSucceeded {
-			successfulIntrigues++
-		} else {
-			timesExiled++
-		}
-	}
+	successfulIntrigues, timesExiled := nobleIntrigueCounts(priorTerms)
 
 	return timesExiled - successfulIntrigues
+}
+
+// nobleExileFame is Book 1 p.91's own "Imperial Noble: Per Exile +1" — a
+// second Base Fame source alongside nobleBaseFame's own "Soc x1.5,"
+// missed in this codebase's own first Noble Fame pass since p.91 hadn't
+// been read yet at that point.
+func nobleExileFame(terms []Term) int {
+	_, timesExiled := nobleIntrigueCounts(terms)
+
+	return timesExiled
 }
 
 // nobleIsExiled derives current Exile status from the last Term's own

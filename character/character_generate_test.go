@@ -49,6 +49,40 @@ func TestAllSkillsFromTerms(t *testing.T) {
 	}
 }
 
+func TestScoutDiscoveryFame(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		terms []Term
+		want  int
+	}{
+		{"no terms", nil, 0},
+		{"no discoveries", []Term{{RewardResult: "None"}, {RewardResult: ""}}, 0},
+		{"one discovery", []Term{{RewardResult: "Discovery"}}, 4},
+		{
+			"mixed",
+			[]Term{
+				{RewardResult: "Discovery"},
+				{RewardResult: "None"},
+				{RewardResult: "Discovery"},
+				{RewardResult: ""},
+			},
+			8,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := scoutDiscoveryFame(Career{Terms: tt.terms}); got != tt.want {
+				t.Errorf("scoutDiscoveryFame() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBuildScoutCharacterNeverQualified(t *testing.T) {
 	t.Parallel()
 
@@ -315,10 +349,46 @@ func TestBuildScoutCharacterSetsBirthdate(t *testing.T) {
 	assertBirthdateFormat(t, c.Birthdate, c.Age)
 }
 
+// TestBuildRiskCareerCharacterGatesCareerFameOnOK is the regression test
+// for a code-review-caught bug: careerFame was being added unconditionally,
+// so a character who earned Fame in an early term (e.g. a Scout Discovery)
+// but then died in a later one retained that Fame despite ok=false — unlike
+// buildNobleCharacter's own analogous Fame terms, which are gated on ok.
+// Uses buildRiskCareerCharacter directly with a stub resolveCareer so the
+// Discovery-then-Death sequence is pinned exactly, not seed-hunted.
+func TestBuildRiskCareerCharacterGatesCareerFameOnOK(t *testing.T) {
+	t.Parallel()
+
+	deadCareer := Career{
+		Terms: []Term{
+			{RewardResult: "Discovery", RiskResult: Unharmed},
+			{RiskResult: Dead},
+		},
+	}
+
+	resolveCareer := func(_ *dice.Roller, upp UPP) (Career, UPP) { return deadCareer, upp }
+	resolveMusterOut := func(_ *dice.Roller, _ Career) MusteringOut { return MusteringOut{} }
+
+	r := dice.New(rand.NewPCG(1, 1))
+
+	c, ok := buildRiskCareerCharacter(r, UPP{}, "hw", nil, resolveCareer, resolveMusterOut, scoutDiscoveryFame)
+
+	if ok {
+		t.Fatal("ok = true, want false (fixture's last term is Dead)")
+	}
+
+	if c.Fame != 0 {
+		t.Errorf("Fame = %d, want 0 (careerFame must not apply to a character who died mid-career)", c.Fame)
+	}
+}
+
 // TestBuildScoutCharacterAppliesMusteringOutFameAndCash confirms
 // ApplyMusteringOut is actually wired into buildScoutCharacter — seed 5
 // with this fixture was found by direct search to produce both a "Fame
-// +2" and Cash-bearing Mustering Out rolls.
+// +2" Mustering Out roll and Cash-bearing ones. This seed's own career
+// also produces exactly one Discovery (scoutDiscoveryFame's own +4), so
+// the total is 6, not Mustering Out's own 2 alone — the regression test
+// for careerFame actually being summed in, not just bonuses.Fame.
 func TestBuildScoutCharacterAppliesMusteringOutFameAndCash(t *testing.T) {
 	t.Parallel()
 
@@ -330,8 +400,8 @@ func TestBuildScoutCharacterAppliesMusteringOutFameAndCash(t *testing.T) {
 		t.Fatalf("seed 5: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
 	}
 
-	if c.Fame != 2 {
-		t.Errorf("Fame = %d, want 2", c.Fame)
+	if c.Fame != 6 {
+		t.Errorf("Fame = %d, want 6 (4 from one Discovery + 2 from Mustering Out)", c.Fame)
 	}
 
 	if c.Cash != 180000 {

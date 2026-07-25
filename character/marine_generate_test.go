@@ -217,3 +217,23 @@ func TestResolveMarineTermSkipsRewardAndSkillsOnDeath(t *testing.T) {
 		t.Errorf("SkillsAwarded = %v, want nil (Dead skips Skills)", term.SkillsAwarded)
 	}
 }
+
+// TestMarineCareerFameIsAlwaysZero confirms Book 1 p.91's own "Armed
+// Forces Enlisted = no Fame" — regardless of how many terms a Marine
+// serves, marineCareerFame stays 0, since no character in this codebase
+// is ever assigned an Officer Rank yet.
+func TestMarineCareerFameIsAlwaysZero(t *testing.T) {
+	t.Parallel()
+
+	career := Career{
+		Terms: []Term{
+			{RewardResult: "XS Exemplary Service"},
+			{RewardResult: "None"},
+			{RewardResult: "XS Exemplary Service"},
+		},
+	}
+
+	if got := marineCareerFame(career); got != 0 {
+		t.Errorf("marineCareerFame() = %d, want 0", got)
+	}
+}

@@ -118,7 +118,23 @@ func GenerateScoutCharacter(r *dice.Roller) (Character, bool) {
 // precedent. Delegates to buildRiskCareerCharacter, below — see its own
 // doc comment for why.
 func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	return buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills, ResolveScoutCareer, ResolveScoutMusterOut)
+	return buildRiskCareerCharacter(
+		r, upp, homeworld, homeworldSkills, ResolveScoutCareer, ResolveScoutMusterOut, scoutDiscoveryFame)
+}
+
+// scoutDiscoveryFame is Book 1 p.91's own "Scout: Discoveries x4" —
+// Scout's own intrinsic Fame source, distinct from ApplyMusteringOut's
+// separate Fame accumulation (Mustering Out's own "Fame +N" rolls).
+func scoutDiscoveryFame(career Career) int {
+	discoveries := 0
+
+	for _, t := range career.Terms {
+		if t.RewardResult == "Discovery" {
+			discoveries++
+		}
+	}
+
+	return discoveries * 4
 }
 
 // buildRiskCareerCharacter assembles a Character for any career sharing
@@ -135,6 +151,12 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 // mechanic), not just a different Resolve* pair — forcing them into
 // this same shape would paper over a real difference, not remove
 // duplication.
+//
+// careerFame is caller-supplied (not hardcoded) because Scout's and
+// Marine's own intrinsic Fame formulas (Book 1 p.91) genuinely differ —
+// Discoveries x4 vs. correctly-always-0 for an Enlisted-only Marine —
+// unlike resolveCareer/resolveMusterOut, which Scout and Marine happen
+// to share the same shape of but not the same values for either.
 func buildRiskCareerCharacter(
 	r *dice.Roller,
 	upp UPP,
@@ -142,6 +164,7 @@ func buildRiskCareerCharacter(
 	homeworldSkills []SkillLevel,
 	resolveCareer func(r *dice.Roller, upp UPP) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
+	careerFame func(career Career) int,
 ) (Character, bool) {
 	career, updatedUPP := resolveCareer(r, upp)
 	career.MusteringOut = resolveMusterOut(r, career)
@@ -160,6 +183,17 @@ func buildRiskCareerCharacter(
 	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
+	// careerFame is gated on ok, matching buildNobleCharacter's own
+	// analogous Fame terms: a character who died mid-career (Book 1
+	// p.69's "Dying During Character Generation") shouldn't retain Fame
+	// from an earlier term's Discovery — bonuses.Fame doesn't need the
+	// same gate, since resolveMusterOut's own roll-count already zeroes
+	// out on a Dead last term.
+	fame := bonuses.Fame
+	if ok {
+		fame += careerFame(career)
+	}
+
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
@@ -170,7 +204,7 @@ func buildRiskCareerCharacter(
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,
-		Fame:           bonuses.Fame,
+		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         skills,

@@ -26,5 +26,17 @@ func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 // of scoutWoundBadges and scoutMusterOutRollCount (already generic,
 // nothing Scout-specific in either body).
 func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	return buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills, ResolveMarineCareer, ResolveMarineMusterOut)
+	return buildRiskCareerCharacter(
+		r, upp, homeworld, homeworldSkills, ResolveMarineCareer, ResolveMarineMusterOut, marineCareerFame)
+}
+
+// marineCareerFame is Book 1 p.91's own "Army/Marine/Navy: Officer
+// Rank*" / "*Armed Forces Enlisted = no Fame" — correctly always 0 for
+// every Marine this codebase currently generates: no character is ever
+// assigned an Officer Rank yet (Promotion/Commission deferred), so
+// every generated Marine is Enlisted. Not "no formula needed" — a real,
+// documented rule, the same "correctly zero, not a gap" treatment
+// Scout's own no-rank status already gets.
+func marineCareerFame(Career) int {
+	return 0
 }

@@ -87,6 +87,81 @@ func TestReturnIntrigueMod(t *testing.T) {
 	}
 }
 
+func TestNobleIntrigueCounts(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name                       string
+		terms                      []Term
+		wantSuccessful, wantExiled int
+	}{
+		{"no terms", nil, 0, 0},
+		{"one successful intrigue", []Term{{NobleAction: "Intrigue", NobleSucceeded: true}}, 1, 0},
+		{"one failed intrigue", []Term{{NobleAction: "Intrigue", NobleSucceeded: false}}, 0, 1},
+		{
+			"mixed",
+			[]Term{
+				{NobleAction: "Intrigue", NobleSucceeded: true},
+				{NobleAction: "Intrigue", NobleSucceeded: true},
+				{NobleAction: "Intrigue", NobleSucceeded: false},
+			},
+			2, 1,
+		},
+		{
+			"Return terms never affect the count",
+			[]Term{
+				{NobleAction: "Return", NobleSucceeded: true},
+				{NobleAction: "Return", NobleSucceeded: false},
+			},
+			0, 0,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotSuccessful, gotExiled := nobleIntrigueCounts(c.terms)
+			if gotSuccessful != c.wantSuccessful || gotExiled != c.wantExiled {
+				t.Errorf("nobleIntrigueCounts(%v) = (%d, %d), want (%d, %d)",
+					c.terms, gotSuccessful, gotExiled, c.wantSuccessful, c.wantExiled)
+			}
+		})
+	}
+}
+
+func TestNobleExileFame(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		terms []Term
+		want  int
+	}{
+		{"no terms", nil, 0},
+		{
+			"mixed successes and exiles",
+			[]Term{
+				{NobleAction: "Intrigue", NobleSucceeded: true},
+				{NobleAction: "Intrigue", NobleSucceeded: false},
+				{NobleAction: "Return", NobleSucceeded: true},
+				{NobleAction: "Intrigue", NobleSucceeded: false},
+			},
+			2,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := nobleExileFame(c.terms); got != c.want {
+				t.Errorf("nobleExileFame(%v) = %d, want %d", c.terms, got, c.want)
+			}
+		})
+	}
+}
+
 func TestNobleIsExiled(t *testing.T) {
 	t.Parallel()
 
