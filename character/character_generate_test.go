@@ -136,13 +136,14 @@ func TestBuildScoutCharacterFullTermSurvivor(t *testing.T) {
 }
 
 // TestBuildScoutCharacterUPPCarriesForwardReduction confirms
-// buildScoutCharacter feeds finalizeAging the career-resolution-updated
-// UPP, not the stale pre-career one — by replaying the exact same
-// pipeline (ResolveScoutCareer -> ResolveScoutMusterOut -> finalizeAging)
-// against an independent same-seed roller and comparing. A regression
-// here (e.g. passing the original upp instead of ResolveScoutCareer's own
-// returned UPP into finalizeAging) is exactly the class of copy-paste bug
-// Phase F's own aliasing-bug code review finding was about.
+// buildScoutCharacter feeds finalizeAging the career-resolution-and-
+// Mustering-Out-updated UPP, not the stale pre-career one — by replaying
+// the exact same pipeline (ResolveScoutCareer -> ResolveScoutMusterOut ->
+// ApplyMusteringOut -> finalizeAging) against an independent same-seed
+// roller and comparing. A regression here (e.g. passing the original upp
+// instead of ResolveScoutCareer's own returned UPP into ApplyMusteringOut
+// or finalizeAging) is exactly the class of copy-paste bug Phase F's own
+// aliasing-bug code review finding was about.
 func TestBuildScoutCharacterUPPCarriesForwardReduction(t *testing.T) {
 	t.Parallel()
 
@@ -152,8 +153,9 @@ func TestBuildScoutCharacterUPPCarriesForwardReduction(t *testing.T) {
 
 	wantCareer, updatedUPP := ResolveScoutCareer(r1, upp)
 	wantCareer.MusteringOut = ResolveScoutMusterOut(r1, wantCareer)
+	boostedUPP, _ := ApplyMusteringOut(wantCareer.MusteringOut, updatedUPP)
 	wantOK := len(wantCareer.Terms) > 0 && wantCareer.Terms[len(wantCareer.Terms)-1].RiskResult != Dead
-	wantUPP, wantAge, wantLifeStage, wantNotes := finalizeAging(r1, updatedUPP, len(wantCareer.Terms), wantOK)
+	wantUPP, wantAge, wantLifeStage, wantNotes := finalizeAging(r1, boostedUPP, len(wantCareer.Terms), wantOK)
 
 	r2 := dice.New(rand.NewPCG(23, 29))
 	c, _ := buildScoutCharacter(r2, upp, "hw", nil)
@@ -237,9 +239,11 @@ func TestBuildScoutCharacterDoesNotAliasHomeworldSkills(t *testing.T) {
 }
 
 // TestBuildScoutCharacterFixedZeroValueFields pins Species/GeneticProfile
-// and the full "left at zero value" contract, so a future change can't
-// silently half-populate one of these without a test forcing a
-// doc-comment update.
+// and the remaining "left at zero value" contract, so a future change
+// can't silently half-populate one of these without a test forcing a
+// doc-comment update. Fame/Cash are no longer in this list — they're
+// genuinely computed now (ApplyMusteringOut), just not by this seed's
+// fixture; see TestBuildScoutCharacterAppliesMusteringOutFameAndCash.
 func TestBuildScoutCharacterFixedZeroValueFields(t *testing.T) {
 	t.Parallel()
 
@@ -263,10 +267,6 @@ func TestBuildScoutCharacterFixedZeroValueFields(t *testing.T) {
 		t.Errorf("Medals = %v, want nil", c.Medals)
 	case c.Commendations != nil:
 		t.Errorf("Commendations = %v, want nil", c.Commendations)
-	case c.Fame != 0:
-		t.Errorf("Fame = %d, want 0", c.Fame)
-	case c.Cash != 0:
-		t.Errorf("Cash = %d, want 0", c.Cash)
 	case c.Equipment != nil:
 		t.Errorf("Equipment = %v, want nil", c.Equipment)
 	case c.Name != "":
@@ -313,6 +313,30 @@ func TestBuildScoutCharacterSetsBirthdate(t *testing.T) {
 	c, _ := buildScoutCharacter(r, upp, "hw", nil)
 
 	assertBirthdateFormat(t, c.Birthdate, c.Age)
+}
+
+// TestBuildScoutCharacterAppliesMusteringOutFameAndCash confirms
+// ApplyMusteringOut is actually wired into buildScoutCharacter — seed 5
+// with this fixture was found by direct search to produce both a "Fame
+// +2" and Cash-bearing Mustering Out rolls.
+func TestBuildScoutCharacterAppliesMusteringOutFameAndCash(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(5, 5))
+
+	c, ok := buildScoutCharacter(r, upp, "hw", nil)
+	if !ok {
+		t.Fatalf("seed 5: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
+	}
+
+	if c.Fame != 2 {
+		t.Errorf("Fame = %d, want 2", c.Fame)
+	}
+
+	if c.Cash != 180000 {
+		t.Errorf("Cash = %d, want 180000", c.Cash)
+	}
 }
 
 // TestBuildScoutCharacterAgingBufferNeverTriggersIllness reuses

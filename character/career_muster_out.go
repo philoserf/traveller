@@ -65,9 +65,13 @@ func rollScoutMusterOutRow(r *dice.Roller, dm int) int {
 // *count* doubles, not each individual benefit).
 //
 // Commendation/MCG/SEH and Fame-19+ extra-roll sources (p.68) are omitted:
-// nothing in this codebase ever populates Character.Commendations or
-// Character.Fame, so both are permanently 0/empty and these bonuses can
-// never actually fire.
+// nothing in this codebase ever populates Character.Commendations, so
+// that half is permanently empty and can never fire. Fame is now
+// genuinely accumulated within a single Mustering Out resolution (see
+// ResolveScoutMusterOut's own doc comment), but reaching 19 within one
+// career would need roughly ten separate "Fame +2" rolls — implausible
+// enough in practice that the Fame-19+ extra-roll bonus stays deferred
+// too, not silently dropped.
 func scoutMusterOutRollCount(career Career) int {
 	if len(career.Terms) == 0 {
 		return 0
@@ -98,32 +102,46 @@ func scoutMusterOutRollCount(career Career) int {
 // each roll" — a genuine open player choice with no book-given mechanic and
 // no objectively-better column, resolved the same way rollScoutDuty
 // resolves Courier-vs-Explorer Duty), then rolls rollScoutMusterOutRow with
-// dm = len(career.Terms) (p.79's "DM +Terms"; the table's own "+Fame/2" is
-// omitted — Character.Fame is never populated anywhere in this codebase, so
-// Fame/2 is always 0 in practice; a real, separate future gap, not silently
-// dropped). DM is unaffected by scoutMusterOutRollCount's own Double-
-// Benefits doubling — p.69 doubles the roll count, not the per-roll DM.
+// dm = len(career.Terms) + fame/2, per p.79's own "DM +Terms +Fame/2" —
+// fame is a running local accumulator, not Character.Fame (which doesn't
+// exist yet at this point in the pipeline; ApplyMusteringOut derives it
+// from this function's own returned MusteringOut afterward). Every time a
+// landed Benefits entry itself grants Fame ("Fame +2"), it's added to
+// that accumulator immediately (via musterOutFameBonus,
+// character/muster_out_apply.go) so a later roll in the same Mustering
+// Out sequence sees the correct, already-elevated DM — not the DM of a
+// stale, separately-computed final Fame value. DM is unaffected by
+// scoutMusterOutRollCount's own Double-Benefits doubling — p.69 doubles
+// the roll count, not the per-roll DM.
 //
 // Deliberately not implemented, each for a specific documented reason —
 // see this package's own chargen plan history for the full rationale:
 // Duplicate Benefits rerolling (p.68: optional, "may"), partial DM
-// application (p.68: optional, "may"), the p.67 "TAS Life Membership...
-// Scout with 3 Discoveries" Automatic (illustrative referee discretion, not
-// a crisp trigger), and mechanical application of Characteristic
-// Improvement/Cash benefits onto a Character (MusteringOut's own []string
-// shape is for recording what was granted, not resolving it).
+// application (p.68: optional, "may"), and the p.67 "TAS Life
+// Membership... Scout with 3 Discoveries" Automatic (illustrative referee
+// discretion, not a crisp trigger). Mechanical application of
+// Characteristic Improvement/Fame/Cash benefits onto a Character is a
+// separate function, ApplyMusteringOut (character/muster_out_apply.go) —
+// this function's own returned MusteringOut still just records what was
+// granted; resolving it is a caller's job, same as before.
 func ResolveScoutMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	dm := len(career.Terms)
+	terms := len(career.Terms)
+	fame := 0
 
 	for range scoutMusterOutRollCount(career) {
-		row := rollScoutMusterOutRow(r, dm)
+		row := rollScoutMusterOutRow(r, terms+fame/2)
 
 		if r.Uniform(2) == 1 {
 			out.Money = append(out.Money, scoutMusterOutMoney[row])
 		} else {
-			out.Benefits = append(out.Benefits, scoutMusterOutBenefits[row])
+			entry := scoutMusterOutBenefits[row]
+			out.Benefits = append(out.Benefits, entry)
+
+			if bonus, ok := musterOutFameBonus(entry); ok {
+				fame += bonus
+			}
 		}
 	}
 

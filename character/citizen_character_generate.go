@@ -40,18 +40,21 @@ func GenerateCitizenCharacter(r *dice.Roller) Character {
 // correct for Citizen, not a gap: Citizen Life has no wound mechanic to
 // count. Character.UPP comes from finalizeAging, not upp directly —
 // ResolveCitizenCareer itself never modifies a characteristic (it only
-// returns Career), but Aging still can, over the character's
-// approximated remaining lifetime.
+// returns Career), but ApplyMusteringOut's characteristic boosts and
+// Aging's own reductions, over the character's approximated remaining
+// lifetime, both still can.
 func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) Character {
 	career := ResolveCitizenCareer(r, upp)
 	career.MusteringOut = ResolveCitizenMusterOut(r, career)
+
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
 	// survivedCareer is always true: Citizen Life has no death mechanic,
 	// so there's always "the rest of their life" for finalizeAging to
 	// simulate.
-	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, len(career.Terms), true)
+	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), true)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
@@ -64,6 +67,8 @@ func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,
+		Fame:           bonuses.Fame,
+		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         skills,
 	}

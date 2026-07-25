@@ -11,23 +11,26 @@ import (
 
 // TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset confirms
 // Character.UPP is exactly the pre-career UPP (not just "close to it")
-// when the character's approximated Age never reaches Physical Aging's
-// own onset (34): Citizen Life itself never modifies a characteristic
-// (ResolveCitizenCareer's own signature only returns Career, nothing to
-// mutate upp with), and finalizeAging's own ResolveAging call is a
-// structural no-op below onset regardless of dice (agingCheckpoints
-// returns empty). Seed 4 was found by direct search to produce exactly 1
-// Citizen term (Age 22): 18 + 4*1 = 22 < 34.
+// when neither Mustering Out nor Aging touches it: Citizen Life itself
+// never modifies a characteristic (ResolveCitizenCareer's own signature
+// only returns Career, nothing to mutate upp with), and finalizeAging's
+// own ResolveAging call is a structural no-op below Physical Aging's
+// onset (34) regardless of dice (agingCheckpoints returns empty). Seed 21
+// was found by direct search to produce exactly 1 Citizen term (Age 22:
+// 18 + 4*1 = 22 < 34) whose single Mustering Out roll doesn't land on a
+// characteristic boost (ApplyMusteringOut's own parsing is covered
+// directly and exhaustively by muster_out_apply_test.go; this test's job
+// is only to confirm the "nothing touched it" case end to end).
 func TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
-	r := dice.New(rand.NewPCG(4, 4))
+	r := dice.New(rand.NewPCG(21, 21))
 
 	c := buildCitizenCharacter(r, upp, "hw", nil)
 
 	if len(c.Careers[0].Terms) != 1 {
-		t.Fatalf("seed 4: len(Terms) = %d, want 1 (fixture assumption broke)", len(c.Careers[0].Terms))
+		t.Fatalf("seed 21: len(Terms) = %d, want 1 (fixture assumption broke)", len(c.Careers[0].Terms))
 	}
 
 	if c.UPP != upp {
@@ -122,8 +125,9 @@ func TestBuildCitizenCharacterDoesNotAliasHomeworldSkills(t *testing.T) {
 }
 
 // TestBuildCitizenCharacterFixedZeroValueFields pins Species/GeneticProfile,
-// WoundBadges, and the full "left at zero value" contract, mirroring
-// TestBuildScoutCharacterFixedZeroValueFields.
+// WoundBadges, and the remaining "left at zero value" contract, mirroring
+// TestBuildScoutCharacterFixedZeroValueFields. Fame/Cash are no longer in
+// this list — see TestBuildCitizenCharacterAppliesMusteringOutCash.
 func TestBuildCitizenCharacterFixedZeroValueFields(t *testing.T) {
 	t.Parallel()
 
@@ -149,14 +153,27 @@ func TestBuildCitizenCharacterFixedZeroValueFields(t *testing.T) {
 		t.Errorf("Medals = %v, want nil", c.Medals)
 	case c.Commendations != nil:
 		t.Errorf("Commendations = %v, want nil", c.Commendations)
-	case c.Fame != 0:
-		t.Errorf("Fame = %d, want 0", c.Fame)
-	case c.Cash != 0:
-		t.Errorf("Cash = %d, want 0", c.Cash)
 	case c.Equipment != nil:
 		t.Errorf("Equipment = %v, want nil", c.Equipment)
 	case c.Name != "":
 		t.Errorf("Name = %q, want empty", c.Name)
+	}
+}
+
+// TestBuildCitizenCharacterAppliesMusteringOutCash confirms
+// ApplyMusteringOut is actually wired into buildCitizenCharacter — seed 5
+// with this fixture was found by direct search to produce a Cash-bearing
+// Mustering Out roll (no Fame roll this time, unlike the Scout fixture).
+func TestBuildCitizenCharacterAppliesMusteringOutCash(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(5, 5))
+
+	c := buildCitizenCharacter(r, upp, "hw", nil)
+
+	if c.Cash != 85000 {
+		t.Errorf("Cash = %d, want 85000", c.Cash)
 	}
 }
 

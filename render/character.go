@@ -18,12 +18,12 @@ import (
 // Fame/Cash/Rank/Notes still have. Name, Notes, Rank, Fame, and Cash are
 // shown only when set — nothing in the character package generates Name
 // yet (see character_generate.go's own doc comment), Notes is empty
-// unless Aging actually produced an event, and for Fame/Cash printing "0"
-// would contradict the very Benefits/Money lines rendered a few lines
-// below, which already show raw Mustering Out award text like "Fame +2"
-// or "Cr30,000" — nothing yet converts those into Character.Fame/Cash
-// (career_muster_out.go's own doc comments; a real, separate future
-// gap). Position and RiskResult get local label functions
+// unless Aging actually produced an event, and Fame/Cash are genuinely 0
+// whenever ApplyMusteringOut (character/muster_out_apply.go) found no
+// "Fame +N"/"CrN,NNN" entry in the raw Benefits/Money lines to
+// accumulate — printing "0" there would be indistinguishable from a real
+// zero result, the same reasoning already applied to WoundBadges.
+// Position and RiskResult get local label functions
 // (positionAbbrev, riskResultLabel) rather than String() methods on the
 // character package's own types, matching this project's existing
 // precedent (world.TradeCode/world.Base have no String() either — render

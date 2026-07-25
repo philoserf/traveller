@@ -85,11 +85,12 @@ func allSkillsFromTerms(terms []Term) []SkillLevel {
 // states outright that "the Citizen, Entertainer, Craftsman, Scout, Agent,
 // and Rogue careers have no rank," and Scout's own p.79 box grants neither
 // Medals nor Commendations (both Armed-Forces/Agent-specific per the
-// generic Reward-Mods table, p.64). Fame, Cash, Equipment — deferred, not
-// this slice's job: MusteringOut's own Money/Benefits fields are
-// human-readable strings ("Cr30,000," "Fame +2"), and turning those into
-// structured numeric/typed values is exactly the mechanical-application
-// work career_muster_out.go's own doc comments already declined to do.
+// generic Reward-Mods table, p.64). Equipment stays deferred — no
+// structured field to apply the remaining narrative Mustering Out
+// benefits to yet — but Fame and Cash are now genuinely computed via
+// ApplyMusteringOut (character/muster_out_apply.go), which parses
+// MusteringOut's own Money/Benefits strings ("Cr30,000," "Fame +2") into
+// the numeric totals below.
 //
 // Skills concatenates homeworld skills and every term's SkillsAwarded with
 // no deduplication or level-merging — e.g. two separate "Jack of all
@@ -119,6 +120,8 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	career, updatedUPP := ResolveScoutCareer(r, upp)
 	career.MusteringOut = ResolveScoutMusterOut(r, career)
 
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, updatedUPP)
+
 	// Clone before appending: appending onto the caller's own
 	// homeworldSkills slice in place could silently corrupt an earlier
 	// Character's Skills if that slice is ever reused across multiple
@@ -128,7 +131,7 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, updatedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
@@ -141,6 +144,8 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,
+		Fame:           bonuses.Fame,
+		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         skills,
 		WoundBadges:    scoutWoundBadges(career),
