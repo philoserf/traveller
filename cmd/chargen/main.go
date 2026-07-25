@@ -1,20 +1,23 @@
 // Command chargen generates a Traveller5 character and renders it as
-// Markdown. Nine careers exist so far — Scout, Citizen, Noble, Marine,
-// Soldier, Spacer, Rogue, Scholar, and Entertainer, selected via
-// -career — see character/character_generate.go,
+// Markdown. Ten careers exist so far — Scout, Citizen, Noble, Marine,
+// Soldier, Spacer, Rogue, Scholar, Entertainer, and Merchant, selected
+// via -career — see character/character_generate.go,
 // character/citizen_character_generate.go,
 // character/noble_character_generate.go,
 // character/marine_character_generate.go,
 // character/soldier_character_generate.go,
 // character/spacer_character_generate.go,
 // character/rogue_character_generate.go,
-// character/scholar_character_generate.go, and
-// character/entertainer_character_generate.go for what's generated and
+// character/scholar_character_generate.go,
+// character/entertainer_character_generate.go, and
+// character/merchant_character_generate.go for what's generated and
 // what's still deferred (Name, Equipment, Education, Command College, a
 // multi-term Prison-sentence simulation for Rogue, Scholar's own
 // Major/Minor selection and Waivers, Entertainer's own optional 2nd/3rd
-// Flux rolls and Comeback, Craftsman/Functionary (both architecturally
-// blocked, see the chargen plan history), and the other 3 T5 careers).
+// Flux rolls and Comeback, Merchant's own Ship Owner Fame bonus (this
+// codebase tracks Ship Shares, not outright ownership), Craftsman/
+// Functionary (both architecturally blocked, see the chargen plan
+// history), and the other 2 T5 careers).
 package main
 
 import (
@@ -32,7 +35,7 @@ func main() {
 	careerName := flag.String(
 		"career",
 		"scout",
-		"career to generate: scout, citizen, noble, marine, soldier, spacer, rogue, scholar, or entertainer",
+		"career to generate: scout, citizen, noble, marine, soldier, spacer, rogue, scholar, entertainer, or merchant",
 	)
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
@@ -64,11 +67,13 @@ func main() {
 		c, ok = character.GenerateScholarCharacter(r)
 	case "entertainer":
 		c, ok = character.GenerateEntertainerCharacter(r)
+	case "merchant":
+		c, ok = character.GenerateMerchantCharacter(r)
 	default:
 		fmt.Fprintf(
 			os.Stderr,
 			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", \"soldier\", \"spacer\", "+
-				"\"rogue\", \"scholar\", or \"entertainer\", got %q\n",
+				"\"rogue\", \"scholar\", \"entertainer\", or \"merchant\", got %q\n",
 			*careerName,
 		)
 		os.Exit(1)

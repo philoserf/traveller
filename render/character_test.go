@@ -726,3 +726,50 @@ func TestCharacterRendersEntertainerSpecialty(t *testing.T) {
 		t.Errorf("render.Character missing the Specialty line, got:\n%s", out)
 	}
 }
+
+// TestCharacterRendersMerchantTermOutcome confirms Merchant needs no
+// dedicated render code at all — termOutcomeLine's existing generic
+// Risk/Reward fallback already handles its own shape once RewardResult
+// carries the formatted "N Ship Share(s)" text (set by
+// ResolveMerchantTerm, character/merchant_generate.go), the same
+// generic shape Marine/Soldier/Spacer already reuse.
+func TestCharacterRendersMerchantTermOutcome(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: character.MerchantCareerName,
+				Terms: []character.Term{
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Unharmed,
+						RewardResult:              "1 Ship Share",
+					},
+					{
+						ControllingCharacteristic: character.C4,
+						RiskResult:                character.Unharmed,
+						RewardResult:              "2 Ship Shares",
+					},
+					{
+						ControllingCharacteristic: character.C2,
+						RiskResult:                character.Wounded,
+						RewardResult:              "None",
+					},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"Term 1 (Str): Unharmed, Reward: 1 Ship Share",
+		"Term 2 (Int): Unharmed, Reward: 2 Ship Shares",
+		"Term 3 (Dex): Wounded",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+}
