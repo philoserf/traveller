@@ -147,6 +147,10 @@ func writeCareer(b *strings.Builder, c character.Career) {
 		if c.HobbySkill != "" {
 			fmt.Fprintf(b, "**Hobby:** %s\n\n", c.HobbySkill)
 		}
+
+		if c.Specialty != "" {
+			fmt.Fprintf(b, "**Specialty:** %s\n\n", c.Specialty)
+		}
 	}
 
 	writeMusteringOut(b, c.MusteringOut)
@@ -164,6 +168,15 @@ func writeCareer(b *strings.Builder, c character.Career) {
 // two call sites for a given career can't silently drift apart the way
 // two independent string literals could.
 func termOutcomeLine(c character.Career, i int, t character.Term) string {
+	// Entertainer has no Controlling Characteristic at all (Risk & Reward
+	// targets Talent, not a UPP position) — t.ControllingCharacteristic
+	// is never set for its own terms, so positionAbbrev's own zero-value
+	// fallback ("Str") would misleadingly suggest one. Its own prefix
+	// omits the "(Xxx)" suffix entirely rather than showing a fake CC.
+	if c.Name == character.EntertainerCareerName {
+		return fmt.Sprintf("Term %d", i+1) + ": " + entertainerTermLabel(t)
+	}
+
 	prefix := fmt.Sprintf("Term %d (%s)", i+1, positionAbbrev(t.ControllingCharacteristic))
 
 	switch c.Name {
@@ -265,6 +278,33 @@ func scholarTermLabel(t character.Term) string {
 
 	if t.TenureGranted {
 		label += ", Tenure Granted"
+	}
+
+	return label
+}
+
+// entertainerTermLabel renders "Fame 8, Talent 6, Unharmed, Reward:
+// Success" — Fame/Talent's own per-term evolution is Entertainer-
+// specific and worth surfacing alongside the generic Risk/Reward outcome,
+// unlike the plain RiskResult+RewardResult shape the generic fallback
+// already renders for Scout/Marine-shape careers.
+//
+// Does not reuse riskResultLabel's own "Dead" text for a Dead
+// RiskResult: character/entertainer_generate.go's own doc comment is
+// explicit that Entertainer's Dead means Talent completely spent, not
+// physical death — printing the literal word "Dead" here would read
+// identically to a Scout's/Marine's own real death on the same sheet. A
+// code-review pass caught an earlier version doing exactly that.
+func entertainerTermLabel(t character.Term) string {
+	riskLabel := riskResultLabel(t.RiskResult)
+	if t.RiskResult == character.Dead {
+		riskLabel = "Talent Exhausted"
+	}
+
+	label := fmt.Sprintf("Fame %d, Talent %d, %s", t.FameAfterTerm, t.TalentAfterTerm, riskLabel)
+
+	if t.RewardResult != "" && t.RewardResult != "None" {
+		label += ", Reward: " + t.RewardResult
 	}
 
 	return label

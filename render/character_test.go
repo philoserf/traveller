@@ -648,3 +648,81 @@ func TestCharacterHandlesCitizenGeneratedOutput(t *testing.T) {
 		}
 	}
 }
+
+// TestCharacterRendersEntertainerTermOutcome confirms Entertainer's own
+// term prefix omits the "(Xxx)" characteristic suffix every other
+// career's own termOutcomeLine shows (Entertainer has no Controlling
+// Characteristic at all — t.ControllingCharacteristic is never set for
+// its own terms), and that entertainerTermLabel shows Fame/Talent
+// alongside the generic Risk/Reward outcome, including the no-Reward
+// case (Dead skips the Reward roll entirely).
+func TestCharacterRendersEntertainerTermOutcome(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: character.EntertainerCareerName,
+				Terms: []character.Term{
+					{
+						RiskResult:      character.Unharmed,
+						RewardResult:    "Success",
+						FameAfterTerm:   8,
+						TalentAfterTerm: 6,
+					},
+					{
+						RiskResult:      character.Wounded,
+						RewardResult:    "None",
+						FameAfterTerm:   4,
+						TalentAfterTerm: 4,
+					},
+					{
+						RiskResult:      character.Dead,
+						FameAfterTerm:   2,
+						TalentAfterTerm: 0,
+					},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"Term 1: Fame 8, Talent 6, Unharmed, Reward: Success",
+		"Term 2: Fame 4, Talent 4, Wounded",
+		"Term 3: Fame 2, Talent 0, Talent Exhausted",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+
+	if strings.Contains(out, "Term 1 (") || strings.Contains(out, "Term 2 (") || strings.Contains(out, "Term 3 (") {
+		t.Errorf("render.Character should omit the \"(Xxx)\" characteristic suffix for Entertainer, got:\n%s", out)
+	}
+}
+
+// TestCharacterRendersEntertainerSpecialty is the regression test for a
+// code-review-caught bug: writeCareer rendered Citizen's own JobSkill/
+// HobbySkill but never Entertainer's analogous Specialty field, silently
+// dropping which of Artist/Actor/Author/Dancer/Musician/Chef a generated
+// character has from the rendered sheet entirely.
+func TestCharacterRendersEntertainerSpecialty(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name:      character.EntertainerCareerName,
+				Specialty: "Chef",
+				Terms:     []character.Term{{RiskResult: character.Unharmed}},
+			},
+		},
+	}
+
+	out := render.Character(c)
+	if !strings.Contains(out, "**Specialty:** Chef") {
+		t.Errorf("render.Character missing the Specialty line, got:\n%s", out)
+	}
+}

@@ -42,6 +42,9 @@ type Term struct {
 	PublicationSucceeded      bool   // Scholar only: this term's own Publication roll outcome
 	AwardWinning              bool   // Scholar only: Publication beat CC by 4+, counts as two Publications
 	TenureGranted             bool   // Scholar only: Tenure roll succeeded this term
+	FameAfterTerm             int    // Entertainer only: Fame value after this term's own Flux roll
+	TalentAfterTerm           int    // Entertainer only: Talent value after this term (Fame increases grant +1)
+	FameIncreased             bool   // Entertainer only: this term's own Flux roll was positive
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.
@@ -60,6 +63,7 @@ type Career struct {
 	HasRank      bool
 	JobSkill     string // Citizen only
 	HobbySkill   string // Citizen only
+	Specialty    string // Entertainer only: Artist/Actor/Author/Dancer/Musician/Chef
 	Terms        []Term
 	MusteringOut MusteringOut
 }
