@@ -190,13 +190,16 @@ var scoutSkillTable = [7][6]string{
 // entry this generator can't resolve yet: "Major"/"Minor" (Book 1's own
 // footnote — "If the character does not have a Major/Minor this benefit
 // is lost" — and this codebase has no education/schooling generation
-// code anywhere yet, so no character ever has a Major or Minor) or "One
+// code anywhere yet, so no character ever has a Major or Minor), "One
 // Science" (no defined science list exists yet in this codebase, unlike
 // "One Art"/"One Trade," which reuse homeworld_generate.go's own
-// oneArtChoices/theTradeChoices). "C6+1"'s own footnote (lost if
-// C6=Caste) never applies here — GenerateUPP (characteristic_generate.go)
-// only generates Human characters, whose C6 is always Social Standing,
-// never Caste.
+// oneArtChoices/theTradeChoices), or "Capital" (Noble's own
+// nobleSkillTable entry — Book 1 p.85's own footnote: "Capital= World
+// Knowledge (of world of highest held noble Land Grant) (value=1D)" —
+// this codebase has no Land Grant tracking anywhere yet). "C6+1"'s own
+// footnote (lost if C6=Caste) never applies here — GenerateUPP
+// (characteristic_generate.go) only generates Human characters, whose C6
+// is always Social Standing, never Caste.
 func rollSkillFromTable(r *dice.Roller, table [7][6]string) (SkillLevel, bool) {
 	column := r.Uniform(7) - 1
 	row := r.Uniform(6) - 1
@@ -207,7 +210,7 @@ func rollSkillFromTable(r *dice.Roller, table [7][6]string) (SkillLevel, bool) {
 	}
 
 	switch name {
-	case "Major", "Minor", "One Science":
+	case "Major", "Minor", "One Science", "Capital":
 		return SkillLevel{}, false
 	case "One Art":
 		return skillLevel1(rollChoice(r, oneArtChoices), Skill), true
