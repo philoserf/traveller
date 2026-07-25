@@ -54,11 +54,7 @@ func resolveSoldierCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Care
 	)
 	career.Terms = terms
 
-	if len(career.Terms) > 0 {
-		if skill, ok := branchAutomaticSkill(r, branch); ok {
-			career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
-		}
-	}
+	grantBranchSkillToFirstTerm(r, &career, branch)
 
 	return career, finalUPP
 }

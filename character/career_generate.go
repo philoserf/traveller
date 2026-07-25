@@ -91,6 +91,23 @@ func branchAutomaticSkill(r *dice.Roller, branch string) (SkillLevel, bool) {
 	}
 }
 
+// grantBranchSkillToFirstTerm applies branchAutomaticSkill's one-time,
+// once-per-career grant (tied to Branch selection, not a per-term
+// mechanic) to term 1's own SkillsAwarded once the term loop has
+// completed — shared by Marine, Soldier, and Spacer, extracted per this
+// codebase's own "generalize on 2nd instance" discipline once a third
+// verbatim match (Spacer) appeared. A no-op if career never qualified
+// (no terms at all).
+func grantBranchSkillToFirstTerm(r *dice.Roller, career *Career, branch string) {
+	if len(career.Terms) == 0 {
+		return
+	}
+
+	if skill, ok := branchAutomaticSkill(r, branch); ok {
+		career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
+	}
+}
+
 // BeginScout resolves Book 1 p.79's "To Begin" check for the Scout
 // career ("To Begin: C1 or C2 or C3"; "Retry R&R: C5" — confirmed
 // against Book 1's own generic-engine text, "Some Careers allow Retry.

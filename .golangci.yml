@@ -94,6 +94,19 @@ linters:
       - path: character/(marine|soldier|spacer)_(loop|promotion)_test\.go
         linters:
           - dupl
+      # marine_generate_test.go/soldier_generate_test.go/spacer_generate_test.go
+      # share the same deliberate mirroring as the two exclusions above, in
+      # their own ~17-function ResolveXTerm batteries (SkipsRewardAndSkills-
+      # OnDeath, GrantsFlatXSOnRiskSuccess, SetsRankEveryTerm, GrantsCommission,
+      # etc.) — same UPP{} fixture, same rand.NewPCG(1, 1) seed, near-verbatim
+      # assertions. dupl doesn't currently flag this trio (ResolveSpacerTerm's
+      # own int branchRow vs. Marine's/Soldier's string branch parameter is
+      # enough of an AST difference to defeat its clone detection), but the
+      # duplication is the same acknowledged, deliberate shape as the files
+      # above — listed here for consistency, not because dupl requires it.
+      - path: character/(marine|soldier|spacer)_generate_test\.go
+        linters:
+          - dupl
       # rogue_muster_out_test.go and agent_muster_out_test.go both use
       # this session's own established TablesMatch/RollCountMatchesTerms/
       # EntriesAreFromTables/BothColumnsReachable four-function shape —

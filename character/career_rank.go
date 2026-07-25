@@ -20,8 +20,6 @@ package character
 // len(xEnlistedRankNames), not hardcoded here) keeps this function
 // correct if a future Armed Forces career's own table differs, without
 // needing to revisit this signature.
-//
-//nolint:unparam // see the enlistedTiers paragraph above.
 func rankState(terms []Term, enlistedTiers, officerTiers int) (bool, int) {
 	isOfficer := false
 	tier := 1
@@ -41,4 +39,54 @@ func rankState(terms []Term, enlistedTiers, officerTiers int) (bool, int) {
 	}
 
 	return isOfficer, tier
+}
+
+// rankBasedCareerFame is Marine's/Soldier's/Spacer's own shared Fame
+// body (Book 1 p.91's "Army/Marine/Navy: Officer Rank*" bracket) —
+// confirmed byte-identical across all three careers except which
+// rank-name tables get passed in, extracted per this codebase's own
+// "generalize on 2nd instance" discipline once a third verbatim match
+// (Spacer) appeared. See marineCareerFame's own doc comment
+// (marine_character_generate.go) for the full formula rationale: Medal
+// Fame + Wound Badge Fame (x1 each) + Officer Rank Fame (=Rank, the
+// numeric tier).
+func rankBasedCareerFame(career Career, enlistedRankCount, officerRankCount int) int {
+	fame := 0
+
+	for _, t := range career.Terms {
+		for _, medal := range t.Medals {
+			fame += medalFame[medal]
+		}
+	}
+
+	fame += scoutWoundBadges(career)
+
+	if isOfficer, tier := rankState(career.Terms, enlistedRankCount, officerRankCount); isOfficer {
+		fame += tier
+	}
+
+	return fame
+}
+
+// rankAutoSkillFromTables is Spacer's/Merchant's own shared "Automatic
+// Skills by Rank" lookup body — confirmed byte-identical between
+// spacerRankAutomaticSkill and merchantRankAutoSkill, extracted per this
+// codebase's own "generalize on 2nd instance" discipline. enlisted/
+// officer are each career's own tier -> skill-name map (an absent tier
+// grants nothing). Marine's/Soldier's own switch-based lookups aren't
+// folded in here: different code shape and different data, not
+// copy-paste — Spacer only moved to a map because its own extra tier
+// pushed a flat switch over golangci-lint's cyclomatic complexity limit.
+func rankAutoSkillFromTables(enlisted, officer map[int]string, isOfficer bool, tier int) (SkillLevel, bool) {
+	table := enlisted
+	if isOfficer {
+		table = officer
+	}
+
+	name, ok := table[tier]
+	if !ok {
+		return SkillLevel{}, false
+	}
+
+	return skillLevel1(name, Skill), true
 }

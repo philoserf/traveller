@@ -44,12 +44,7 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	fame := bonuses.Fame
 
 	if ok {
-		// Edu (C5) is never a Risk & Reward position (scholarRiskRewardPositions
-		// is C1-C4), so it's never reduced — careerUPP and upp agree here,
-		// but careerUPP is used anyway for consistency with the rest of
-		// this function, not because the two would ever actually differ.
-		startTier := scholarStartTier(int(careerUPP.Characteristics[C5]))
-		fame += scholarCareerFame(career.Terms, startTier)
+		fame += scholarSegmentFame(careerUPP, career.Terms)
 	}
 
 	return Character{
@@ -79,4 +74,18 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 // "Armed Forces" bracket (Army/Marine/Navy only), not universal.
 func scholarCareerFame(terms []Term, startTier int) int {
 	return scholarRankTier(terms, startTier) + scholarPublicationsTotal(terms)
+}
+
+// scholarSegmentFame derives startTier from upp and calls
+// scholarCareerFame — shared by buildScholarCharacter and
+// resolveScholarSegment (career_chain.go), both of which need this exact
+// pairing. Edu (C5) is never a Risk & Reward position
+// (scholarRiskRewardPositions is C1-C4), so it's never reduced —
+// careerUPP and the original upp always agree here, but callers pass
+// careerUPP anyway for consistency with the rest of their own bodies,
+// not because the two would ever actually differ.
+func scholarSegmentFame(upp UPP, terms []Term) int {
+	startTier := scholarStartTier(int(upp.Characteristics[C5]))
+
+	return scholarCareerFame(terms, startTier)
 }

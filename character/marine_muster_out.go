@@ -22,43 +22,13 @@ var marineMusterOutBenefits = [10]string{
 }
 
 // ResolveMarineMusterOut resolves Book 1 p.86's own Mustering Out table
-// (step E, p.57), one roll per term served. Reuses
-// scoutMusterOutRollCount directly rather than a new
-// marineMusterOutRollCount — its own doc comment already frames the
-// Disabled-doubling/Dead-zeroing rule as Book 1 p.68's universal one,
-// not Scout-specific, and it only reads career.Terms, nothing
-// Scout-specific in its body; Marine is a second real, verbatim-
-// matching caller, the same "generalize on 2nd instance" discipline
-// already applied to resolveRisk/resolveReward/riskOutcome/
-// resolveCareerLoop in Phase T1.
-//
-// dm is p.86's own "DM +Terms +Officer Rank" — Officer Rank is a real,
-// reachable outcome since Phase V (marine_promotion.go's Commission/
-// Promotion mechanics), read as the numeric tier (O1=1 .. O7=7), the
-// same "=Rank" judgment call marineCareerFame's own Officer Rank Fame
-// term already makes (no explicit multiplier is printed for this DM
-// either).
+// (step E, p.57), one roll per term served — see resolveRankMusterOut
+// (career_muster_out.go) for the shared body, common to Marine, Soldier,
+// and Spacer.
 func ResolveMarineMusterOut(r *dice.Roller, career Career) MusteringOut {
-	var out MusteringOut
-
-	dm := len(career.Terms)
-	if isOfficer, tier := rankState(
-		career.Terms,
-		len(marineEnlistedRankNames),
-		len(marineOfficerRankNames),
-	); isOfficer {
-		dm += tier
-	}
-
-	for range scoutMusterOutRollCount(career) {
-		row := musterOutRow(r.D6()+dm, len(marineMusterOutMoney))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, marineMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, marineMusterOutBenefits[row])
-		}
-	}
-
-	return out
+	return resolveRankMusterOut(
+		r, career,
+		marineMusterOutMoney[:], marineMusterOutBenefits[:],
+		len(marineEnlistedRankNames), len(marineOfficerRankNames),
+	)
 }

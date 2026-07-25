@@ -21,30 +21,13 @@ var spacerMusterOutBenefits = [11]string{
 }
 
 // ResolveSpacerMusterOut resolves Book 1 p.81's own Mustering Out table
-// (step E, p.57), one roll per term served — mirrors
-// ResolveSoldierMusterOut's own body exactly (soldier_muster_out.go),
-// substituting Spacer's own 11-row tables and rank-tier counts.
+// (step E, p.57), one roll per term served — see resolveRankMusterOut
+// (career_muster_out.go) for the shared body, common to Marine, Soldier,
+// and Spacer.
 func ResolveSpacerMusterOut(r *dice.Roller, career Career) MusteringOut {
-	var out MusteringOut
-
-	dm := len(career.Terms)
-	if isOfficer, tier := rankState(
-		career.Terms,
-		len(spacerEnlistedRankNames),
-		len(spacerOfficerRankNames),
-	); isOfficer {
-		dm += tier
-	}
-
-	for range scoutMusterOutRollCount(career) {
-		row := musterOutRow(r.D6()+dm, len(spacerMusterOutMoney))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, spacerMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, spacerMusterOutBenefits[row])
-		}
-	}
-
-	return out
+	return resolveRankMusterOut(
+		r, career,
+		spacerMusterOutMoney[:], spacerMusterOutBenefits[:],
+		len(spacerEnlistedRankNames), len(spacerOfficerRankNames),
+	)
 }

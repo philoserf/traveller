@@ -140,6 +140,7 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext
 // never modifies a characteristic at all (rogue_loop.go's own doc
 // comment: "Rogue never modifies its own CC"), so upp passes through
 // unchanged; there is no death mechanic, so Survived is always true.
+// Fame/Cash share rogueTermsFameCash with buildRogueCharacter.
 func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
 	career := resolveRogueCareerWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveRogueMusterOut(r, career)
@@ -152,15 +153,9 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext
 	fame := bonuses.Fame
 
 	if ok {
-		for _, t := range career.Terms {
-			cash += t.SchemePayoff
-
-			if t.Imprisoned {
-				fame += 3
-			} else {
-				fame += 2
-			}
-		}
+		termFame, termCash := rogueTermsFameCash(career.Terms)
+		fame += termFame
+		cash += termCash
 	}
 
 	return careerSegment{
@@ -182,8 +177,7 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentConte
 	fame := bonuses.Fame
 
 	if ok {
-		startTier := scholarStartTier(int(careerUPP.Characteristics[C5]))
-		fame += scholarCareerFame(career.Terms, startTier)
+		fame += scholarSegmentFame(careerUPP, career.Terms)
 	}
 
 	return careerSegment{

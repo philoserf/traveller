@@ -90,6 +90,43 @@ func scoutMusterOutRollCount(career Career) int {
 	return terms
 }
 
+// resolveRankMusterOut is Marine's/Soldier's/Spacer's own shared Mustering
+// Out body (Book 1 p.86/p.82/p.81, step E, p.57) — confirmed byte-identical
+// across all three careers except which money/benefits tables and rank-name
+// tables get passed in, extracted per this codebase's own "generalize on
+// 2nd instance" discipline once a third verbatim match (Spacer) appeared.
+//
+// dm is each career's own "DM +Terms +Officer Rank" — Officer Rank read as
+// the numeric tier (O1=1 .. O7=7), the same "=Rank" judgment call each
+// career's own CareerFame Officer Rank term already makes (no explicit
+// multiplier is printed for this DM either). money and benefits must be the
+// same length (both indexed by the same rolled row).
+func resolveRankMusterOut(
+	r *dice.Roller,
+	career Career,
+	money, benefits []string,
+	enlistedRankCount, officerRankCount int,
+) MusteringOut {
+	var out MusteringOut
+
+	dm := len(career.Terms)
+	if isOfficer, tier := rankState(career.Terms, enlistedRankCount, officerRankCount); isOfficer {
+		dm += tier
+	}
+
+	for range scoutMusterOutRollCount(career) {
+		row := musterOutRow(r.D6()+dm, len(money))
+
+		if r.Uniform(2) == 1 {
+			out.Money = append(out.Money, money[row])
+		} else {
+			out.Benefits = append(out.Benefits, benefits[row])
+		}
+	}
+
+	return out
+}
+
 // ResolveScoutMusterOut resolves Book 1 p.79's Scout Mustering Out table
 // (step E, p.57 — a distinct step following Career Resolution; see this
 // file's own package context for why it stays a separate function from

@@ -57,11 +57,7 @@ func resolveSpacerCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Caree
 	)
 	career.Terms = terms
 
-	if len(career.Terms) > 0 {
-		if skill, ok := branchAutomaticSkill(r, spacerBranchEnlistedNames[branchRow]); ok {
-			career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
-		}
-	}
+	grantBranchSkillToFirstTerm(r, &career, spacerBranchEnlistedNames[branchRow])
 
 	return career, finalUPP
 }

@@ -50,17 +50,7 @@ var spacerOfficerRankAutoSkills = map[int]string{1: "Astrogator", 3: "Engineer",
 // same one-time-on-transition semantics as marineRankAutomaticSkill/
 // soldierRankAutomaticSkill.
 func spacerRankAutomaticSkill(isOfficer bool, tier int) (SkillLevel, bool) {
-	table := spacerEnlistedRankAutoSkills
-	if isOfficer {
-		table = spacerOfficerRankAutoSkills
-	}
-
-	name, ok := table[tier]
-	if !ok {
-		return SkillLevel{}, false
-	}
-
-	return skillLevel1(name, Skill), true
+	return rankAutoSkillFromTables(spacerEnlistedRankAutoSkills, spacerOfficerRankAutoSkills, isOfficer, tier)
 }
 
 // rollSpacerCommission/rollSpacerOfficerPromotion/rollSpacerRatingPromotion

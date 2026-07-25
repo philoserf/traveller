@@ -31,25 +31,8 @@ func buildSoldierCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 // Badge Fame + Officer Rank Fame (=Rank, the numeric tier) — since
 // Soldier shares the same "Army/Marine/Navy: Officer Rank*" Fame bracket
 // (Book 1 p.91) Marine does. See that function's own doc comment for
-// the full reasoning.
+// the full reasoning. The shared formula body lives in
+// rankBasedCareerFame (career_rank.go).
 func soldierCareerFame(career Career) int {
-	fame := 0
-
-	for _, t := range career.Terms {
-		for _, medal := range t.Medals {
-			fame += medalFame[medal]
-		}
-	}
-
-	fame += scoutWoundBadges(career) // Wound Badge Fame, x1 each, p.91
-
-	if isOfficer, tier := rankState(
-		career.Terms,
-		len(soldierEnlistedRankNames),
-		len(soldierOfficerRankNames),
-	); isOfficer {
-		fame += tier // Officer Rank Fame, read as =Rank (the numeric tier)
-	}
-
-	return fame
+	return rankBasedCareerFame(career, len(soldierEnlistedRankNames), len(soldierOfficerRankNames))
 }

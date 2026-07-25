@@ -87,17 +87,7 @@ func merchantRankName(isOfficer bool, tier int) string {
 }
 
 func merchantRankAutoSkill(isOfficer bool, tier int) (SkillLevel, bool) {
-	table := merchantEnlistedAutoSkills
-	if isOfficer {
-		table = merchantOfficerAutoSkills
-	}
-
-	name, ok := table[tier]
-	if !ok {
-		return SkillLevel{}, false
-	}
-
-	return skillLevel1(name, Skill), true
+	return rankAutoSkillFromTables(merchantEnlistedAutoSkills, merchantOfficerAutoSkills, isOfficer, tier)
 }
 
 // merchantRewardCount sums how many prior terms' own Reward succeeded —

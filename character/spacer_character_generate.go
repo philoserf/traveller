@@ -32,25 +32,8 @@ func buildSpacerCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 // Fame + Officer Rank Fame (=Rank, the numeric tier) — since Spacer
 // shares the same "Army/Marine/Navy: Officer Rank*" Fame bracket (Book 1
 // p.91) Marine and Soldier do. See marineCareerFame's own doc comment
-// for the full reasoning.
+// for the full reasoning. The shared formula body lives in
+// rankBasedCareerFame (career_rank.go).
 func spacerCareerFame(career Career) int {
-	fame := 0
-
-	for _, t := range career.Terms {
-		for _, medal := range t.Medals {
-			fame += medalFame[medal]
-		}
-	}
-
-	fame += scoutWoundBadges(career) // Wound Badge Fame, x1 each, p.91
-
-	if isOfficer, tier := rankState(
-		career.Terms,
-		len(spacerEnlistedRankNames),
-		len(spacerOfficerRankNames),
-	); isOfficer {
-		fame += tier // Officer Rank Fame, read as =Rank (the numeric tier)
-	}
-
-	return fame
+	return rankBasedCareerFame(career, len(spacerEnlistedRankNames), len(spacerOfficerRankNames))
 }

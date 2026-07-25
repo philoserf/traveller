@@ -70,14 +70,7 @@ func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Caree
 	)
 	career.Terms = terms
 
-	// branchAutomaticSkill is a one-time grant tied to Branch selection
-	// (once per career), not a per-term mechanic — applied to term 1's
-	// own SkillsAwarded after the loop completes.
-	if len(career.Terms) > 0 {
-		if skill, ok := branchAutomaticSkill(r, branch); ok {
-			career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
-		}
-	}
+	grantBranchSkillToFirstTerm(r, &career, branch)
 
 	return career, finalUPP
 }

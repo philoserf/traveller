@@ -44,25 +44,9 @@ func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 // own placement, not to the whole bracket — Medals and Wound Badges are
 // earned with no Officer gate anywhere in the Risk & Reward mechanic, so
 // their Fame applies regardless of rank. See the plan-file history for
-// the full reasoning.
+// the full reasoning. The shared formula body lives in
+// rankBasedCareerFame (career_rank.go), common to Marine, Soldier, and
+// Spacer.
 func marineCareerFame(career Career) int {
-	fame := 0
-
-	for _, t := range career.Terms {
-		for _, medal := range t.Medals {
-			fame += medalFame[medal]
-		}
-	}
-
-	fame += scoutWoundBadges(career) // Wound Badge Fame, x1 each, p.91
-
-	if isOfficer, tier := rankState(
-		career.Terms,
-		len(marineEnlistedRankNames),
-		len(marineOfficerRankNames),
-	); isOfficer {
-		fame += tier // Officer Rank Fame, read as =Rank (the numeric tier)
-	}
-
-	return fame
+	return rankBasedCareerFame(career, len(marineEnlistedRankNames), len(marineOfficerRankNames))
 }

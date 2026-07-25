@@ -29,11 +29,11 @@ func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
 // Rogue has neither Wounded/Disabled/Dead nor WoundBadges, a genuinely
 // different shape from Marine/Soldier/Spacer, not just different data.
 //
-// Fame and Cash are computed here rather than solely through
-// ApplyMusteringOut, since Rogue's own intrinsic Fame (Book 1 p.91:
-// "Successful Schemes x2 / Failed Schemes x3" — see this slice's own
-// plan-file Context for why this formula is implemented instead of the
-// career box's own "+1 Infamy" line) and Cash (each term's own
+// Fame and Cash are computed via rogueTermsFameCash rather than solely
+// through ApplyMusteringOut, since Rogue's own intrinsic Fame (Book 1
+// p.91: "Successful Schemes x2 / Failed Schemes x3" — see this slice's
+// own plan-file Context for why this formula is implemented instead of
+// the career box's own "+1 Infamy" line) and Cash (each term's own
 // SchemePayoff) both come from the career's own Terms, not from
 // Mustering Out rolls alone.
 func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
@@ -53,15 +53,9 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	fame := bonuses.Fame
 
 	if ok {
-		for _, t := range career.Terms {
-			cash += t.SchemePayoff
-
-			if t.Imprisoned {
-				fame += 3 // Book 1 p.91's own "Failed Schemes x3"
-			} else {
-				fame += 2 // "Successful Schemes x2"
-			}
-		}
+		termFame, termCash := rogueTermsFameCash(career.Terms)
+		fame += termFame
+		cash += termCash
 	}
 
 	return Character{
@@ -79,4 +73,25 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
 	}, ok
+}
+
+// rogueTermsFameCash sums Book 1 p.91's own "Successful Schemes x2 /
+// Failed Schemes x3" Fame and each term's own Cash payoff
+// (SchemePayoff) — shared by buildRogueCharacter and resolveRogueSegment
+// (career_chain.go), extracted once both were confirmed to duplicate
+// the identical loop body.
+func rogueTermsFameCash(terms []Term) (int, int) {
+	fame, cash := 0, 0
+
+	for _, t := range terms {
+		cash += t.SchemePayoff
+
+		if t.Imprisoned {
+			fame += 3 // Book 1 p.91's own "Failed Schemes x3"
+		} else {
+			fame += 2 // "Successful Schemes x2"
+		}
+	}
+
+	return fame, cash
 }
