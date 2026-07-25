@@ -28,6 +28,13 @@ func continueSpacer(r *dice.Roller, upp UPP) bool {
 // row's own Enlisted name (spacerBranchEnlistedNames[branchRow]) — the
 // character is definitionally still Enlisted at that point.
 func ResolveSpacerCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveSpacerCareerWithBudget is ResolveSpacerCareer's own body, with
+// the resolveCareerLoop term cap threaded as a parameter — see
+// resolveCareerLoop's own doc comment for why.
+func resolveSpacerCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: SpacerCareerName, HasRank: true}
 
 	if !BeginSpacer(r, int(upp.Characteristics[C4])) {
@@ -46,6 +53,7 @@ func ResolveSpacerCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 			return term, updatedUPP
 		},
 		continueSpacer,
+		maxTerms,
 	)
 	career.Terms = terms
 

@@ -99,25 +99,35 @@ const maxCareerTerms = 14
 // next iteration, and stop when the character didn't survive
 // (RiskResult.Survived(), false only on Dead), was left Disabled (p.65:
 // mandatory regardless of the Continue roll), or failed the
-// caller-supplied continueCareer check — capped defensively at
-// maxCareerTerms. Extracted once Marine became a second real caller of
-// this identical shape (the same "generalize on 2nd instance"
-// discipline already applied to musterOutRow and resolveRisk/
-// resolveReward/riskOutcome) — a bug in this control flow (e.g. the
-// missing-Disabled-check class of bug an early Scout draft had) now
-// only needs fixing once, not once per career.
+// caller-supplied continueCareer check — capped at maxTerms iterations.
+// Extracted once Marine became a second real caller of this identical
+// shape (the same "generalize on 2nd instance" discipline already
+// applied to musterOutRow and resolveRisk/resolveReward/riskOutcome) —
+// a defect in this control flow (e.g. the missing-Disabled-check class
+// of defect an early Scout draft had) now only needs fixing once, not
+// once per career.
+//
+// maxTerms is a per-call budget, not always maxCareerTerms: every
+// existing single-career caller passes maxCareerTerms itself (see each
+// ResolveXCareer's own thin wrapper around its resolveXCareerWithBudget)
+// for unchanged behavior, while character/career_chain.go's multi-career
+// orchestrator can pass a tighter budget derived from an -age target —
+// once maxTerms iterations have run, the loop simply never attempts
+// another one (no Continue roll, no new term), rather than cutting an
+// already-resolved term short.
 func resolveCareerLoop(
 	r *dice.Roller,
 	upp UPP,
 	positions []Position,
 	resolveTerm func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP),
 	continueCareer func(r *dice.Roller, upp UPP) bool,
+	maxTerms int,
 ) ([]Term, UPP) {
 	var terms []Term
 
 	usedThisCycle := make(map[Position]bool, len(positions))
 
-	for range maxCareerTerms {
+	for range maxTerms {
 		ccPos := nextCC(upp, positions, usedThisCycle)
 
 		term, updatedUPP := resolveTerm(r, upp, ccPos)
@@ -157,6 +167,16 @@ func resolveCareerLoop(
 // since GenerateUPP never generates Sanity in the first place (p.57:
 // "created only as needed").
 func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	return resolveScoutCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveScoutCareerWithBudget is ResolveScoutCareer's own body, with
+// the resolveCareerLoop term cap threaded as a parameter instead of the
+// implicit maxCareerTerms constant — see resolveCareerLoop's own doc
+// comment for why. character/career_chain.go's multi-career orchestrator
+// calls this directly with an -age-derived budget; ResolveScoutCareer
+// itself is unchanged for every other caller.
+func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: "Scout"}
 
 	if _, began := BeginScout(r, upp); !began {
@@ -170,6 +190,7 @@ func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 			return term, updatedUPP
 		},
 		continueScout,
+		maxTerms,
 	)
 	career.Terms = terms
 

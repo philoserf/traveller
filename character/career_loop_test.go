@@ -123,6 +123,25 @@ func TestResolveScoutCareerRespectsMaxTermsCap(t *testing.T) {
 	}
 }
 
+// TestResolveScoutCareerWithBudgetTruncatesAnImmortalCareer confirms
+// resolveCareerLoop's own maxTerms parameter (added for the -age target,
+// character/career_chain.go) actually caps the loop rather than just
+// documenting an intent — reusing the immortal fixture above (Risk can
+// never fail, so an uncapped run always hits the full maxCareerTerms),
+// a tighter budget must bind, and bind exactly.
+func TestResolveScoutCareerWithBudgetTruncatesAnImmortalCareer(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{12, 12, 12, 12, 12, 0}}
+
+	const budget = 5
+
+	career, _ := resolveScoutCareerWithBudget(dice.New(rand.NewPCG(1, 1)), upp, budget)
+	if len(career.Terms) != budget {
+		t.Errorf("len(career.Terms) = %d, want %d", len(career.Terms), budget)
+	}
+}
+
 // TestResolveScoutCareerCCRotationAcrossTerms reuses the immortal fixture:
 // since Risk can never fail, C1/C2/C3 all stay tied at 12 for the whole
 // career, so highestOf's first-wins-on-tie makes the rotation fully

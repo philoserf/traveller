@@ -2,6 +2,7 @@ package character
 
 import (
 	"math/rand/v2"
+	"reflect"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -106,6 +107,36 @@ func TestResolveCitizenCareerRespectsMaxTermsCap(t *testing.T) {
 	if atCap < 100 {
 		t.Fatalf("only %d of %d trials reached the %d-term cap — want at least 100 to trust the upper bound above",
 			atCap, trials, maxCareerTerms)
+	}
+}
+
+// TestResolveCitizenCareerWithBudgetTruncatesALongerNaturalRun confirms
+// citizen_loop.go's own hand-rolled loop honors the -age-derived budget
+// (character/career_chain.go) exactly like resolveCareerLoop does —
+// seed 5 confirmed by direct inspection to run 8 terms uncapped; a
+// budget of 3 must produce exactly the first 3 of those same terms, not
+// a different run (the same dice draws, just stopped earlier).
+func TestResolveCitizenCareerWithBudgetTruncatesALongerNaturalRun(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{7, 7, 7, 7, 7, 0}}
+
+	full := resolveCitizenCareerWithBudget(dice.New(rand.NewPCG(5, 5)), upp, maxCareerTerms)
+	if len(full.Terms) != 8 {
+		t.Fatalf("full.Terms = %d, want 8 (fixture assumption broken)", len(full.Terms))
+	}
+
+	const budget = 3
+
+	truncated := resolveCitizenCareerWithBudget(dice.New(rand.NewPCG(5, 5)), upp, budget)
+
+	if len(truncated.Terms) != budget {
+		t.Fatalf("len(truncated.Terms) = %d, want %d", len(truncated.Terms), budget)
+	}
+
+	if !reflect.DeepEqual(truncated.Terms, full.Terms[:budget]) {
+		t.Fatalf("truncated.Terms = %+v, want the first %d terms of the uncapped run %+v",
+			truncated.Terms, budget, full.Terms[:budget])
 	}
 }
 

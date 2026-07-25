@@ -64,6 +64,17 @@ func citizenLifeSuccessCount(terms []Term) int {
 // a Citizen career; ResolveCitizenCareer only reads it, for nextCC's own
 // highestOf tie-breaking.
 func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
+	return resolveCitizenCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveCitizenCareerWithBudget is ResolveCitizenCareer's own body,
+// with the term cap threaded as a parameter instead of the implicit
+// maxCareerTerms constant — see resolveCareerLoop's own doc comment
+// (career_loop.go) for why. Citizen is the guaranteed fallback for the
+// multi-career chain (character/career_chain.go), so its own hand-rolled
+// loop needs the same -age-target treatment even though it doesn't
+// itself call resolveCareerLoop.
+func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career {
 	career := Career{Name: CitizenCareerName}
 
 	if !BeginCitizen() {
@@ -72,7 +83,7 @@ func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
 
 	usedThisCycle := make(map[Position]bool, len(citizenLifePositions))
 
-	for range maxCareerTerms {
+	for range maxTerms {
 		ccPos := nextCC(upp, citizenLifePositions, usedThisCycle)
 
 		term, jobSkill, hobbySkill := ResolveCitizenTerm(

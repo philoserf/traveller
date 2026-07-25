@@ -27,7 +27,7 @@ type careerSegment struct {
 	Medals      []string
 }
 
-type careerSegmentResolver func(r *dice.Roller, upp UPP) careerSegment
+type careerSegmentResolver func(r *dice.Roller, upp UPP, maxTerms int) careerSegment
 
 // careerChainRegistry is every career resolvable as a link in a
 // multi-career chain. Noble is deliberately absent (its Begin is
@@ -57,11 +57,12 @@ var careerChainRegistry = map[string]careerSegmentResolver{
 func resolveRiskCareerSegment(
 	r *dice.Roller,
 	upp UPP,
-	resolveCareer func(r *dice.Roller, upp UPP) (Career, UPP),
+	maxTerms int,
+	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
 	careerFame func(career Career) int,
 ) careerSegment {
-	career, careerUPP := resolveCareer(r, upp)
+	career, careerUPP := resolveCareer(r, upp, maxTerms)
 	career.MusteringOut = resolveMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
@@ -80,24 +81,41 @@ func resolveRiskCareerSegment(
 	}
 }
 
-func resolveScoutSegment(r *dice.Roller, upp UPP) careerSegment {
-	return resolveRiskCareerSegment(r, upp, ResolveScoutCareer, ResolveScoutMusterOut, scoutDiscoveryFame)
+func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	return resolveRiskCareerSegment(
+		r,
+		upp,
+		maxTerms,
+		resolveScoutCareerWithBudget,
+		ResolveScoutMusterOut,
+		scoutDiscoveryFame,
+	)
 }
 
-func resolveMarineSegment(r *dice.Roller, upp UPP) careerSegment {
-	return resolveRiskCareerSegment(r, upp, ResolveMarineCareer, ResolveMarineMusterOut, marineCareerFame)
+func resolveMarineSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	return resolveRiskCareerSegment(
+		r, upp, maxTerms, resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFame)
 }
 
-func resolveSoldierSegment(r *dice.Roller, upp UPP) careerSegment {
-	return resolveRiskCareerSegment(r, upp, ResolveSoldierCareer, ResolveSoldierMusterOut, soldierCareerFame)
+func resolveSoldierSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	return resolveRiskCareerSegment(
+		r, upp, maxTerms, resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFame)
 }
 
-func resolveSpacerSegment(r *dice.Roller, upp UPP) careerSegment {
-	return resolveRiskCareerSegment(r, upp, ResolveSpacerCareer, ResolveSpacerMusterOut, spacerCareerFame)
+func resolveSpacerSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	return resolveRiskCareerSegment(
+		r, upp, maxTerms, resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFame)
 }
 
-func resolveAgentSegment(r *dice.Roller, upp UPP) careerSegment {
-	return resolveRiskCareerSegment(r, upp, ResolveAgentCareer, ResolveAgentMusterOut, agentCareerFame)
+func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	return resolveRiskCareerSegment(
+		r,
+		upp,
+		maxTerms,
+		resolveAgentCareerWithBudget,
+		ResolveAgentMusterOut,
+		agentCareerFame,
+	)
 }
 
 // resolveRogueSegment mirrors buildRogueCharacter's own body
@@ -105,8 +123,8 @@ func resolveAgentSegment(r *dice.Roller, upp UPP) careerSegment {
 // never modifies a characteristic at all (rogue_loop.go's own doc
 // comment: "Rogue never modifies its own CC"), so upp passes through
 // unchanged; there is no death mechanic, so Survived is always true.
-func resolveRogueSegment(r *dice.Roller, upp UPP) careerSegment {
-	career := ResolveRogueCareer(r, upp)
+func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	career := resolveRogueCareerWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveRogueMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
@@ -136,8 +154,8 @@ func resolveRogueSegment(r *dice.Roller, upp UPP) careerSegment {
 
 // resolveScholarSegment mirrors buildScholarCharacter's own body
 // (scholar_character_generate.go), stopping short of finalizeAging.
-func resolveScholarSegment(r *dice.Roller, upp UPP) careerSegment {
-	career, careerUPP := ResolveScholarCareer(r, upp)
+func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
@@ -165,8 +183,8 @@ func resolveScholarSegment(r *dice.Roller, upp UPP) careerSegment {
 // "Dead" means Talent exhausted, not physical death, so Survived is
 // always true and WoundBadges is always 0 (a Talent setback, not a
 // physical wound).
-func resolveEntertainerSegment(r *dice.Roller, upp UPP) careerSegment {
-	career, fame := ResolveEntertainerCareer(r, upp)
+func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	career, fame := resolveEntertainerCareerWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
@@ -182,14 +200,17 @@ func resolveEntertainerSegment(r *dice.Roller, upp UPP) careerSegment {
 
 // resolveMerchantSegment mirrors buildMerchantCharacter's own body
 // (merchant_character_generate.go), stopping short of finalizeAging.
-// BeginMerchant never fails, so ok collapses to didn't-die-on-the-last-term.
-func resolveMerchantSegment(r *dice.Roller, upp UPP) careerSegment {
-	career, careerUPP, isOfficer, tier := ResolveMerchantCareer(r, upp)
+// buildMerchantCharacter's own comment notes BeginMerchant never fails,
+// so len(career.Terms) > 0 used to be unconditional — that stops being
+// true once maxTerms can be 0 (an exhausted -age budget), so this
+// checks explicitly rather than indexing career.Terms unconditionally.
+func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	career, careerUPP, isOfficer, tier := resolveMerchantCareerWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
-	ok := career.Terms[len(career.Terms)-1].RiskResult != Dead
+	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
 	fame := bonuses.Fame
 	if ok {
@@ -207,8 +228,8 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP) careerSegment {
 // (citizen_character_generate.go), stopping short of finalizeAging.
 // Citizen Life can't fail Career Resolution at all, so Survived is
 // always true.
-func resolveCitizenSegment(r *dice.Roller, upp UPP) careerSegment {
-	career := ResolveCitizenCareer(r, upp)
+func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int) careerSegment {
+	career := resolveCitizenCareerWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveCitizenMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
@@ -285,6 +306,57 @@ func chainRank(careers []Career) string {
 	return ""
 }
 
+// careerChainAccumulator carries the running totals GenerateCareerChainCharacter
+// builds up across segments — split out so the main function's own loop
+// only has to decide continue/break, not also thread six separate
+// running variables through it.
+type careerChainAccumulator struct {
+	careers                              []Career
+	skills                               []SkillLevel
+	medals                               []string
+	fame, cash, woundBadges, termsServed int
+}
+
+// addSegment folds seg into the accumulator. A zero-term seg (Begin
+// failed) still contributes its own Career entry — matching every
+// existing single-career "never qualified" precedent — but nothing
+// else.
+func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
+	acc.careers = append(acc.careers, seg.Career)
+
+	if len(seg.Career.Terms) == 0 {
+		return
+	}
+
+	acc.termsServed += len(seg.Career.Terms)
+	acc.skills = append(acc.skills, seg.Skills...)
+	acc.medals = append(acc.medals, seg.Medals...)
+	acc.fame += seg.Fame
+	acc.cash += seg.Cash
+	acc.woundBadges += seg.WoundBadges
+}
+
+// segmentBudget returns the term budget the next segment attempt should
+// run with, and false if an -age target (ageTarget != 0) has already
+// been reached — meaning the chain must stop attempting anything
+// further, including the Citizen fallback, without even calling that
+// segment's own resolver (the literal "don't attempt," never a
+// retroactive cut of an already-resolved term). ageTarget == 0 means no
+// cap at all — every segment gets the same maxCareerTerms budget every
+// single-career caller has always used.
+func segmentBudget(ageTarget, maxAllowedTotalTerms, termsServed int) (int, bool) {
+	if ageTarget == 0 {
+		return maxCareerTerms, true
+	}
+
+	remaining := maxAllowedTotalTerms - termsServed
+	if remaining <= 0 {
+		return 0, false
+	}
+
+	return min(maxCareerTerms, remaining), true
+}
+
 // GenerateCareerChainCharacter generates a full Human Character across
 // an ordered sequence of careerNames (already lowercased/trimmed),
 // implementing Book 1's own "Changing Careers" (pp.65-66): each career
@@ -298,45 +370,50 @@ func chainRank(careers []Career) string {
 // Automatic") — no such thing as a character who never held any career
 // at all.
 //
+// ageTarget (0 = unbounded) stops the chain from attempting any further
+// term or career transition once the character's age would reach or
+// exceed it — a target under 18 (or one reached before any listed
+// career even Begins) degrades cleanly to an empty Careers slice, a
+// valid "never had a job" outcome, not an error. A term is an atomic
+// 4-year block, so a target that isn't 18+4N is reached from *under*,
+// never over (e.g. -age 41 yields a final age of 38).
+//
 // Returns ok=false only when a segment ends in Dead (Book 1 p.69:
 // "Dying During Character Generation" voids the whole attempt) — same
 // as every existing single-career entry point, everything accumulated
 // through the fatal segment is still returned, not discarded, matching
 // cmd/chargen's own "the sheet above still prints in full" precedent.
-func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string) (Character, bool, error) {
+func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarget int) (Character, bool, error) {
 	if err := validateCareerChain(careerNames); err != nil {
 		return Character{}, false, err
+	}
+
+	maxAllowedTotalTerms := 0
+	if ageTarget != 0 {
+		maxAllowedTotalTerms = max(0, (ageTarget-18)/4)
 	}
 
 	upp := GenerateUPP(r)
 	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
 
-	var careers []Career
-
-	skills := slices.Clone(homeworldSkills)
-
-	var medals []string
-
-	var fame, cash, woundBadges, termsServed int
-
+	acc := careerChainAccumulator{skills: slices.Clone(homeworldSkills)}
 	everSucceeded, survived := false, true
 
 	for _, name := range careerNames {
-		seg := careerChainRegistry[name](r, upp)
-		careers = append(careers, seg.Career)
+		maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed)
+		if !attemptAllowed {
+			break
+		}
+
+		seg := careerChainRegistry[name](r, upp, maxTerms)
 		upp = seg.UPP
+		acc.addSegment(seg)
 
 		if len(seg.Career.Terms) == 0 {
 			continue
 		}
 
 		everSucceeded = true
-		termsServed += len(seg.Career.Terms)
-		skills = append(skills, seg.Skills...)
-		medals = append(medals, seg.Medals...)
-		fame += seg.Fame
-		cash += seg.Cash
-		woundBadges += seg.WoundBadges
 
 		if !seg.Survived {
 			survived = false
@@ -346,15 +423,14 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string) (Charact
 	}
 
 	if !everSucceeded {
-		seg := careerChainRegistry["citizen"](r, upp)
-		careers = append(careers, seg.Career)
-		upp = seg.UPP
-		termsServed = len(seg.Career.Terms)
-		skills = append(skills, seg.Skills...)
-		fame, cash = seg.Fame, seg.Cash
+		if maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed); attemptAllowed {
+			seg := careerChainRegistry["citizen"](r, upp, maxTerms)
+			upp = seg.UPP
+			acc.addSegment(seg)
+		}
 	}
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, termsServed, survived)
+	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, acc.termsServed, survived)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
@@ -367,12 +443,12 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string) (Charact
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,
-		Rank:           chainRank(careers),
-		Fame:           fame,
-		Cash:           cash,
-		WoundBadges:    woundBadges,
-		Careers:        careers,
-		Skills:         skills,
-		Medals:         medals,
+		Rank:           chainRank(acc.careers),
+		Fame:           acc.fame,
+		Cash:           acc.cash,
+		WoundBadges:    acc.woundBadges,
+		Careers:        acc.careers,
+		Skills:         acc.skills,
+		Medals:         acc.medals,
 	}, survived, nil
 }

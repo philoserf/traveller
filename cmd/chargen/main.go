@@ -29,6 +29,13 @@
 // GenerateCareerChainCharacter), falling back to Citizen if every listed
 // career fails to Begin — Noble isn't a valid chain entry (its Begin
 // doesn't fit the shape); use -career noble alone instead.
+//
+// -age N stops the chain from attempting any further term or career
+// once the character's age would reach or exceed N — never a
+// retroactive cut of an already-resolved term, only "don't attempt what
+// comes next." A nonzero -age always routes through the chain function,
+// even for a single -career name, since the legacy single-career
+// functions have no way to honor an age target.
 package main
 
 import (
@@ -49,6 +56,11 @@ func main() {
 		"career (or comma-separated ordered list, e.g. \"scout,spacer\") to generate: scout, citizen, noble, "+
 			"marine, soldier, spacer, rogue, scholar, entertainer, merchant, or agent — noble may only be used alone",
 	)
+	ageTarget := flag.Int(
+		"age",
+		0,
+		"stop attempting further career progression once age would reach or exceed this (0 = no target)",
+	)
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
 	// registered above this line.
@@ -56,18 +68,30 @@ func main() {
 
 	r := dice.RollerFromSeed(s)
 
+	if *ageTarget < 0 {
+		fmt.Fprintf(os.Stderr, "chargen: -age must not be negative, got %d\n", *ageTarget)
+		os.Exit(1)
+	}
+
 	names := splitCareerNames(*careerName)
+
+	if len(names) == 1 && names[0] == "noble" && *ageTarget != 0 {
+		fmt.Fprintln(os.Stderr,
+			"chargen: -age is not supported for noble (its Begin doesn't fit the age-budget chain shape); "+
+				"use -career noble without -age")
+		os.Exit(1)
+	}
 
 	var c character.Character
 
 	var ok bool
 
-	if len(names) == 1 {
+	if len(names) == 1 && *ageTarget == 0 {
 		ok = generateSingleCareer(r, names[0], *careerName, &c)
 	} else {
 		var err error
 
-		c, ok, err = character.GenerateCareerChainCharacter(r, names)
+		c, ok, err = character.GenerateCareerChainCharacter(r, names, *ageTarget)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "chargen: %v\n", err)
 			os.Exit(1)

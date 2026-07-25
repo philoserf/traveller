@@ -24,6 +24,17 @@ func continueEntertainer(r *dice.Roller, fame int) bool {
 // !RiskResult.Survived() || Disabled || !continueCareer stop condition)
 // minus the CC-rotation this career doesn't have.
 func ResolveEntertainerCareer(r *dice.Roller, upp UPP) (Career, int) {
+	return resolveEntertainerCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveEntertainerCareerWithBudget is ResolveEntertainerCareer's own
+// body, with the term cap threaded as a parameter instead of the
+// implicit maxCareerTerms constant — see resolveCareerLoop's own doc
+// comment (career_loop.go) for why. Entertainer is a registered,
+// chainable career (character/career_chain.go), so its own hand-rolled
+// loop needs the same -age-target treatment even though it doesn't
+// itself call resolveCareerLoop.
+func resolveEntertainerCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, int) {
 	career := Career{Name: EntertainerCareerName}
 
 	fame := rollEntertainerFameTalent(r)
@@ -38,7 +49,7 @@ func ResolveEntertainerCareer(r *dice.Roller, upp UPP) (Career, int) {
 
 	var terms []Term
 
-	for range maxCareerTerms {
+	for range maxTerms {
 		var term Term
 
 		term, fame, talent = ResolveEntertainerTerm(r, fame, talent)

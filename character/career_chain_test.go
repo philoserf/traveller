@@ -99,7 +99,7 @@ func TestCareerChainSingleEntryMatchesLegacyGenerator(t *testing.T) {
 					continue
 				}
 
-				got, gotOk, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{c.name})
+				got, gotOk, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{c.name}, 0)
 				if err != nil {
 					t.Fatalf("seed=%d: %v", seed, err)
 				}
@@ -132,7 +132,7 @@ func TestCareerChainFallsBackToCitizenEvenForASingleFailedEntry(t *testing.T) {
 		t.Fatalf("seed=%d: expected GenerateScoutCharacter to report never-qualified, got ok=true", seed)
 	}
 
-	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"})
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 
 	const seed = 7 // confirmed by direct inspection: Scout ends after 1 term, Spacer Begins and runs 1 term
 
-	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"})
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,8 +182,8 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	r := dice.New(rand.NewPCG(seed, seed))
 	upp := GenerateUPP(r)
 	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
-	scoutSeg := resolveScoutSegment(r, upp)
-	spacerSeg := resolveSpacerSegment(r, scoutSeg.UPP)
+	scoutSeg := resolveScoutSegment(r, upp, maxCareerTerms)
+	spacerSeg := resolveSpacerSegment(r, scoutSeg.UPP, maxCareerTerms)
 
 	wantFame := scoutSeg.Fame + spacerSeg.Fame
 	wantCash := scoutSeg.Cash + spacerSeg.Cash
@@ -219,7 +219,7 @@ func TestCareerChainFallsBackToCitizenWhenEveryListedCareerFails(t *testing.T) {
 
 	const seed = 340 // confirmed by direct inspection: both Scout and Spacer fail to Begin
 
-	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"})
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func TestCareerChainDeadInFirstSegmentEndsTheWholeAttempt(t *testing.T) {
 
 	const seed = 26 // confirmed by direct inspection: Scout dies in its 3rd term
 
-	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"})
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,6 +265,135 @@ func TestCareerChainDeadInFirstSegmentEndsTheWholeAttempt(t *testing.T) {
 	last := got.Careers[0].Terms[len(got.Careers[0].Terms)-1]
 	if last.RiskResult != Dead {
 		t.Fatalf("last term RiskResult = %v, want Dead", last.RiskResult)
+	}
+}
+
+// TestCareerChainAgeTargetCutsOffMidCareer confirms a nonzero ageTarget
+// stops a still-running career from attempting a term that would push
+// past it — seed 3 confirmed by direct inspection to run Scout 4 terms
+// (age 34) uncapped; a target of 30 (18+4*3) must produce exactly 3.
+func TestCareerChainAgeTargetCutsOffMidCareer(t *testing.T) {
+	t.Parallel()
+
+	const seed = 3
+
+	uncapped, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok || len(uncapped.Careers) != 1 || len(uncapped.Careers[0].Terms) != 4 {
+		t.Fatalf("uncapped = %+v, want a single 4-term Scout career (fixture assumption broken)", uncapped.Careers)
+	}
+
+	capped, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(capped.Careers) != 1 || len(capped.Careers[0].Terms) != 3 {
+		t.Fatalf("capped.Careers = %+v, want a single 3-term Scout career", capped.Careers)
+	}
+
+	if capped.Age != 30 {
+		t.Errorf("Age = %d, want 30", capped.Age)
+	}
+
+	if !reflect.DeepEqual(capped.Careers[0].Terms, uncapped.Careers[0].Terms[:3]) {
+		t.Fatalf("capped terms diverge from the first 3 terms of the uncapped run")
+	}
+}
+
+// TestCareerChainAgeTargetStopsBeforeTheNextListedCareer confirms that
+// once the budget is exhausted between two listed careers, the second
+// is never even attempted — no zero-term "attempted" entry for it,
+// distinguishing "never attempted" (this test) from "attempted and
+// failed Begin" (TestCareerChainFallsBackToCitizenWhenEveryListedCareerFails).
+// Seed 1 confirmed by direct inspection: Scout naturally runs exactly 2
+// terms (age 26) before Spacer would be attempted.
+func TestCareerChainAgeTargetStopsBeforeTheNextListedCareer(t *testing.T) {
+	t.Parallel()
+
+	const seed = 1
+
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, 26)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 1 || got.Careers[0].Name != "Scout" || len(got.Careers[0].Terms) != 2 {
+		t.Fatalf("Careers = %+v, want exactly one 2-term Scout entry (Spacer never attempted)", got.Careers)
+	}
+
+	if got.Age != 26 {
+		t.Errorf("Age = %d, want 26", got.Age)
+	}
+}
+
+// TestCareerChainAgeTargetAtOrBelow18ProducesNoCareers confirms a
+// target that allows zero terms degrades cleanly: ok=true, no Careers
+// at all (not even a zero-term "attempted" entry, and no Citizen
+// fallback — the fallback itself is gated by the same budget), only
+// homeworld skills.
+func TestCareerChainAgeTargetAtOrBelow18ProducesNoCareers(t *testing.T) {
+	t.Parallel()
+
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(1, 1)), []string{"scout"}, 18)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 0 {
+		t.Fatalf("Careers = %+v, want none", got.Careers)
+	}
+
+	if got.Age != 18 {
+		t.Errorf("Age = %d, want 18", got.Age)
+	}
+
+	r := dice.New(rand.NewPCG(1, 1))
+	GenerateUPP(r) // replay the same prefix GenerateCareerChainCharacter itself consumes
+	_, homeworldSkills := GenerateHomeworldSkills(r)
+
+	if len(got.Skills) != len(homeworldSkills) {
+		t.Errorf("len(Skills) = %d, want %d (homeworld skills only)", len(got.Skills), len(homeworldSkills))
+	}
+}
+
+// TestCareerChainAgeTargetSoLargeItNeverBindsMatchesUnbounded confirms
+// ageTarget==0 truly is a no-op relative to a target so large it can
+// never be reached — an -age value a caller might pick "just to be
+// safe" shouldn't change anything.
+func TestCareerChainAgeTargetSoLargeItNeverBindsMatchesUnbounded(t *testing.T) {
+	t.Parallel()
+
+	const seed = 15 // confirmed by direct inspection: Scout runs the full 14-term cap
+
+	unbounded, ok1, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	generous, ok2, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ok1 != ok2 || !reflect.DeepEqual(unbounded, generous) {
+		t.Fatalf("ageTarget=1000 diverged from ageTarget=0:\nunbounded=%+v ok=%v\ngenerous=%+v ok=%v",
+			unbounded, ok1, generous, ok2)
 	}
 }
 

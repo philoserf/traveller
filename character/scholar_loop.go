@@ -16,6 +16,13 @@ func continueScholar(r *dice.Roller, edu, mod int) bool {
 // scholarPublicationsTotal needs terms-so-far for both the term
 // resolver's own Promotion/Tenure Mod and the Continue check's own Mod.
 func ResolveScholarCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	return resolveScholarCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveScholarCareerWithBudget is ResolveScholarCareer's own body,
+// with the resolveCareerLoop term cap threaded as a parameter — see
+// resolveCareerLoop's own doc comment for why.
+func resolveScholarCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: ScholarCareerName, HasRank: true}
 
 	edu := int(upp.Characteristics[C5])
@@ -42,6 +49,7 @@ func ResolveScholarCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 		func(r *dice.Roller, _ UPP) bool {
 			return continueScholar(r, edu, scholarPublicationsTotal(priorTerms))
 		},
+		maxTerms,
 	)
 	career.Terms = terms
 

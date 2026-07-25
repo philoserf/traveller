@@ -25,6 +25,13 @@ func continueSoldier(r *dice.Roller, upp UPP) bool {
 // accumulated via closure capture, branchAutomaticSkill applied to term
 // 1 after the loop completes.
 func ResolveSoldierCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveSoldierCareerWithBudget is ResolveSoldierCareer's own body,
+// with the resolveCareerLoop term cap threaded as a parameter — see
+// resolveCareerLoop's own doc comment for why.
+func resolveSoldierCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: SoldierCareerName, HasRank: true}
 
 	if !BeginSoldier(r, int(upp.Characteristics[C1])) {
@@ -43,6 +50,7 @@ func ResolveSoldierCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 			return term, updatedUPP
 		},
 		continueSoldier,
+		maxTerms,
 	)
 	career.Terms = terms
 

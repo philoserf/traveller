@@ -13,6 +13,13 @@ func continueAgent(r *dice.Roller, str, mod int) bool {
 // ResolveAgentCareer resolves a full multi-term Agent career (Book 1
 // p.83).
 func ResolveAgentCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	return resolveAgentCareerWithBudget(r, upp, maxCareerTerms)
+}
+
+// resolveAgentCareerWithBudget is ResolveAgentCareer's own body, with
+// the resolveCareerLoop term cap threaded as a parameter — see
+// resolveCareerLoop's own doc comment for why.
+func resolveAgentCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: AgentCareerName}
 
 	if !BeginAgent(r, int(upp.Characteristics[C3])) {
@@ -31,6 +38,7 @@ func ResolveAgentCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 		func(r *dice.Roller, upp UPP) bool {
 			return continueAgent(r, int(upp.Characteristics[C1]), len(priorTerms))
 		},
+		maxTerms,
 	)
 	career.Terms = terms
 
