@@ -266,10 +266,12 @@ var scoutSkillTable = [7][6]string{
 // code anywhere yet, so no character ever has a Major or Minor), "One
 // Science" (no defined science list exists yet in this codebase, unlike
 // "One Art"/"One Trade," which reuse homeworld_generate.go's own
-// oneArtChoices/theTradeChoices), or "Capital" (Noble's own
-// nobleSkillTable entry — Book 1 p.85's own footnote: "Capital= World
-// Knowledge (of world of highest held noble Land Grant) (value=1D)" —
-// this codebase has no Land Grant tracking anywhere yet). "C6+1"'s own
+// oneArtChoices/theTradeChoices), "Capital" (Noble's own nobleSkillTable
+// entry — Book 1 p.85's own footnote: "Capital= World Knowledge (of
+// world of highest held noble Land Grant) (value=1D)" — this codebase
+// has no Land Grant tracking anywhere yet), or "Any Knowledge" (Agent's
+// own agentSkillTable entry — no enumerable Knowledge list exists in
+// this codebase, the same reason "One Science" is unresolvable). "C6+1"'s own
 // footnote (lost if C6=Caste) never applies here — GenerateUPP
 // (characteristic_generate.go) only generates Human characters, whose C6
 // is always Social Standing, never Caste.
@@ -286,7 +288,7 @@ func resolveSkillCell(r *dice.Roller, table [7][6]string, column, row int) (Skil
 	}
 
 	switch name {
-	case "Major", "Minor", "One Science", "Capital":
+	case "Major", "Minor", "One Science", "Capital", "Any Knowledge":
 		return SkillLevel{}, false
 	case "One Art":
 		return skillLevel1(rollChoice(r, oneArtChoices), Skill), true

@@ -1,0 +1,38 @@
+package character
+
+import "github.com/philoserf/traveller/dice"
+
+// continueAgent targets Str, Mod +Terms (same-term-inclusive, the
+// established Eneri Dinsha precedent) — no natural-roll exception
+// documented, matching Scholar's/Entertainer's/Merchant's own
+// plain-roll Continue.
+func continueAgent(r *dice.Roller, str, mod int) bool {
+	return rollAgainstTarget(r, str, mod)
+}
+
+// ResolveAgentCareer resolves a full multi-term Agent career (Book 1
+// p.83).
+func ResolveAgentCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	career := Career{Name: AgentCareerName}
+
+	if !BeginAgent(r, int(upp.Characteristics[C3])) {
+		return career, upp
+	}
+
+	var priorTerms []Term
+
+	terms, finalUPP := resolveCareerLoop(r, upp, agentRiskRewardPositions,
+		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
+			term, updatedUPP := ResolveAgentTerm(r, upp, ccPos)
+			priorTerms = append(priorTerms, term)
+
+			return term, updatedUPP
+		},
+		func(r *dice.Roller, upp UPP) bool {
+			return continueAgent(r, int(upp.Characteristics[C1]), len(priorTerms))
+		},
+	)
+	career.Terms = terms
+
+	return career, finalUPP
+}

@@ -773,3 +773,50 @@ func TestCharacterRendersMerchantTermOutcome(t *testing.T) {
 		}
 	}
 }
+
+// TestCharacterRendersAgentTermOutcome confirms Agent needs no dedicated
+// render code at all — termOutcomeLine's existing generic Risk/Reward
+// fallback already handles its own shape once RewardResult carries the
+// formatted "<Career> Commendation-N" text (set by ResolveAgentTerm,
+// character/agent_generate.go), the same generic shape Marine/Soldier/
+// Spacer/Merchant already reuse.
+func TestCharacterRendersAgentTermOutcome(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: character.AgentCareerName,
+				Terms: []character.Term{
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Unharmed,
+						RewardResult:              "Noble Commendation-0",
+					},
+					{
+						ControllingCharacteristic: character.C3,
+						RiskResult:                character.Unharmed,
+						RewardResult:              "None",
+					},
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Wounded,
+						RewardResult:              "Soldier Commendation-6",
+					},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"Term 1 (Str): Unharmed, Reward: Noble Commendation-0",
+		"Term 2 (End): Unharmed",
+		"Term 3 (Str): Wounded, Reward: Soldier Commendation-6",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+}

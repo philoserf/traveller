@@ -94,6 +94,20 @@ linters:
       - path: character/(marine|soldier|spacer)_(loop|promotion)_test\.go
         linters:
           - dupl
+      # rogue_muster_out_test.go and agent_muster_out_test.go both use
+      # this session's own established TablesMatch/RollCountMatchesTerms/
+      # EntriesAreFromTables/BothColumnsReachable four-function shape —
+      # the same "test scaffolding, not the data, is what's shared"
+      # reasoning as above. Their own underlying tables are genuinely
+      # different (12-row, but different Money/Benefits values); dupl
+      # only flags these two specifically because both are the plainest
+      # instance of the shape (no extra wrinkle like Scholar's Edu param
+      # or Merchant's isOfficer/tier), crossing dupl's own similarity
+      # threshold. Extend this list if a future career's own muster-out
+      # test file collides the same way.
+      - path: character/(rogue|agent)_muster_out_test\.go
+        linters:
+          - dupl
 
 formatters:
   enable:
