@@ -274,7 +274,14 @@ var scoutSkillTable = [7][6]string{
 // this codebase, the same reason "One Science" is unresolvable). "C6+1"'s own
 // footnote (lost if C6=Caste) never applies here — GenerateUPP
 // (characteristic_generate.go) only generates Human characters, whose C6
-// is always Social Standing, never Caste.
+// is always Social Standing, never Caste. "Any Skill" (Functionary's own
+// functionarySkillTable entry, p.87's own footnote "from Citizen Life
+// Skills and Knowledges") IS resolvable — it draws directly from
+// citizenTableE via rollCitizenTableEName, the exact table Book 1's own
+// footnote names, already built for Citizen's own "E CITIZEN SKILLS AND
+// KNOWLEDGES" table — including its own chance of resolving to nothing
+// (citizenTableE's own "No Skill" entry), the same "unresolvable = lost"
+// convention as every other cell here.
 // resolveSkillCell resolves table[column][row] into a SkillLevel — split
 // out from rollSkillFromTable's own body once Rogue's own "In Prison:
 // Prison Skills from the Rogue Skills table column 1 or 2 only" (Book 1
@@ -289,6 +296,12 @@ func resolveSkillCell(r *dice.Roller, table [7][6]string, column, row int) (Skil
 
 	switch name {
 	case "Major", "Minor", "One Science", "Capital", "Any Knowledge":
+		return SkillLevel{}, false
+	case "Any Skill":
+		if drawn, ok := rollCitizenTableEName(r); ok {
+			return skillLevel1(drawn, Skill), true
+		}
+
 		return SkillLevel{}, false
 	case "One Art":
 		return skillLevel1(rollChoice(r, oneArtChoices), Skill), true

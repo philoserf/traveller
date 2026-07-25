@@ -13,7 +13,7 @@ func TestCareerChainRegistryCoversExpectedCareers(t *testing.T) {
 	t.Parallel()
 
 	want := []string{
-		"agent", "citizen", "entertainer", "marine", "merchant",
+		"agent", "citizen", "entertainer", "functionary", "marine", "merchant",
 		"rogue", "scholar", "scout", "soldier", "spacer",
 	}
 
@@ -43,6 +43,9 @@ func TestValidateCareerChain(t *testing.T) {
 		{"noble rejected mid-list", []string{"scout", "noble"}, true},
 		{"citizen not first", []string{"scout", "citizen"}, true},
 		{"citizen first is fine", []string{"citizen", "scout"}, false},
+		{"functionary not first", []string{"functionary"}, true},
+		{"functionary not first, mid-list", []string{"functionary", "scout"}, true},
+		{"functionary later is fine", []string{"scholar", "functionary"}, false},
 		{"adjacent duplicate", []string{"scout", "scout"}, true},
 		{"non-adjacent repeat is fine", []string{"scout", "spacer", "scout"}, false},
 		{"single valid", []string{"scout"}, false},
@@ -182,8 +185,8 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	r := dice.New(rand.NewPCG(seed, seed))
 	upp := GenerateUPP(r)
 	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
-	scoutSeg := resolveScoutSegment(r, upp, maxCareerTerms)
-	spacerSeg := resolveSpacerSegment(r, scoutSeg.UPP, maxCareerTerms)
+	scoutSeg := resolveScoutSegment(r, upp, maxCareerTerms, segmentContext{})
+	spacerSeg := resolveSpacerSegment(r, scoutSeg.UPP, maxCareerTerms, segmentContext{})
 
 	wantFame := scoutSeg.Fame + spacerSeg.Fame
 	wantCash := scoutSeg.Cash + spacerSeg.Cash
@@ -424,5 +427,78 @@ func TestChainRankEmptyWhenNoSegmentEverHeldARank(t *testing.T) {
 
 	if got := chainRank(careers); got != "" {
 		t.Errorf("chainRank(...) = %q, want empty", got)
+	}
+}
+
+// TestCareerChainFunctionaryReachesF6TitleFromPrecedingCareer confirms
+// a genuine ["scholar", "functionary"] chain: Functionary's own Begin
+// succeeds once Scholar has served enough terms, and the F6 promotion
+// term names the Scholar-specific title ("College President"), not the
+// generic "Director" fallback.
+func TestCareerChainFunctionaryReachesF6TitleFromPrecedingCareer(t *testing.T) {
+	t.Parallel()
+
+	const seed = 31 // confirmed by direct inspection: Scholar runs 14 terms, Functionary reaches F8 (passing through F6)
+
+	got, ok, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(seed, seed)),
+		[]string{"scholar", "functionary"},
+		0,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 2 || got.Careers[0].Name != ScholarCareerName ||
+		got.Careers[1].Name != FunctionaryCareerName {
+		t.Fatalf("Careers = %+v, want [Scholar, Functionary]", got.Careers)
+	}
+
+	sawF6Title := false
+
+	for _, term := range got.Careers[1].Terms {
+		if term.RewardResult == "Promoted to F6 College President" {
+			sawF6Title = true
+		}
+	}
+
+	if !sawF6Title {
+		t.Errorf("no term's RewardResult was %q; terms = %+v",
+			"Promoted to F6 College President", got.Careers[1].Terms)
+	}
+}
+
+// TestCareerChainFunctionaryBeginCanFailLikeAnyOtherCareer confirms
+// Functionary's own Begin failure (too few prior terms) is handled the
+// same way as any other listed career's failed Begin — a zero-term
+// Career entry, chain otherwise unaffected.
+func TestCareerChainFunctionaryBeginCanFailLikeAnyOtherCareer(t *testing.T) {
+	t.Parallel()
+
+	const seed = 2 // confirmed by direct inspection: Scholar serves 1 term, Functionary's Begin then fails (target 3)
+
+	got, ok, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(seed, seed)),
+		[]string{"scholar", "functionary"},
+		0,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 2 || len(got.Careers[0].Terms) == 0 {
+		t.Fatalf("Careers = %+v, want a real Scholar career", got.Careers)
+	}
+
+	if got.Careers[1].Name != FunctionaryCareerName || len(got.Careers[1].Terms) != 0 {
+		t.Fatalf("Careers[1] = %+v, want a zero-term failed Functionary attempt", got.Careers[1])
 	}
 }

@@ -188,6 +188,8 @@ func termOutcomeLine(c character.Career, i int, t character.Term) string {
 		return prefix + ": " + rogueTermLabel(t)
 	case character.ScholarCareerName:
 		return prefix + ": " + scholarTermLabel(t)
+	case character.FunctionaryCareerName:
+		return prefix + ": " + functionaryTermLabel(t)
 	}
 
 	line := prefix + ": " + riskResultLabel(t.RiskResult)
@@ -303,6 +305,28 @@ func entertainerTermLabel(t character.Term) string {
 
 	label := fmt.Sprintf("Fame %d, Talent %d, %s", t.FameAfterTerm, t.TalentAfterTerm, riskLabel)
 
+	if t.RewardResult != "" && t.RewardResult != "None" {
+		label += ", Reward: " + t.RewardResult
+	}
+
+	return label
+}
+
+// functionaryTermLabel renders "Unharmed, Reward: Promoted to F3
+// Manager" / "Office Politics Failed" — Office Politics reuses
+// RiskResult Disabled for "career ends, cannot Continue"
+// (character/functionary_generate.go's own ResolveFunctionaryTerm doc
+// comment), not a physical disability, so the literal word "Disabled"
+// is never shown here — the same class of override
+// entertainerTermLabel's own "Talent Exhausted" already establishes for
+// a different reused RiskResult value.
+func functionaryTermLabel(t character.Term) string {
+	riskLabel := riskResultLabel(t.RiskResult)
+	if t.RiskResult == character.Disabled {
+		riskLabel = "Office Politics Failed"
+	}
+
+	label := riskLabel
 	if t.RewardResult != "" && t.RewardResult != "None" {
 		label += ", Reward: " + t.RewardResult
 	}
