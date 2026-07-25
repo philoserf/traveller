@@ -100,6 +100,7 @@ tasks:
       - go run ./cmd/chargen || true
       - go run ./cmd/chargen -career citizen
       - go run ./cmd/chargen -career noble || true
+      - go run ./cmd/chargen -career marine || true
 
   demo:stop:
     internal: true

@@ -115,18 +115,44 @@ func GenerateScoutCharacter(r *dice.Roller) (Character, bool) {
 // — the same fixtures career_loop_test.go/career_muster_out_test.go
 // already establish) instead of seed-hunting for rare GenerateUPP
 // outcomes, mirroring ResolveScoutCareer's own upp-as-parameter
-// precedent.
+// precedent. Delegates to buildRiskCareerCharacter, below — see its own
+// doc comment for why.
 func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career, updatedUPP := ResolveScoutCareer(r, upp)
-	career.MusteringOut = ResolveScoutMusterOut(r, career)
+	return buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills, ResolveScoutCareer, ResolveScoutMusterOut)
+}
+
+// buildRiskCareerCharacter assembles a Character for any career sharing
+// Scout's own shape: resolveCareer returns (Career, UPP) threading a
+// Risk-driven characteristic reduction forward, ok is len(Terms) > 0 &&
+// the last term's RiskResult != Dead, and WoundBadges counts Wounded/
+// Disabled terms via the already-generic scoutWoundBadges. Extracted
+// once Marine became a second real, byte-identical caller of this exact
+// shape (flagged by golangci-lint's own dupl check) — the same
+// "generalize on 2nd instance" discipline already applied repeatedly
+// this session (musterOutRow, resolveRisk/resolveReward/riskOutcome,
+// resolveCareerLoop). Citizen and Noble are NOT unified in here: each
+// has a genuinely different ok/WoundBadges shape of its own (no death
+// mechanic), not just a different Resolve* pair — forcing them into
+// this same shape would paper over a real difference, not remove
+// duplication.
+func buildRiskCareerCharacter(
+	r *dice.Roller,
+	upp UPP,
+	homeworld string,
+	homeworldSkills []SkillLevel,
+	resolveCareer func(r *dice.Roller, upp UPP) (Career, UPP),
+	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
+) (Character, bool) {
+	career, updatedUPP := resolveCareer(r, upp)
+	career.MusteringOut = resolveMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, updatedUPP)
 
 	// Clone before appending: appending onto the caller's own
 	// homeworldSkills slice in place could silently corrupt an earlier
 	// Character's Skills if that slice is ever reused across multiple
-	// buildScoutCharacter calls (append reuses spare backing-array
-	// capacity when there is any).
+	// calls (append reuses spare backing-array capacity when there is
+	// any).
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
