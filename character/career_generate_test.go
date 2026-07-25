@@ -42,9 +42,11 @@ func TestHighestOf(t *testing.T) {
 	}
 }
 
-// TestScoutRiskOutcomeBoundaries pins Book 1 p.79's four Risk outcomes
-// against fixed original/reduced pairs, no dice involved.
-func TestScoutRiskOutcomeBoundaries(t *testing.T) {
+// TestRiskOutcomeBoundaries pins Book 1 p.65's universal four Risk
+// outcomes against fixed original/reduced pairs, no dice involved —
+// originally Scout-specific (TestScoutRiskOutcomeBoundaries), renamed
+// alongside riskOutcome itself once Marine became a second real caller.
+func TestRiskOutcomeBoundaries(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -66,8 +68,8 @@ func TestScoutRiskOutcomeBoundaries(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoutRiskOutcome(c.original, c.reduced); got != c.want {
-				t.Errorf("scoutRiskOutcome(%d, %d) = %v, want %v", c.original, c.reduced, got, c.want)
+			if got := riskOutcome(c.original, c.reduced); got != c.want {
+				t.Errorf("riskOutcome(%d, %d) = %v, want %v", c.original, c.reduced, got, c.want)
 			}
 		})
 	}

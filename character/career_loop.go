@@ -54,7 +54,7 @@ func nextScoutCC(upp UPP, usedThisCycle map[Position]bool) Position {
 }
 
 // continueScoutOutcome is continueScout's own dice-free decision, split out
-// the same way succeedsAgainst/scoutRiskOutcome are so the boundary is
+// the same way succeedsAgainst/riskOutcome are so the boundary is
 // directly testable against a fixed roll instead of a real 2D6 draw. roll==2
 // always succeeds (Book 1's "Mandatory Continue"); otherwise roll<=intChar.
 func continueScoutOutcome(roll, intChar int) bool {
@@ -92,22 +92,53 @@ func continueScout(r *dice.Roller, upp UPP) bool {
 // yet. A career hitting this cap is not a normal outcome Book 1 describes.
 const maxCareerTerms = 14
 
+// resolveCareerLoop is the shared multi-term Career-resolution loop
+// shape both ResolveScoutCareer and ResolveMarineCareer follow: rotate
+// the Controlling Characteristic via nextCC, resolve one term via the
+// caller-supplied resolveTerm, thread the returned UPP forward into the
+// next iteration, and stop when the character didn't survive
+// (RiskResult.Survived(), false only on Dead), was left Disabled (p.65:
+// mandatory regardless of the Continue roll), or failed the
+// caller-supplied continueCareer check — capped defensively at
+// maxCareerTerms. Extracted once Marine became a second real caller of
+// this identical shape (the same "generalize on 2nd instance"
+// discipline already applied to musterOutRow and resolveRisk/
+// resolveReward/riskOutcome) — a bug in this control flow (e.g. the
+// missing-Disabled-check class of bug an early Scout draft had) now
+// only needs fixing once, not once per career.
+func resolveCareerLoop(
+	r *dice.Roller,
+	upp UPP,
+	positions []Position,
+	resolveTerm func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP),
+	continueCareer func(r *dice.Roller, upp UPP) bool,
+) ([]Term, UPP) {
+	var terms []Term
+
+	usedThisCycle := make(map[Position]bool, len(positions))
+
+	for range maxCareerTerms {
+		ccPos := nextCC(upp, positions, usedThisCycle)
+
+		term, updatedUPP := resolveTerm(r, upp, ccPos)
+		upp = updatedUPP
+
+		terms = append(terms, term)
+
+		if !term.RiskResult.Survived() || term.RiskResult == Disabled || !continueCareer(r, upp) {
+			break
+		}
+	}
+
+	return terms, upp
+}
+
 // ResolveScoutCareer resolves a full multi-term Scout career (Book 1 p.79)
-// by looping ResolveScoutTerm. BeginScout's one-time "To Begin" check runs
+// via resolveCareerLoop. BeginScout's one-time "To Begin" check runs
 // first; if it fails, this returns Career{Name: "Scout"} with a nil Terms
 // slice and upp unchanged — a real, legitimate "never qualified" outcome
 // per Book 1's own "If both Begin and Retry fail, this career may not be
-// used," not an error. Otherwise, each term: pick this term's Controlling
-// Characteristic (nextScoutCC, rotating per p.65), resolve the term
-// (ResolveScoutTerm, which also returns an updated UPP carrying forward any
-// p.65 "permanently reduced" characteristic value), append the Term,
-// replace the working UPP with the updated one, then stop if the character
-// didn't survive (RiskResult.Survived(), false only on Dead), was left
-// Disabled (p.65: "the Character is disabled and must Muster Out at the
-// end of the Term" — mandatory regardless of the Continue roll; the actual
-// Double Benefits mustering-out payout itself is Muster-Out's own future
-// work, deferred alongside it below), or failed to Continue; otherwise
-// loop, capped defensively at maxCareerTerms.
+// used," not an error.
 //
 // Returns the final UPP alongside the Career — not just the Career — so a
 // caller building a full Character can persist any permanent reduction
@@ -116,7 +147,7 @@ const maxCareerTerms = 14
 // p.65 persistence gap this function exists to fix.
 //
 // BeginScout's own returned Position is not threaded into the first term's
-// ccPos — nextScoutCC's first-ever call (against an empty usedThisCycle)
+// ccPos — nextCC's first-ever call (against an empty usedThisCycle)
 // independently computes the identical value, both being
 // highestOf(upp, C1, C2, C3) over the same untouched characteristic set — so
 // term 1's CC naturally coincides with BeginScout's own pick.
@@ -132,19 +163,15 @@ func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 		return career, upp
 	}
 
-	usedThisCycle := make(map[Position]bool, len(scoutRiskRewardPositions))
+	terms, finalUPP := resolveCareerLoop(r, upp, scoutRiskRewardPositions,
+		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
+			term, updatedUPP, _ := ResolveScoutTerm(r, upp, ccPos)
 
-	for range maxCareerTerms {
-		ccPos := nextScoutCC(upp, usedThisCycle)
+			return term, updatedUPP
+		},
+		continueScout,
+	)
+	career.Terms = terms
 
-		term, updatedUPP, survived := ResolveScoutTerm(r, upp, ccPos)
-		career.Terms = append(career.Terms, term)
-		upp = updatedUPP
-
-		if !survived || term.RiskResult == Disabled || !continueScout(r, upp) {
-			break
-		}
-	}
-
-	return career, upp
+	return career, finalUPP
 }

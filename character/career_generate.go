@@ -6,7 +6,7 @@ import (
 )
 
 // succeedsAgainst is rollAgainstTarget's own dice-free comparison,
-// split out the same way scoutRiskOutcome is so the pass/fail boundary
+// split out the same way riskOutcome is so the pass/fail boundary
 // is directly testable against a fixed roll value instead of a real
 // 2D6 draw.
 func succeedsAgainst(roll, target, mod int) bool {
@@ -94,19 +94,26 @@ func rollScoutDuty(r *dice.Roller) ScoutDuty {
 	return CourierDuty
 }
 
-// scoutRiskOutcome maps a Risk failure's original and reduced
-// characteristic values to a RiskResult, split out from
-// resolveScoutRisk's own dice rolls so the mapping itself is
-// unit-testable against fixed fixtures — matching this project's
-// existing pattern of keeping a rule's own logic dice-free and
-// testable (e.g. world.techLevelModifier). Checked in priority order
-// since more than one case can technically apply to the same reduction:
-// reduced to 0 is Dead first and foremost, even when original was
-// already 0 (loss=0 there too, which would otherwise misreport as
-// Unharmed); otherwise no net loss (Flux offset the Mods) is Unharmed
-// even though the roll technically failed; a 4+ loss is Disabled;
-// anything less is Wounded.
-func scoutRiskOutcome(original, reduced int) RiskResult {
+// riskOutcome maps a Risk failure's original and reduced characteristic
+// values to a RiskResult, split out from resolveRisk's own dice rolls so
+// the mapping itself is unit-testable against fixed fixtures — matching
+// this project's existing pattern of keeping a rule's own logic
+// dice-free and testable (e.g. world.techLevelModifier). Checked in
+// priority order since more than one case can technically apply to the
+// same reduction: reduced to 0 is Dead first and foremost, even when
+// original was already 0 (loss=0 there too, which would otherwise
+// misreport as Unharmed); otherwise no net loss (Flux offset the Mods)
+// is Unharmed even though the roll technically failed; a 4+ loss is
+// Disabled; anything less is Wounded.
+//
+// Book 1 p.65's universal Risk-consequence rule, shared by every career
+// that rolls Risk — originally written for Scout alone (as
+// scoutRiskOutcome), generalized here now that Marine is a second real
+// caller with verbatim-matching consequence text of its own (p.86:
+// "Reduce CC by negative Mods and Flux... If reduced by 4 or more, then
+// Disabled"), the same "generalize on 2nd instance" discipline
+// musterOutRow already established.
+func riskOutcome(original, reduced int) RiskResult {
 	loss := original - reduced
 
 	switch {
@@ -121,17 +128,17 @@ func scoutRiskOutcome(original, reduced int) RiskResult {
 	}
 }
 
-// resolveScoutRisk resolves one Risk roll against cc+mod (Book 1 p.79's
-// Scout Risk & Reward box, itself an instance of the universal Risk
-// mechanic — Book 1 p.65). On success, Unharmed. On failure: reduce cc
-// by mod (if negative) and a Flux roll, floored at 0 and never
-// increased above the original cc ("CC may not be increased"), then
-// scoutRiskOutcome maps the result. Returns the outcome and the
-// (possibly reduced) characteristic value — applying that reduction
-// back onto a persistent Character.UPP is a future caller's concern;
-// this file only ever produces one detached Term (see ResolveScoutTerm),
-// never a full multi-term Character.
-func resolveScoutRisk(r *dice.Roller, cc ehex.Value, mod int) (RiskResult, ehex.Value) {
+// resolveRisk resolves one Risk roll against cc+mod — Book 1 p.65's
+// universal Risk mechanic, originally written for Scout alone
+// (resolveScoutRisk, p.79's own Risk & Reward box) and generalized once
+// Marine became a second real caller with the identical mechanic (p.86).
+// On success, Unharmed. On failure: reduce cc by mod (if negative) and a
+// Flux roll, floored at 0 and never increased above the original cc
+// ("CC may not be increased"), then riskOutcome maps the result. Returns
+// the outcome and the (possibly reduced) characteristic value — applying
+// that reduction back onto a persistent Character.UPP is a caller's
+// concern, not this function's.
+func resolveRisk(r *dice.Roller, cc ehex.Value, mod int) (RiskResult, ehex.Value) {
 	if rollAgainstTarget(r, int(cc), mod) {
 		return Unharmed, cc
 	}
@@ -150,13 +157,16 @@ func resolveScoutRisk(r *dice.Roller, cc ehex.Value, mod int) (RiskResult, ehex.
 		reduced = int(cc)
 	}
 
-	return scoutRiskOutcome(int(cc), reduced), ehex.Value(reduced)
+	return riskOutcome(int(cc), reduced), ehex.Value(reduced)
 }
 
-// resolveScoutReward resolves one Reward roll against cc-mod (opposite
-// sign from Risk, per Book 1 p.79's "Roll for Reward against CC+
-// (opposite sign) Mods"), reporting whether the Scout makes a Discovery.
-func resolveScoutReward(r *dice.Roller, cc ehex.Value, mod int) bool {
+// resolveReward resolves one Reward roll against cc-mod (opposite sign
+// from Risk, per Book 1 p.65's universal "Roll for Reward against CC+
+// (opposite sign) Mods" — originally resolveScoutReward, generalized
+// once Marine became a second real caller), reporting whether the
+// attempt succeeds (a Scout Discovery, a Marine XS Exemplary Service —
+// the specific consequence is each caller's own concern).
+func resolveReward(r *dice.Roller, cc ehex.Value, mod int) bool {
 	return rollAgainstTarget(r, int(cc), -mod)
 }
 
@@ -281,7 +291,7 @@ func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP, bool)
 	if duty == ExplorerDuty {
 		skillCount = 8
 
-		risk, reducedCC := resolveScoutRisk(r, cc, 0)
+		risk, reducedCC := resolveRisk(r, cc, 0)
 		term.RiskResult = risk
 		upp.Characteristics[ccPos] = reducedCC
 
@@ -289,7 +299,7 @@ func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP, bool)
 			return term, upp, false
 		}
 
-		if resolveScoutReward(r, reducedCC, 0) {
+		if resolveReward(r, reducedCC, 0) {
 			term.RewardResult = "Discovery"
 		}
 	}

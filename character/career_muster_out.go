@@ -34,7 +34,7 @@ var scoutMusterOutBenefits = [12]string{
 // Scout's own table has 12 rows, Citizen's 11), the second concrete
 // instance of the identical clamp rule that justifies generalizing it
 // out of scoutMusterOutRow's own original, Scout-only body. Split out
-// dice-free, same rationale as scoutRiskOutcome/continueScoutOutcome:
+// dice-free, same rationale as riskOutcome/continueScoutOutcome:
 // the clamp boundary is directly testable against a fixed roll instead
 // of a real D6 draw.
 func musterOutRow(roll, maxRow int) int {
