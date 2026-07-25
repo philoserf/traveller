@@ -1,9 +1,10 @@
 // Command chargen generates a Traveller5 character and renders it as
-// Markdown. Two careers exist so far — Scout and Citizen, selected via
-// -career — see character/character_generate.go and
-// character/citizen_character_generate.go for what's generated and
-// what's still deferred (Name, Age, Cash amounts, Equipment, Aging,
-// Education, and the other 11 T5 careers).
+// Markdown. Three careers exist so far — Scout, Citizen, and Noble,
+// selected via -career — see character/character_generate.go,
+// character/citizen_character_generate.go, and
+// character/noble_character_generate.go for what's generated and what's
+// still deferred (Name, Equipment, Education, Armed Forces, and the
+// other 9 T5 careers).
 package main
 
 import (
@@ -18,7 +19,7 @@ import (
 )
 
 func main() {
-	careerName := flag.String("career", "scout", "career to generate: scout or citizen")
+	careerName := flag.String("career", "scout", "career to generate: scout, citizen, or noble")
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
 	// registered above this line.
@@ -35,8 +36,10 @@ func main() {
 		c, ok = character.GenerateScoutCharacter(r)
 	case "citizen":
 		c = character.GenerateCitizenCharacter(r)
+	case "noble":
+		c, ok = character.GenerateNobleCharacter(r)
 	default:
-		fmt.Fprintf(os.Stderr, "chargen: -career must be \"scout\" or \"citizen\", got %q\n", *careerName)
+		fmt.Fprintf(os.Stderr, "chargen: -career must be \"scout\", \"citizen\", or \"noble\", got %q\n", *careerName)
 		os.Exit(1)
 	}
 
@@ -51,7 +54,8 @@ func main() {
 		// outcome programmatically, not just by scraping stdout.
 		fmt.Fprintln(
 			os.Stderr,
-			"chargen: this attempt did not survive character generation, or never qualified for Scout (Book 1 p.69)",
+			"chargen: this attempt did not survive character generation, or never qualified "+
+				"(Scout: Book 1 p.69; Noble: Soc < B, p.85)",
 		)
 		os.Exit(1)
 	}

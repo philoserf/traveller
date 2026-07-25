@@ -99,6 +99,7 @@ tasks:
       # RNG outcome, not a demo failure, so tolerate it here.
       - go run ./cmd/chargen || true
       - go run ./cmd/chargen -career citizen
+      - go run ./cmd/chargen -career noble || true
 
   demo:stop:
     internal: true

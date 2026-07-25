@@ -149,19 +149,24 @@ func writeCareer(b *strings.Builder, c character.Career) {
 }
 
 // termOutcomeLine renders one term's own outcome — Citizen's
-// CitizenLifeSucceeded (no wound/Reward concept) or every other career's
-// RiskResult/RewardResult (Scout's own shape today). Dispatches on
-// c.Name against character.CitizenCareerName rather than a bare string
-// literal or a Career-level bool flag — Name is already the career's own
-// unique identifier, and the shared exported constant (also used by
-// ResolveCitizenCareer's own Career{Name: ...} literal) means the two
-// call sites can't silently drift apart the way two independent "Citizen"
-// literals could.
+// CitizenLifeSucceeded (no wound/Reward concept), Noble's own
+// NobleAction/NobleSucceeded/Elevated (Return & Intrigue, no wound/
+// Reward concept either), or every other career's RiskResult/
+// RewardResult (Scout's own shape today). Dispatches on c.Name against
+// the career's own exported CareerName constant rather than a bare
+// string literal or a Career-level bool flag — Name is already the
+// career's own unique identifier, and the shared exported constants
+// (also used by each career's own Career{Name: ...} literal) mean the
+// two call sites for a given career can't silently drift apart the way
+// two independent string literals could.
 func termOutcomeLine(c character.Career, i int, t character.Term) string {
 	prefix := fmt.Sprintf("Term %d (%s)", i+1, positionAbbrev(t.ControllingCharacteristic))
 
-	if c.Name == character.CitizenCareerName {
+	switch c.Name {
+	case character.CitizenCareerName:
 		return prefix + ": " + citizenLifeLabel(t.CitizenLifeSucceeded)
+	case character.NobleCareerName:
+		return prefix + ": " + nobleTermLabel(t)
 	}
 
 	line := prefix + ": " + riskResultLabel(t.RiskResult)
@@ -170,6 +175,26 @@ func termOutcomeLine(c character.Career, i int, t character.Term) string {
 	}
 
 	return line
+}
+
+// nobleTermLabel renders "Return: Success", "Intrigue: Failure", or
+// "Intrigue: Success, Elevated" — Elevated is only ever true alongside a
+// successful Intrigue (ResolveNobleTerm's own invariant), so it's
+// appended unconditionally rather than re-checked here.
+func nobleTermLabel(t character.Term) string {
+	label := t.NobleAction + ": "
+
+	if t.NobleSucceeded {
+		label += "Success"
+	} else {
+		label += "Failure"
+	}
+
+	if t.Elevated {
+		label += ", Elevated"
+	}
+
+	return label
 }
 
 func citizenLifeLabel(succeeded bool) string {

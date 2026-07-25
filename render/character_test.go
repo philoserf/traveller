@@ -240,6 +240,38 @@ func TestCharacterShowsMusteringOutEntitlements(t *testing.T) {
 	}
 }
 
+func TestCharacterRendersNobleTermOutcome(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: character.NobleCareerName,
+				Terms: []character.Term{
+					{
+						ControllingCharacteristic: character.C2,
+						NobleAction:               "Intrigue",
+						NobleSucceeded:            true,
+						Elevated:                  true,
+					},
+					{ControllingCharacteristic: character.C3, NobleAction: "Return", NobleSucceeded: false},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"Term 1 (Dex): Intrigue: Success, Elevated",
+		"Term 2 (End): Return: Failure",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+}
+
 // TestCharacterOmitsZeroFameAndCash guards against showing "Fame: 0"/
 // "Cash: Cr0" for a Character whose Fame/Cash were never actually
 // computed — see Character's own doc comment on why that would
