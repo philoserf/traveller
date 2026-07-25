@@ -1,12 +1,12 @@
 // Command chargen generates a Traveller5 character and renders it as
-// Markdown. Four careers exist so far — Scout, Citizen, Noble, and
-// Marine, selected via -career — see character/character_generate.go,
+// Markdown. Five careers exist so far — Scout, Citizen, Noble, Marine,
+// and Soldier, selected via -career — see character/character_generate.go,
 // character/citizen_character_generate.go,
-// character/noble_character_generate.go, and
-// character/marine_character_generate.go for what's generated and
-// what's still deferred (Name, Equipment, Education, Marine's own
-// Promotion/Commission/Medals/Rank, Soldier, Spacer, and the other 8 T5
-// careers).
+// character/noble_character_generate.go,
+// character/marine_character_generate.go, and
+// character/soldier_character_generate.go for what's generated and
+// what's still deferred (Name, Equipment, Education, Command College,
+// Spacer, and the other 7 T5 careers).
 package main
 
 import (
@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	careerName := flag.String("career", "scout", "career to generate: scout, citizen, noble, or marine")
+	careerName := flag.String("career", "scout", "career to generate: scout, citizen, noble, marine, or soldier")
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
 	// registered above this line.
@@ -42,10 +42,12 @@ func main() {
 		c, ok = character.GenerateNobleCharacter(r)
 	case "marine":
 		c, ok = character.GenerateMarineCharacter(r)
+	case "soldier":
+		c, ok = character.GenerateSoldierCharacter(r)
 	default:
 		fmt.Fprintf(
 			os.Stderr,
-			"chargen: -career must be \"scout\", \"citizen\", \"noble\", or \"marine\", got %q\n",
+			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", or \"soldier\", got %q\n",
 			*careerName,
 		)
 		os.Exit(1)
@@ -63,7 +65,7 @@ func main() {
 		fmt.Fprintln(
 			os.Stderr,
 			"chargen: this attempt did not survive character generation, or never qualified "+
-				"(Scout/Marine: Book 1 p.69; Noble: Soc < B, p.85)",
+				"(Scout/Marine/Soldier: Book 1 p.69; Noble: Soc < B, p.85)",
 		)
 		os.Exit(1)
 	}

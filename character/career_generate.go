@@ -36,6 +36,61 @@ func highestOf(upp UPP, positions ...Position) Position {
 	return best
 }
 
+// operationsEduDM is the Armed Forces' own universal "DM +2 if Edu 10+"
+// (Book 1 p.82/p.86 alike) — originally marineOperationsEduDM, which
+// already had zero Marine-specific content, generalized once Soldier
+// became a second real caller.
+func operationsEduDM(edu int) int {
+	if edu >= 10 {
+		return 2
+	}
+
+	return 0
+}
+
+// rollHighestOfFour rolls 1D+dm four times against a musterOutRow-style
+// table (names/mods must be the same length) and returns the row with the
+// highest Mod — Book 1's own "Roll 4 times per Term for Operations;
+// select the highest Mod from the four," shared by every Armed Forces
+// career's own Operations roll. Originally rollMarineOperations's own
+// loop body, generalized once Soldier became a second real caller of the
+// identical shape.
+func rollHighestOfFour(r *dice.Roller, dm int, names []string, mods []int) (string, int) {
+	// bestIdx starts from the first of the 4 rolls, not a hardcoded
+	// index — seeding it with an unrolled row would bias the result
+	// toward that row whenever none of the real rolls beat its Mod.
+	bestIdx := musterOutRow(r.D6()+dm, len(names))
+
+	for range 3 {
+		row := musterOutRow(r.D6()+dm, len(names))
+		if mods[row] > mods[bestIdx] {
+			bestIdx = row
+		}
+	}
+
+	return names[bestIdx], mods[bestIdx]
+}
+
+// branchAutomaticSkill is Book 1's own Armed Forces branch-tied automatic
+// skill, verbatim identical text on both Marine's (p.86) and Soldier's
+// (p.82) own pages ("if Medical Branch=Medic-1. If Technical Branch=any
+// Trade"), granted once at career start — reuses theTradeChoices/
+// rollChoice (homeworld_generate.go) for Technical's own open "any Trade"
+// pick, the same resolution already used for "One Trade" table entries.
+// Originally marineBranchAutomaticSkill, generalized once Soldier
+// confirmed the text (and logic) is Armed-Forces-wide, not
+// Marine-specific.
+func branchAutomaticSkill(r *dice.Roller, branch string) (SkillLevel, bool) {
+	switch branch {
+	case "Medical":
+		return skillLevel1("Medic", Skill), true
+	case "Technical":
+		return skillLevel1(rollChoice(r, theTradeChoices), Skill), true
+	default:
+		return SkillLevel{}, false
+	}
+}
+
 // BeginScout resolves Book 1 p.79's "To Begin" check for the Scout
 // career ("To Begin: C1 or C2 or C3"; "Retry R&R: C5" — confirmed
 // against Book 1's own generic-engine text, "Some Careers allow Retry.

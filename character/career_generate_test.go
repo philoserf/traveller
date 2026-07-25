@@ -2,6 +2,7 @@ package character
 
 import (
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -39,6 +40,71 @@ func TestHighestOf(t *testing.T) {
 
 	if got, want := highestOf(upp, C1, C2, C3), C2; got != want {
 		t.Errorf("highestOf(C1,C2,C3) = %v, want %v (C2=9 is highest)", got, want)
+	}
+}
+
+func TestOperationsEduDM(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		edu  int
+		want int
+	}{
+		{9, 0},
+		{10, 2},
+		{15, 2},
+	}
+
+	for _, c := range cases {
+		if got := operationsEduDM(c.edu); got != c.want {
+			t.Errorf("operationsEduDM(%d) = %d, want %d", c.edu, got, c.want)
+		}
+	}
+}
+
+// TestRollHighestOfFour is a property test, not exact-value pinning
+// (which of 4 rolls wins is inherently seed-dependent): the returned Mod
+// must be at least as high as musterOutRow's own single-roll result
+// would give for the very first of the 4 dice drawn — confirming
+// rollHighestOfFour doesn't silently take a worse row than what it
+// actually rolled.
+func TestRollHighestOfFour(t *testing.T) {
+	t.Parallel()
+
+	names := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
+	mods := []int{2, 2, 1, 2, 0, 3, 1, 2, 0}
+
+	for _, seed := range []uint64{1, 2, 3, 4, 5} {
+		r1 := dice.New(rand.NewPCG(seed, seed))
+		_, got := rollHighestOfFour(r1, 0, names, mods)
+
+		r2 := dice.New(rand.NewPCG(seed, seed))
+		firstRow := musterOutRow(r2.D6(), len(names))
+		firstMod := mods[firstRow]
+
+		if got < firstMod {
+			t.Errorf("seed %d: rollHighestOfFour = %d, want >= first roll's own Mod %d", seed, got, firstMod)
+		}
+	}
+}
+
+func TestBranchAutomaticSkill(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(1, 1))
+
+	skill, ok := branchAutomaticSkill(r, "Medical")
+	if !ok || skill.Name != "Medic" {
+		t.Errorf("branchAutomaticSkill(Medical) = (%v, %v), want (Medic, true)", skill, ok)
+	}
+
+	skill, ok = branchAutomaticSkill(r, "Technical")
+	if !ok || !slices.Contains(theTradeChoices, skill.Name) {
+		t.Errorf("branchAutomaticSkill(Technical) = (%v, %v), want (one of %v, true)", skill, ok, theTradeChoices)
+	}
+
+	if _, ok := branchAutomaticSkill(r, "Infantry"); ok {
+		t.Error("branchAutomaticSkill(Infantry) = true, want false")
 	}
 }
 

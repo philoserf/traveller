@@ -32,31 +32,35 @@ func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 
 // marineCareerFame is Book 1 p.91's own Armed Forces Fame bracket
 // (Army/Marine/Navy). Since Phase V, Officer Rank is a real, reachable
-// outcome (marineRankState/ResolveMarineTerm), so the bracket's own
-// "Officer Rank*" line (*Armed Forces Enlisted = no Fame) genuinely
-// applies now — read as "=Rank" (the numeric tier, O1=1 .. O7=7),
-// matching the same "=Rank" formula shape p.91 already uses for Scholar
-// and Merchant; no explicit multiplier is printed for Armed Forces the
-// way Medals/Noble each get one, so this is a documented judgment call,
-// not a directly-quoted formula. The bracket's nested Medal/Wound-Badge
-// Fame values (Exemplary Service XS x0, Wound Badge WB x1, MCUF x1,
-// MCG x2, SEH x3) are read as scoped only to the "Rank*" line by the
-// asterisk's own placement, not to the whole bracket — Medals and Wound
-// Badges are earned with no Officer gate anywhere in the Risk & Reward
-// mechanic, so their Fame applies regardless of rank. See this and the
-// prior slice's own plan-file Context entries for the full reasoning.
+// outcome (rankState/ResolveMarineTerm), so the bracket's own "Officer
+// Rank*" line (*Armed Forces Enlisted = no Fame) genuinely applies now —
+// read as "=Rank" (the numeric tier, O1=1 .. O7=7), matching the same
+// "=Rank" formula shape p.91 already uses for Scholar and Merchant; no
+// explicit multiplier is printed for Armed Forces the way Medals/Noble
+// each get one, so this is a documented judgment call, not a
+// directly-quoted formula. The bracket's nested Medal/Wound-Badge Fame
+// values (Exemplary Service XS x0, Wound Badge WB x1, MCUF x1, MCG x2,
+// SEH x3) are read as scoped only to the "Rank*" line by the asterisk's
+// own placement, not to the whole bracket — Medals and Wound Badges are
+// earned with no Officer gate anywhere in the Risk & Reward mechanic, so
+// their Fame applies regardless of rank. See the plan-file history for
+// the full reasoning.
 func marineCareerFame(career Career) int {
 	fame := 0
 
 	for _, t := range career.Terms {
 		for _, medal := range t.Medals {
-			fame += marineMedalFame[medal]
+			fame += medalFame[medal]
 		}
 	}
 
 	fame += scoutWoundBadges(career) // Wound Badge Fame, x1 each, p.91
 
-	if isOfficer, tier := marineRankState(career.Terms); isOfficer {
+	if isOfficer, tier := rankState(
+		career.Terms,
+		len(marineEnlistedRankNames),
+		len(marineOfficerRankNames),
+	); isOfficer {
 		fame += tier // Officer Rank Fame, read as =Rank (the numeric tier)
 	}
 

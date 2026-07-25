@@ -2,7 +2,6 @@ package character
 
 import (
 	"math/rand/v2"
-	"slices"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -25,112 +24,6 @@ func TestMarineRankTablesMatchBook1P86(t *testing.T) {
 	}
 	if marineOfficerRankNames != wantOfficer {
 		t.Errorf("marineOfficerRankNames =\n%v\nwant\n%v", marineOfficerRankNames, wantOfficer)
-	}
-}
-
-func TestMarineMedalModTableMatchesBook1P70(t *testing.T) {
-	t.Parallel()
-
-	want := map[string]int{"XS": 1, "MCUF": 2, "MCG": 3, "SEH": 4, "SEHD": 5}
-	if len(marineMedalMod) != len(want) {
-		t.Fatalf("marineMedalMod has %d entries, want %d", len(marineMedalMod), len(want))
-	}
-
-	for code, wantMod := range want {
-		if got := marineMedalMod[code]; got != wantMod {
-			t.Errorf("marineMedalMod[%q] = %d, want %d", code, got, wantMod)
-		}
-	}
-}
-
-func TestMarineMedalModSum(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name   string
-		medals []string
-		want   int
-	}{
-		{"no medals", nil, 0},
-		{"one XS", []string{"XS"}, 1},
-		{"mixed", []string{"XS", "MCUF", "MCG", "SEH"}, 1 + 2 + 3 + 4},
-	}
-
-	for _, c := range cases {
-		if got := marineMedalModSum(c.medals); got != c.want {
-			t.Errorf("%s: marineMedalModSum(%v) = %d, want %d", c.name, c.medals, got, c.want)
-		}
-	}
-}
-
-func TestMarineMedalModTotal(t *testing.T) {
-	t.Parallel()
-
-	terms := []Term{
-		{Medals: []string{"XS"}},
-		{Medals: []string{"MCUF", "XS"}},
-		{},
-	}
-
-	if got, want := marineMedalModTotal(terms), 1+(2+1); got != want {
-		t.Errorf("marineMedalModTotal(%+v) = %d, want %d", terms, got, want)
-	}
-}
-
-func TestMarineRankState(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name        string
-		terms       []Term
-		wantOfficer bool
-		wantTier    int
-	}{
-		{"no terms", nil, false, 1},
-		{"one Commissioned term", []Term{{Commissioned: true}}, true, 1},
-		{
-			"Commissioned then two Promoted",
-			[]Term{{Commissioned: true}, {Promoted: true}, {Promoted: true}},
-			true, 3,
-		},
-		{
-			"six Enlisted Promoted terms cap at 6",
-			[]Term{
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-			},
-			false,
-			6,
-		},
-		{
-			"a seventh Enlisted Promoted term stays capped at 6",
-			[]Term{
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-				{Promoted: true},
-			},
-			false, 6,
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-
-			gotOfficer, gotTier := marineRankState(c.terms)
-			if gotOfficer != c.wantOfficer || gotTier != c.wantTier {
-				t.Errorf("marineRankState(%+v) = (%v, %d), want (%v, %d)",
-					c.terms, gotOfficer, gotTier, c.wantOfficer, c.wantTier)
-			}
-		})
 	}
 }
 
@@ -202,26 +95,6 @@ func TestMarineRankAutomaticSkill(t *testing.T) {
 				c.want,
 			)
 		}
-	}
-}
-
-func TestMarineBranchAutomaticSkill(t *testing.T) {
-	t.Parallel()
-
-	r := dice.New(rand.NewPCG(1, 1))
-
-	skill, ok := marineBranchAutomaticSkill(r, "Medical")
-	if !ok || skill.Name != "Medic" {
-		t.Errorf("marineBranchAutomaticSkill(Medical) = (%v, %v), want (Medic, true)", skill, ok)
-	}
-
-	skill, ok = marineBranchAutomaticSkill(r, "Technical")
-	if !ok || !slices.Contains(theTradeChoices, skill.Name) {
-		t.Errorf("marineBranchAutomaticSkill(Technical) = (%v, %v), want (one of %v, true)", skill, ok, theTradeChoices)
-	}
-
-	if _, ok := marineBranchAutomaticSkill(r, "Infantry"); ok {
-		t.Error("marineBranchAutomaticSkill(Infantry) = true, want false")
 	}
 }
 

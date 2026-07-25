@@ -73,70 +73,6 @@ func TestMarineSkillTableMatchesBook1P86(t *testing.T) {
 	}
 }
 
-// TestMarineMedalTableMatchesBook1P70 is a full-pin regression test for
-// the Medals table literals transcribed from p.70.
-func TestMarineMedalTableMatchesBook1P70(t *testing.T) {
-	t.Parallel()
-
-	wantCodes := [12]string{
-		"XS", "XS", "XS", "XS", "XS", "XS", "XS",
-		"MCUF", "MCUF",
-		"MCG",
-		"SEH",
-		"SEHD",
-	}
-	if marineMedalCodes != wantCodes {
-		t.Errorf("marineMedalCodes =\n%v\nwant\n%v", marineMedalCodes, wantCodes)
-	}
-
-	wantNames := map[string]string{
-		"XS":   "XS Exemplary Service",
-		"MCUF": "MCUF Meritorious Conduct Under Fire",
-		"MCG":  "MCG Medal for Conspicuous Gallantry",
-		"SEH":  "SEH Starburst for Extreme Heroism",
-		"SEHD": "SEH With Diamonds",
-	}
-	if len(marineMedalNames) != len(wantNames) {
-		t.Fatalf("marineMedalNames has %d entries, want %d", len(marineMedalNames), len(wantNames))
-	}
-
-	for code, want := range wantNames {
-		if got := marineMedalNames[code]; got != want {
-			t.Errorf("marineMedalNames[%q] = %q, want %q", code, got, want)
-		}
-	}
-
-	wantFame := map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3, "SEHD": 4}
-	if len(marineMedalFame) != len(wantFame) {
-		t.Fatalf("marineMedalFame has %d entries, want %d", len(marineMedalFame), len(wantFame))
-	}
-
-	for code, want := range wantFame {
-		if got := marineMedalFame[code]; got != want {
-			t.Errorf("marineMedalFame[%q] = %d, want %d", code, got, want)
-		}
-	}
-}
-
-// TestMarineMedalFromReward is a boundary pin over the raw-roll-to-code
-// mapping.
-func TestMarineMedalFromReward(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		roll int
-		want string
-	}{
-		{2, "XS"}, {8, "XS"}, {9, "MCUF"}, {10, "MCUF"}, {11, "MCG"}, {12, "SEH"}, {13, "SEHD"},
-	}
-
-	for _, c := range cases {
-		if got := marineMedalFromReward(c.roll); got != c.want {
-			t.Errorf("marineMedalFromReward(%d) = %q, want %q", c.roll, got, c.want)
-		}
-	}
-}
-
 func TestBeginMarineRate(t *testing.T) {
 	t.Parallel()
 
@@ -189,25 +125,6 @@ func uniqueStrings(items []string) map[string]bool {
 	return set
 }
 
-func TestMarineOperationsEduDM(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		edu  int
-		want int
-	}{
-		{9, 0},
-		{10, 2},
-		{15, 2},
-	}
-
-	for _, c := range cases {
-		if got := marineOperationsEduDM(c.edu); got != c.want {
-			t.Errorf("marineOperationsEduDM(%d) = %d, want %d", c.edu, got, c.want)
-		}
-	}
-}
-
 // TestRollMarineOperationsKeepsHighestMod is a property test, not exact-
 // value pinning (which of 4 rolls wins is inherently seed-dependent):
 // the returned Mod must be at least as high as musterOutRow's own
@@ -223,7 +140,7 @@ func TestRollMarineOperationsKeepsHighestMod(t *testing.T) {
 
 		r2 := dice.New(rand.NewPCG(seed, seed))
 
-		dm := marineOperationsBranchDM["Commando"] + marineOperationsEduDM(8)
+		dm := marineOperationsBranchDM["Commando"] + operationsEduDM(8)
 		firstRow := musterOutRow(r2.D6()+dm, len(marineOperationsNames))
 		firstMod := marineOperationsMods[firstRow]
 
@@ -325,7 +242,7 @@ func TestResolveMarineTermOfficerRewardBonusReachesSEHD(t *testing.T) {
 		t.Errorf("Medals = %v, want to contain %q (Officer +1 Reward bonus reaching roll 13)", term.Medals, "SEHD")
 	}
 
-	if want := marineMedalNames["SEHD"]; term.RewardResult != want {
+	if want := medalNames["SEHD"]; term.RewardResult != want {
 		t.Errorf("RewardResult = %q, want %q", term.RewardResult, want)
 	}
 }
@@ -379,7 +296,7 @@ func TestResolveMarineTermGrantsRewardMedal(t *testing.T) {
 		t.Errorf("Medals = %v, want %v (fixture assumption broke)", term.Medals, want)
 	}
 
-	if want := marineMedalNames["MCUF"]; term.RewardResult != want {
+	if want := medalNames["MCUF"]; term.RewardResult != want {
 		t.Errorf("RewardResult = %q, want %q (Medals table lookup, not a hardcoded XS)", term.RewardResult, want)
 	}
 }
@@ -539,7 +456,7 @@ func TestResolveMarineTermGrantsOfficerPromotion(t *testing.T) {
 // TestResolveMarineTermNeverPromotesPastTheRankCap is the regression
 // test for a code-review-caught bug: a Promotion roll kept "succeeding"
 // (granting an unearned +1 skill every term) even after a track was
-// already at its own maximum tier, since only marineRankState's own
+// already at its own maximum tier, since only rankState's own
 // tier value was capped, not whether the roll fired at all. Uses an
 // immortal-ish fixture (C1=20 would guarantee Enlisted Promotion success
 // every time if it were even attempted) with priorTerms already at M6 —
@@ -577,7 +494,7 @@ func TestResolveMarineTermNeverPromotesPastTheRankCap(t *testing.T) {
 // TestMarineCareerFame confirms marineCareerFame sums each term's own
 // Medal Fame (Book 1 p.91's per-medal values), Wound Badge Fame (via
 // scoutWoundBadges, x1 each), and — for an Officer — Rank Fame (the
-// numeric tier, derived via marineRankState) — see this and the prior
+// numeric tier, derived via rankState) — see this and the prior
 // slice's own plan-file Context entries for the full reasoning.
 func TestMarineCareerFame(t *testing.T) {
 	t.Parallel()

@@ -42,7 +42,11 @@ func ResolveMarineMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
 	dm := len(career.Terms)
-	if isOfficer, tier := marineRankState(career.Terms); isOfficer {
+	if isOfficer, tier := rankState(
+		career.Terms,
+		len(marineEnlistedRankNames),
+		len(marineOfficerRankNames),
+	); isOfficer {
 		dm += tier
 	}
 

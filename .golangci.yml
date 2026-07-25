@@ -71,6 +71,19 @@ linters:
       - path: (^|/)cmd/
         linters:
           - forbidigo
+      # Marine's and Soldier's own *_character_generate_test.go mirror the
+      # same NeverQualified/Dies/Qualified test triad test-for-test,
+      # deliberately, not incidentally — each one's own fixture values and
+      # the reasoning behind them (why this UPP, why this exact Fame/Rank)
+      # are the actual point of the test, not boilerplate a shared helper
+      # should absorb. Named explicitly, not a *_character_generate_test.go
+      # glob: Citizen's and Noble's own files share none of this rationale
+      # (Citizen has no Dies path at all) and should stay covered by dupl.
+      # Add a future risk-based career's own file here only once it
+      # actually mirrors this exact shape.
+      - path: character/(marine|soldier)_character_generate_test\.go
+        linters:
+          - dupl
 
 formatters:
   enable:

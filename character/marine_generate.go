@@ -66,44 +66,6 @@ var marineSkillTable = [7][6]string{
 // marineSkillsPerTerm is Book 1 p.86's own "Skill Eligibility: Per Term 4".
 const marineSkillsPerTerm = 4
 
-// marineMedalCodes is Book 1 p.70's own "IMPERIAL MEDALS" table, keyed
-// by the raw unmodified Reward roll (2-13; index 0 = roll 2). Roll 13
-// ("SEHD", SEH With Diamonds) is only reachable via the table's own "If
-// Officer, increase +1" bonus (ResolveMarineTerm applies it to the raw
-// roll before this lookup) — a natural 12 plus that bonus.
-var marineMedalCodes = [12]string{
-	"XS", "XS", "XS", "XS", "XS", "XS", "XS", // rolls 2-8
-	"MCUF", "MCUF", // rolls 9-10
-	"MCG",  // roll 11
-	"SEH",  // roll 12
-	"SEHD", // roll 13 (Officer bonus only)
-}
-
-// marineMedalNames are the Medals table's own "Medal Description"
-// column, used as ResolveMarineTerm's own RewardResult text — render's
-// existing termOutcomeLine already prints any non-"None" RewardResult
-// generically, so no render change is needed, the same zero-render-
-// change precedent Phase T1 already established for this field.
-var marineMedalNames = map[string]string{
-	"XS":   "XS Exemplary Service",
-	"MCUF": "MCUF Meritorious Conduct Under Fire",
-	"MCG":  "MCG Medal for Conspicuous Gallantry",
-	"SEH":  "SEH Starburst for Extreme Heroism",
-	"SEHD": "SEH With Diamonds",
-}
-
-// marineMedalFame is Book 1 p.91's own per-medal Fame contribution —
-// distinct from marineMedalCodes' own Mod column (p.70), which feeds
-// Promotion rolls (marine_promotion.go's own marineMedalMod).
-var marineMedalFame = map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3, "SEHD": 4}
-
-// marineMedalFromReward converts a raw Reward roll (2-13, already
-// including the Officer +1 bonus if applicable) into its Medals table
-// code.
-func marineMedalFromReward(roll int) string {
-	return marineMedalCodes[roll-2]
-}
-
 // BeginMarine reports Book 1 p.86's own "To Begin C1" — roll 2D <= Str.
 // No Retry: unlike Scout's own explicit "Retry vs C5," the Master
 // Checklist (p.72) shows no Retry line for Marine.
@@ -119,34 +81,16 @@ func rollMarineBranch(r *dice.Roller) (string, int) {
 	return marineBranchNames[i], marineBranchMods[i]
 }
 
-// marineOperationsEduDM is Operations' own "DM +2 if Edu 10+".
-func marineOperationsEduDM(edu int) int {
-	if edu >= 10 {
-		return 2
-	}
-
-	return 0
-}
-
 // rollMarineOperations rolls 4 times (p.86: "Roll 4 times per Term for
 // Operations; select the highest Mod from the four"), returning the
-// winning operation's own name and Mod.
+// winning operation's own name and Mod. Delegates to the shared
+// rollHighestOfFour/operationsEduDM (career_generate.go) — Marine's own
+// former per-loop body, generalized once Soldier became a second real
+// caller of the identical shape.
 func rollMarineOperations(r *dice.Roller, branch string, edu int) (string, int) {
-	dm := marineOperationsBranchDM[branch] + marineOperationsEduDM(edu)
+	dm := marineOperationsBranchDM[branch] + operationsEduDM(edu)
 
-	// bestIdx starts from the first of the 4 rolls, not a hardcoded
-	// index — seeding it with an unrolled row would bias the result
-	// toward that row whenever none of the real rolls beat its Mod.
-	bestIdx := musterOutRow(r.D6()+dm, len(marineOperationsNames))
-
-	for range 3 {
-		row := musterOutRow(r.D6()+dm, len(marineOperationsNames))
-		if marineOperationsMods[row] > marineOperationsMods[bestIdx] {
-			bestIdx = row
-		}
-	}
-
-	return marineOperationsNames[bestIdx], marineOperationsMods[bestIdx]
+	return rollHighestOfFour(r, dm, marineOperationsNames[:], marineOperationsMods[:])
 }
 
 // ResolveMarineTerm resolves one 4-year Marine term. branch/branchMod
@@ -204,7 +148,7 @@ func ResolveMarineTerm(
 	cc := upp.Characteristics[ccPos]
 	mod := -(branchMod + opMod)
 
-	isOfficer, tier := marineRankState(priorTerms)
+	isOfficer, tier := rankState(priorTerms, len(marineEnlistedRankNames), len(marineOfficerRankNames))
 
 	term := Term{
 		Length:                    4,
@@ -232,12 +176,12 @@ func ResolveMarineTerm(
 			rewardRoll++ // Book 1 p.70's own "If Officer, increase +1"
 		}
 
-		medal := marineMedalFromReward(rewardRoll)
-		term.RewardResult = marineMedalNames[medal]
+		medal := medalFromReward(rewardRoll)
+		term.RewardResult = medalNames[medal]
 		term.Medals = append(term.Medals, medal)
 	}
 
-	medalMod := marineMedalModTotal(priorTerms) + marineMedalModSum(term.Medals)
+	medalMod := medalModTotal(priorTerms) + medalModSum(term.Medals)
 
 	switch {
 	case isOfficer:
