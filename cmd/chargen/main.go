@@ -23,6 +23,12 @@
 // skill tables), Craftsman/Functionary (both architecturally blocked,
 // see the chargen plan history), and Functionary specifically as an
 // Undercover option).
+//
+// -career also accepts a comma-separated ordered list ("scout,spacer")
+// to chain multiple careers over one lifetime (character/career_chain.go:
+// GenerateCareerChainCharacter), falling back to Citizen if every listed
+// career fails to Begin — Noble isn't a valid chain entry (its Begin
+// doesn't fit the shape); use -career noble alone instead.
 package main
 
 import (
@@ -40,7 +46,8 @@ func main() {
 	careerName := flag.String(
 		"career",
 		"scout",
-		"career to generate: scout, citizen, noble, marine, soldier, spacer, rogue, scholar, entertainer, merchant, or agent",
+		"career (or comma-separated ordered list, e.g. \"scout,spacer\") to generate: scout, citizen, noble, "+
+			"marine, soldier, spacer, rogue, scholar, entertainer, merchant, or agent — noble may only be used alone",
 	)
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
@@ -49,41 +56,22 @@ func main() {
 
 	r := dice.RollerFromSeed(s)
 
+	names := splitCareerNames(*careerName)
+
 	var c character.Character
 
-	ok := true
+	var ok bool
 
-	switch strings.ToLower(*careerName) {
-	case "scout":
-		c, ok = character.GenerateScoutCharacter(r)
-	case "citizen":
-		c = character.GenerateCitizenCharacter(r)
-	case "noble":
-		c, ok = character.GenerateNobleCharacter(r)
-	case "marine":
-		c, ok = character.GenerateMarineCharacter(r)
-	case "soldier":
-		c, ok = character.GenerateSoldierCharacter(r)
-	case "spacer":
-		c, ok = character.GenerateSpacerCharacter(r)
-	case "rogue":
-		c, ok = character.GenerateRogueCharacter(r)
-	case "scholar":
-		c, ok = character.GenerateScholarCharacter(r)
-	case "entertainer":
-		c, ok = character.GenerateEntertainerCharacter(r)
-	case "merchant":
-		c, ok = character.GenerateMerchantCharacter(r)
-	case "agent":
-		c, ok = character.GenerateAgentCharacter(r)
-	default:
-		fmt.Fprintf(
-			os.Stderr,
-			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", \"soldier\", \"spacer\", "+
-				"\"rogue\", \"scholar\", \"entertainer\", \"merchant\", or \"agent\", got %q\n",
-			*careerName,
-		)
-		os.Exit(1)
+	if len(names) == 1 {
+		ok = generateSingleCareer(r, names[0], *careerName, &c)
+	} else {
+		var err error
+
+		c, ok, err = character.GenerateCareerChainCharacter(r, names)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "chargen: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	fmt.Print(render.Character(c))
@@ -103,4 +91,66 @@ func main() {
 		)
 		os.Exit(1)
 	}
+}
+
+// splitCareerNames parses -career's comma-separated form, trimming and
+// lowercasing each entry — shared by both the single-name and chain
+// paths so "-career Scout" and "-career scout" behave identically.
+func splitCareerNames(careerName string) []string {
+	parts := strings.Split(careerName, ",")
+	names := make([]string, len(parts))
+
+	for i, p := range parts {
+		names[i] = strings.ToLower(strings.TrimSpace(p))
+	}
+
+	return names
+}
+
+// generateSingleCareer keeps today's exact single-career dispatch
+// unchanged — every one of these 11 values, including "noble" and
+// "citizen", byte-for-byte matches pre-chaining behavior. Multi-entry
+// lists go through character.GenerateCareerChainCharacter instead (see
+// main's own caller), which "noble" deliberately isn't part of.
+// rawCareerName is the untouched -career flag value (not the lowercased/
+// trimmed name) so an invalid single value's error message echoes
+// exactly what the user typed, matching pre-chaining behavior.
+func generateSingleCareer(r *dice.Roller, name, rawCareerName string, c *character.Character) bool {
+	ok := true
+
+	switch name {
+	case "scout":
+		*c, ok = character.GenerateScoutCharacter(r)
+	case "citizen":
+		*c = character.GenerateCitizenCharacter(r)
+	case "noble":
+		*c, ok = character.GenerateNobleCharacter(r)
+	case "marine":
+		*c, ok = character.GenerateMarineCharacter(r)
+	case "soldier":
+		*c, ok = character.GenerateSoldierCharacter(r)
+	case "spacer":
+		*c, ok = character.GenerateSpacerCharacter(r)
+	case "rogue":
+		*c, ok = character.GenerateRogueCharacter(r)
+	case "scholar":
+		*c, ok = character.GenerateScholarCharacter(r)
+	case "entertainer":
+		*c, ok = character.GenerateEntertainerCharacter(r)
+	case "merchant":
+		*c, ok = character.GenerateMerchantCharacter(r)
+	case "agent":
+		*c, ok = character.GenerateAgentCharacter(r)
+	default:
+		fmt.Fprintf(
+			os.Stderr,
+			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", \"soldier\", \"spacer\", "+
+				"\"rogue\", \"scholar\", \"entertainer\", \"merchant\", \"agent\", or a comma-separated list "+
+				"of those (except noble), got %q\n",
+			rawCareerName,
+		)
+		os.Exit(1)
+	}
+
+	return ok
 }

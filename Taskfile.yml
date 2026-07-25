@@ -108,6 +108,7 @@ tasks:
       - go run ./cmd/chargen -career entertainer || true
       - go run ./cmd/chargen -career merchant || true
       - go run ./cmd/chargen -career agent || true
+      - go run ./cmd/chargen -career "scout,spacer,merchant" || true
 
   demo:stop:
     internal: true
