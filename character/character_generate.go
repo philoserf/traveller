@@ -42,6 +42,19 @@ func allSkillsFromTerms(terms []Term) []SkillLevel {
 	return skills
 }
 
+// allMedalsFromTerms flattens every term's own Medals, in term order —
+// mirrors allSkillsFromTerms exactly. Scout never populates Term.Medals
+// (Armed Forces only), so this is a no-op for Scout callers; Marine is
+// the first real source.
+func allMedalsFromTerms(terms []Term) []string {
+	var medals []string
+	for _, t := range terms {
+		medals = append(medals, t.Medals...)
+	}
+
+	return medals
+}
+
 // GenerateScoutCharacter generates a full Human Scout Character end to
 // end: a UPP, a homeworld and its background skills, a full multi-term
 // Scout career, and Scout's own Mustering Out benefits — the first
@@ -208,6 +221,7 @@ func buildRiskCareerCharacter(
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         skills,
+		Medals:         allMedalsFromTerms(career.Terms),
 		WoundBadges:    scoutWoundBadges(career),
 	}, ok
 }

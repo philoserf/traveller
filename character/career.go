@@ -20,8 +20,9 @@ func (r RiskResult) Survived() bool {
 type Term struct {
 	Length                    int
 	ControllingCharacteristic Position
-	Branch                    string // Armed Forces only
-	Assignment                string // Armed Forces only
+	Branch                    string   // Armed Forces only
+	Assignment                string   // Armed Forces only
+	Medals                    []string // Armed Forces only: medal codes earned this term (XS/MCUF/MCG/SEH)
 	Rank                      string
 	Commissioned              bool
 	RiskResult                RiskResult

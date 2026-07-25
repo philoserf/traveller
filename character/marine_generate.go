@@ -66,6 +66,42 @@ var marineSkillTable = [7][6]string{
 // marineSkillsPerTerm is Book 1 p.86's own "Skill Eligibility: Per Term 4".
 const marineSkillsPerTerm = 4
 
+// marineMedalCodes is Book 1 p.70's own "IMPERIAL MEDALS" table, keyed
+// by the raw unmodified Reward roll (2-12; index 0 = roll 2). Roll 13
+// (SEH With Diamonds, the +1 Officer bonus) is unreachable in this
+// codebase yet — no character is ever assigned an Officer Rank
+// (Promotion/Commission deferred), the same "+Officer" omission already
+// documented for Mustering Out's own DM.
+var marineMedalCodes = [11]string{
+	"XS", "XS", "XS", "XS", "XS", "XS", "XS", // rolls 2-8
+	"MCUF", "MCUF", // rolls 9-10
+	"MCG", // roll 11
+	"SEH", // roll 12
+}
+
+// marineMedalNames are the Medals table's own "Medal Description"
+// column, used as ResolveMarineTerm's own RewardResult text — render's
+// existing termOutcomeLine already prints any non-"None" RewardResult
+// generically, so no render change is needed, the same zero-render-
+// change precedent Phase T1 already established for this field.
+var marineMedalNames = map[string]string{
+	"XS":   "XS Exemplary Service",
+	"MCUF": "MCUF Meritorious Conduct Under Fire",
+	"MCG":  "MCG Medal for Conspicuous Gallantry",
+	"SEH":  "SEH Starburst for Extreme Heroism",
+}
+
+// marineMedalFame is Book 1 p.91's own per-medal Fame contribution —
+// distinct from marineMedalCodes' own Mod column (p.70), which feeds a
+// still-deferred Promotion roll.
+var marineMedalFame = map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3}
+
+// marineMedalFromReward converts a raw, unmodified Reward roll (2-12)
+// into its Medals table code.
+func marineMedalFromReward(roll int) string {
+	return marineMedalCodes[roll-2]
+}
+
 // BeginMarine reports Book 1 p.86's own "To Begin C1" — roll 2D <= Str.
 // No Retry: unlike Scout's own explicit "Retry vs C5," the Master
 // Checklist (p.72) shows no Retry line for Marine.
@@ -118,12 +154,17 @@ func rollMarineOperations(r *dice.Roller, branch string, edu int) (string, int) 
 // Book 1 p.65's universal "-Mod under Risk, +Mod under Reward"
 // convention) feeds resolveRisk/resolveReward with the same
 // shared-mod-value convention ResolveScoutTerm already establishes.
-// Reward failure/success is recorded as "None"/"XS Exemplary Service"
-// (p.86's own Reward-success text) — render's own termOutcomeLine
-// already handles any non-"None" RewardResult generically (it just
-// prints whatever string is there), so Marine needs no new render
-// branch once wired in, unlike Citizen/Noble's own distinct outcome
-// shapes.
+//
+// Medals p.86's own box describes two separate, stackable grants per
+// term, not one: Risk success alone grants a flat XS Exemplary Service
+// Badge ("Success: Receive XS Exemplary Service Badge. Character is
+// unharmed."), independent of the Reward roll; Reward success separately
+// consults the Medals table (p.70, keyed by the raw unmodified Reward
+// roll) for its own, possibly higher-tier medal. RewardResult carries
+// the winning medal's own description text — render's own
+// termOutcomeLine already handles any non-"None" RewardResult
+// generically, so Marine needs no new render branch, unlike Citizen/
+// Noble's own distinct outcome shapes.
 func ResolveMarineTerm(r *dice.Roller, upp UPP, ccPos Position, branch string, branchMod int) (Term, UPP) {
 	opName, opMod := rollMarineOperations(r, branch, int(upp.Characteristics[C5]))
 
@@ -146,12 +187,14 @@ func ResolveMarineTerm(r *dice.Roller, upp UPP, ccPos Position, branch string, b
 		return term, upp
 	}
 
-	// "XS Exemplary Service," Book 1 p.86's own Reward-success text
-	// ("Success: XS Exemplary Service and consult Medals table") — not
-	// Scout's own "Discovery," a distinct outcome name. Medals table
-	// consultation itself is deferred (not yet transcribed).
-	if resolveReward(r, reducedCC, mod) {
-		term.RewardResult = "XS Exemplary Service"
+	if risk == Unharmed {
+		term.Medals = append(term.Medals, "XS")
+	}
+
+	if ok, rewardRoll := resolveReward(r, reducedCC, mod); ok {
+		medal := marineMedalFromReward(rewardRoll)
+		term.RewardResult = marineMedalNames[medal]
+		term.Medals = append(term.Medals, medal)
 	}
 
 	term.SkillsAwarded = rollSkillsFromTable(r, marineSkillTable, marineSkillsPerTerm)

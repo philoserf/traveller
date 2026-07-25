@@ -51,6 +51,10 @@ func Character(c character.Character) string {
 
 	fmt.Fprintf(&b, "**Wound Badges:** %d\n\n", c.WoundBadges)
 
+	if len(c.Medals) > 0 {
+		fmt.Fprintf(&b, "**Medals:** %s\n\n", strings.Join(c.Medals, ", "))
+	}
+
 	if c.Fame != 0 {
 		fmt.Fprintf(&b, "**Fame:** %d\n\n", c.Fame)
 	}

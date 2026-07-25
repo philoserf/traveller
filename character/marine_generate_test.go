@@ -2,6 +2,7 @@ package character
 
 import (
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -69,6 +70,68 @@ func TestMarineSkillTableMatchesBook1P86(t *testing.T) {
 
 	if marineSkillTable != want {
 		t.Errorf("marineSkillTable =\n%v\nwant\n%v", marineSkillTable, want)
+	}
+}
+
+// TestMarineMedalTableMatchesBook1P70 is a full-pin regression test for
+// the Medals table literals transcribed from p.70.
+func TestMarineMedalTableMatchesBook1P70(t *testing.T) {
+	t.Parallel()
+
+	wantCodes := [11]string{
+		"XS", "XS", "XS", "XS", "XS", "XS", "XS",
+		"MCUF", "MCUF",
+		"MCG",
+		"SEH",
+	}
+	if marineMedalCodes != wantCodes {
+		t.Errorf("marineMedalCodes =\n%v\nwant\n%v", marineMedalCodes, wantCodes)
+	}
+
+	wantNames := map[string]string{
+		"XS":   "XS Exemplary Service",
+		"MCUF": "MCUF Meritorious Conduct Under Fire",
+		"MCG":  "MCG Medal for Conspicuous Gallantry",
+		"SEH":  "SEH Starburst for Extreme Heroism",
+	}
+	if len(marineMedalNames) != len(wantNames) {
+		t.Fatalf("marineMedalNames has %d entries, want %d", len(marineMedalNames), len(wantNames))
+	}
+
+	for code, want := range wantNames {
+		if got := marineMedalNames[code]; got != want {
+			t.Errorf("marineMedalNames[%q] = %q, want %q", code, got, want)
+		}
+	}
+
+	wantFame := map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3}
+	if len(marineMedalFame) != len(wantFame) {
+		t.Fatalf("marineMedalFame has %d entries, want %d", len(marineMedalFame), len(wantFame))
+	}
+
+	for code, want := range wantFame {
+		if got := marineMedalFame[code]; got != want {
+			t.Errorf("marineMedalFame[%q] = %d, want %d", code, got, want)
+		}
+	}
+}
+
+// TestMarineMedalFromReward is a boundary pin over the raw-roll-to-code
+// mapping.
+func TestMarineMedalFromReward(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		roll int
+		want string
+	}{
+		{2, "XS"}, {8, "XS"}, {9, "MCUF"}, {10, "MCUF"}, {11, "MCG"}, {12, "SEH"},
+	}
+
+	for _, c := range cases {
+		if got := marineMedalFromReward(c.roll); got != c.want {
+			t.Errorf("marineMedalFromReward(%d) = %q, want %q", c.roll, got, c.want)
+		}
 	}
 }
 
@@ -218,22 +281,135 @@ func TestResolveMarineTermSkipsRewardAndSkillsOnDeath(t *testing.T) {
 	}
 }
 
-// TestMarineCareerFameIsAlwaysZero confirms Book 1 p.91's own "Armed
-// Forces Enlisted = no Fame" — regardless of how many terms a Marine
-// serves, marineCareerFame stays 0, since no character in this codebase
-// is ever assigned an Officer Rank yet.
-func TestMarineCareerFameIsAlwaysZero(t *testing.T) {
+// marineMedalFixtureUPP is shared by the Medals-granting tests below —
+// Str 10 makes Risk failures/successes both reachable across seeds,
+// Int 10 gives Reward the same range, Edu 8 keeps the Operations eduDM
+// off so the combined Mod stays small and predictable.
+var marineMedalFixtureUPP = UPP{Characteristics: [6]ehex.Value{10, 0, 0, 10, 8, 0}}
+
+// TestResolveMarineTermGrantsFlatXSOnRiskSuccess confirms Book 1 p.86's
+// own Risk-success grant ("Success: Receive XS Exemplary Service
+// Badge") fires independently of the Reward roll — seed 3513 (found by
+// direct search) produces RiskResult == Unharmed with a failed Reward
+// roll, so term.Medals must contain exactly the flat "XS" grant and
+// nothing from Reward.
+func TestResolveMarineTermGrantsFlatXSOnRiskSuccess(t *testing.T) {
 	t.Parallel()
 
-	career := Career{
-		Terms: []Term{
-			{RewardResult: "XS Exemplary Service"},
-			{RewardResult: "None"},
-			{RewardResult: "XS Exemplary Service"},
+	r := dice.New(rand.NewPCG(3513, 3513))
+
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0)
+
+	if term.RiskResult != Unharmed {
+		t.Fatalf("RiskResult = %v, want Unharmed (fixture assumption broke)", term.RiskResult)
+	}
+
+	if want := []string{"XS"}; !slices.Equal(term.Medals, want) {
+		t.Errorf("Medals = %v, want %v (flat Risk-success grant, Reward failed)", term.Medals, want)
+	}
+
+	if term.RewardResult != "None" {
+		t.Errorf("RewardResult = %q, want %q (Reward failed)", term.RewardResult, "None")
+	}
+}
+
+// TestResolveMarineTermGrantsRewardMedal is the regression test for the
+// core gap this slice fixes: Reward success must consult the Medals
+// table (keyed by the raw roll), not always hardcode XS. Seed 3 (found
+// by direct search) produces a Reward success whose raw roll resolves to
+// MCUF — a higher tier than the flat XS grant Risk success also
+// produces the same term, confirming both stack independently.
+func TestResolveMarineTermGrantsRewardMedal(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(3, 3))
+
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0)
+
+	if want := []string{"XS", "MCUF"}; !slices.Equal(term.Medals, want) {
+		t.Errorf("Medals = %v, want %v (fixture assumption broke)", term.Medals, want)
+	}
+
+	if want := marineMedalNames["MCUF"]; term.RewardResult != want {
+		t.Errorf("RewardResult = %q, want %q (Medals table lookup, not a hardcoded XS)", term.RewardResult, want)
+	}
+}
+
+// TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds confirms Medals
+// stays empty when Risk fails (no flat XS) and Reward also fails (no
+// table lookup) — seed 8 (found by direct search) produces a Disabled
+// Risk result with a failed Reward roll.
+func TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(8, 8))
+
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0)
+
+	if term.RiskResult == Unharmed || term.RiskResult == Dead {
+		t.Fatalf("RiskResult = %v, want Wounded or Disabled (fixture assumption broke)", term.RiskResult)
+	}
+
+	if len(term.Medals) != 0 {
+		t.Errorf("Medals = %v, want empty", term.Medals)
+	}
+}
+
+// TestMarineCareerFame confirms marineCareerFame sums each term's own
+// Medal Fame (Book 1 p.91's per-medal values) plus Wound Badge Fame
+// (via scoutWoundBadges, x1 each) — the Officer-Rank-based component
+// stays 0 (no character is ever assigned an Officer Rank yet), but
+// Medals/Wound Badges are earned with no Officer gate, so their Fame
+// applies regardless of rank (see this slice's own plan-file Context).
+func TestMarineCareerFame(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		terms []Term
+		want  int
+	}{
+		{"no terms", nil, 0},
+		{
+			"no medals, no wounds",
+			[]Term{{RewardResult: "None", RiskResult: Unharmed}},
+			0,
+		},
+		{
+			"one of each medal tier",
+			[]Term{
+				{Medals: []string{"XS"}},
+				{Medals: []string{"MCUF"}},
+				{Medals: []string{"MCG"}},
+				{Medals: []string{"SEH"}},
+			},
+			0 + 1 + 2 + 3,
+		},
+		{
+			"wound badges add x1 each",
+			[]Term{
+				{RiskResult: Wounded},
+				{RiskResult: Disabled},
+			},
+			2,
+		},
+		{
+			"medals and wounds combined",
+			[]Term{
+				{Medals: []string{"XS", "MCUF"}, RiskResult: Unharmed},
+				{RiskResult: Wounded},
+			},
+			1 + 1,
 		},
 	}
 
-	if got := marineCareerFame(career); got != 0 {
-		t.Errorf("marineCareerFame() = %d, want 0", got)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := marineCareerFame(Career{Terms: c.terms}); got != c.want {
+				t.Errorf("marineCareerFame(%+v) = %d, want %d", c.terms, got, c.want)
+			}
+		})
 	}
 }

@@ -165,9 +165,17 @@ func resolveRisk(r *dice.Roller, cc ehex.Value, mod int) (RiskResult, ehex.Value
 // (opposite sign) Mods" — originally resolveScoutReward, generalized
 // once Marine became a second real caller), reporting whether the
 // attempt succeeds (a Scout Discovery, a Marine XS Exemplary Service —
-// the specific consequence is each caller's own concern).
-func resolveReward(r *dice.Roller, cc ehex.Value, mod int) bool {
-	return rollAgainstTarget(r, int(cc), -mod)
+// the specific consequence is each caller's own concern) and the raw,
+// unmodified roll. Scout ignores the raw roll; Marine needs it to
+// consult Book 1 p.70's own Medals table ("Rew= Successful unmodified
+// Reward Roll") — widening the return here, rather than duplicating this
+// function's single-line body in a Marine-only variant, is the same
+// "shared primitive, second real caller" treatment resolveRisk/
+// riskOutcome already got in Phase T1.
+func resolveReward(r *dice.Roller, cc ehex.Value, mod int) (bool, int) {
+	roll := r.TwoD6()
+
+	return succeedsAgainst(roll, int(cc), -mod), roll
 }
 
 // scoutSkillTable is Book 1 p.79's Scout Skills table (7 columns, rows
@@ -299,7 +307,7 @@ func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP, bool)
 			return term, upp, false
 		}
 
-		if resolveReward(r, reducedCC, 0) {
+		if ok, _ := resolveReward(r, reducedCC, 0); ok {
 			term.RewardResult = "Discovery"
 		}
 	}

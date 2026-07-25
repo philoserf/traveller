@@ -294,6 +294,22 @@ func TestCharacterOmitsZeroFameAndCash(t *testing.T) {
 	}
 }
 
+// TestCharacterShowsMedalsOnlyWhenSet mirrors TestCharacterOmitsZeroFameAndCash's
+// own convention for Character.Medals (Marine's own p.91 medal grants).
+func TestCharacterShowsMedalsOnlyWhenSet(t *testing.T) {
+	t.Parallel()
+
+	bare := character.Character{}
+	if out := render.Character(bare); strings.Contains(out, "Medals") {
+		t.Errorf("render.Character should omit Medals when empty, got:\n%s", out)
+	}
+
+	withMedals := character.Character{Medals: []string{"XS", "MCUF"}}
+	if got := render.Character(withMedals); !strings.Contains(got, "**Medals:** XS, MCUF") {
+		t.Errorf("render.Character should show a joined Medals list, got:\n%s", got)
+	}
+}
+
 // TestCharacterRendersPersonalSkillAsBoost is the regression test for
 // the Personal-kind rendering fix: a characteristic boost (e.g. Scout's
 // own Str+1 Personal skill grant) must not look like a same-named

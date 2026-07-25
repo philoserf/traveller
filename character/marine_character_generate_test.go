@@ -121,4 +121,29 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 	if len(c.Skills) < len(homeworldSkills) {
 		t.Errorf("len(Skills) = %d, want at least %d (homeworld skills alone)", len(c.Skills), len(homeworldSkills))
 	}
+
+	// This fixture's own 14 terms all resolve Risk as Unharmed (the same
+	// guarantee TestResolveMarineCareerRespectsMaxTermsCap relies on), so
+	// WoundBadges is 0 and every term's flat XS grant contributes no
+	// Fame — but two Reward rolls this seed happen to resolve to MCUF
+	// (+1 each) and one to SEH (+3), for an exact total of 5. Confirms
+	// marineCareerFame is wired end to end, not just unit-correct.
+	if c.Fame != 5 {
+		t.Errorf("Fame = %d, want 5 (2 MCUF + 1 SEH from this seed's own Reward rolls)", c.Fame)
+	}
+
+	if c.WoundBadges != 0 {
+		t.Errorf("WoundBadges = %d, want 0 (fixture guarantees Risk always succeeds)", c.WoundBadges)
+	}
+
+	// Regression test for a code-review-caught bug: Term.Medals was being
+	// summed into Fame but never propagated onto Character.Medals. This
+	// fixture guarantees both Risk and Reward always succeed (see this
+	// test's own doc comment), so every one of the 14 terms grants
+	// exactly two medals — the flat Risk-success XS plus one Reward-table
+	// medal — for exactly 28 total.
+	if len(c.Medals) != 28 {
+		t.Errorf("len(Medals) = %d, want 28 (2 medals x 14 terms: flat XS plus a Reward-table medal each)",
+			len(c.Medals))
+	}
 }

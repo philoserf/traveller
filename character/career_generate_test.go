@@ -75,6 +75,33 @@ func TestRiskOutcomeBoundaries(t *testing.T) {
 	}
 }
 
+// TestResolveRewardReturnsRawRoll confirms resolveReward's second return
+// value is the actual, unmodified 2D6 roll it made internally — not a
+// derived or re-rolled value — by comparing against an independently
+// seeded roller's own next TwoD6() call. Marine's own Medals table
+// lookup (Book 1 p.70) depends on this raw roll being the exact one that
+// decided success/failure, not a separate draw.
+func TestResolveRewardReturnsRawRoll(t *testing.T) {
+	t.Parallel()
+
+	for _, seed := range []uint64{1, 2, 3, 4, 5} {
+		r1 := dice.New(rand.NewPCG(seed, seed))
+		r2 := dice.New(rand.NewPCG(seed, seed))
+
+		wantRoll := r2.TwoD6()
+
+		_, gotRoll := resolveReward(r1, 8, 0)
+		if gotRoll != wantRoll {
+			t.Errorf(
+				"seed %d: resolveReward's raw roll = %d, want %d (independently drawn TwoD6)",
+				seed,
+				gotRoll,
+				wantRoll,
+			)
+		}
+	}
+}
+
 // TestBeginScoutRetryImprovesOdds confirms the two-roll Begin+Retry
 // structure is wired correctly: a character with a poor C1-C3 but a
 // strong Education (C5) should succeed far more often than a single
