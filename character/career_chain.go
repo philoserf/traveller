@@ -25,27 +25,31 @@ type careerSegment struct {
 	WoundBadges int
 	Skills      []SkillLevel
 	Medals      []string
+	Equipment   []string // Craftsman only: Masterpieces created this segment
 }
 
-// segmentContext carries the two things Functionary's own Begin target
-// and Rank-title association need that every other adapter ignores: the
-// running terms-served total from before this segment is attempted, and
-// the immediately-preceding chain entry's own career name (empty for
-// the very first attempted entry). Every existing adapter takes this
-// parameter and ignores it — the same low-risk, mechanical threading
-// pattern the -age target already used for maxTerms.
+// segmentContext carries the things a handful of adapters need that
+// most ignore: the running terms-served total and the immediately-
+// preceding chain entry's own career name (Functionary's own Begin
+// target and F6 Rank-title association), and the character's own
+// aggregated skills accumulated before this segment is attempted
+// (Craftsman's own Begin prerequisite and "New Trade, not already
+// held" skill cell). Every adapter takes this parameter; only the one
+// that actually needs a given field reads it — the same low-risk,
+// mechanical threading pattern the -age target already used for
+// maxTerms.
 type segmentContext struct {
 	PrecedingCareer  string
 	TermsServedSoFar int
+	SkillsSoFar      []SkillLevel
 }
 
 type careerSegmentResolver func(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment
 
 // careerChainRegistry is every career resolvable as a link in a
-// multi-career chain. Noble is deliberately absent (its Begin is
-// Soc-gated with no Continue/retry-a-different-career shape); Craftsman
-// is absent because it isn't implemented at all yet (a separate,
-// architecturally-blocked career).
+// multi-career chain — all 12 implemented T5 careers except Noble
+// (deliberately absent: its Begin is Soc-gated with no
+// Continue/retry-a-different-career shape).
 var careerChainRegistry = map[string]careerSegmentResolver{
 	"scout":       resolveScoutSegment,
 	"marine":      resolveMarineSegment,
@@ -58,6 +62,7 @@ var careerChainRegistry = map[string]careerSegmentResolver{
 	"agent":       resolveAgentSegment,
 	"citizen":     resolveCitizenSegment,
 	"functionary": resolveFunctionarySegment,
+	"craftsman":   resolveCraftsmanSegment,
 }
 
 // resolveRiskCareerSegment mirrors buildRiskCareerCharacter's own body
@@ -275,19 +280,48 @@ func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 	}
 }
 
+// resolveCraftsmanSegment is the second adapter (after Functionary's
+// own) that consumes ctx — BeginCraftsman and the "New Trade" skill
+// cell both need ctx.SkillsSoFar. Craftsman "does not roll Risk and
+// Reward" at all (Book 1 p.75) — no death mechanic, Survived is always
+// true, WoundBadges is never set, matching Citizen/Rogue/Entertainer's
+// own precedent. Masterpieces are objects the character created, not
+// liquid Cash — recorded in Equipment (the first real use of that
+// field), not folded into bonuses.Cash.
+func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	career, careerUPP := resolveCraftsmanCareerWithBudget(r, upp, maxTerms, ctx)
+	career.MusteringOut = ResolveCraftsmanMusterOut(r, career)
+
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
+
+	var equipment []string
+
+	for _, t := range career.Terms {
+		if t.RewardResult != "" && t.RewardResult != "None" {
+			equipment = append(equipment, t.RewardResult)
+		}
+	}
+
+	return careerSegment{
+		Career: career, UPP: boostedUPP, Survived: true,
+		Fame: bonuses.Fame + craftsmanCareerFame(career.Terms), Cash: bonuses.Cash,
+		Skills: allSkillsFromTerms(career.Terms), Equipment: equipment,
+	}
+}
+
 // validateCareerChain checks careerNames (already lowercased/trimmed by
 // the caller) against the rules this slice's own plan-file Context
 // derives from Book 1 pp.63-66: every name must be a known, chainable
 // career; "citizen" may only be the first entry (p.64: "may not
-// transfer to Citizen"); "functionary" may never be the first entry
-// (p.63: "Functionary ... unavailable as initial careers" — stated
-// explicitly rather than relying solely on BeginFunctionary's own
-// emergent zero-target failure at 0 prior terms); "noble" is recognized
-// but rejected with a clearer message than "unknown career" (Noble's
-// Begin doesn't fit this shape); and no two adjacent entries may repeat
-// the same career ("selecting a different career" — re-entering the
-// very career just left is meaningless when Continue already offers
-// that for free).
+// transfer to Citizen"); "functionary" and "craftsman" may never be the
+// first entry (p.63: both "unavailable as initial careers" — stated
+// explicitly rather than relying solely on each one's own emergent
+// Begin-failure at 0 prior terms/skills); "noble" is recognized but
+// rejected with a clearer message than "unknown career" (Noble's Begin
+// doesn't fit this shape); and no two adjacent entries may repeat the
+// same career ("selecting a different career" — re-entering the very
+// career just left is meaningless when Continue already offers that for
+// free).
 func validateCareerChain(careerNames []string) error {
 	if len(careerNames) == 0 {
 		return errors.New("career chain must not be empty")
@@ -309,8 +343,8 @@ func validateCareerChain(careerNames []string) error {
 			)
 		}
 
-		if name == "functionary" && i == 0 {
-			return fmt.Errorf("%q may not be the first career in a chain (Functionary is never a first career)", name)
+		if (name == "functionary" || name == "craftsman") && i == 0 {
+			return fmt.Errorf("%q may not be the first career in a chain (never a first career, Book 1 p.63)", name)
 		}
 
 		if i > 0 && careerNames[i-1] == name {
@@ -356,6 +390,7 @@ type careerChainAccumulator struct {
 	careers                              []Career
 	skills                               []SkillLevel
 	medals                               []string
+	equipment                            []string
 	fame, cash, woundBadges, termsServed int
 }
 
@@ -373,6 +408,7 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 	acc.termsServed += len(seg.Career.Terms)
 	acc.skills = append(acc.skills, seg.Skills...)
 	acc.medals = append(acc.medals, seg.Medals...)
+	acc.equipment = append(acc.equipment, seg.Equipment...)
 	acc.fame += seg.Fame
 	acc.cash += seg.Cash
 	acc.woundBadges += seg.WoundBadges
@@ -448,7 +484,11 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 			break
 		}
 
-		ctx := segmentContext{PrecedingCareer: precedingCareer, TermsServedSoFar: acc.termsServed}
+		ctx := segmentContext{
+			PrecedingCareer:  precedingCareer,
+			TermsServedSoFar: acc.termsServed,
+			SkillsSoFar:      aggregateSkills(acc.skills),
+		}
 
 		seg := careerChainRegistry[name](r, upp, maxTerms, ctx)
 		upp = seg.UPP
@@ -496,5 +536,6 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		Careers:        acc.careers,
 		Skills:         aggregateSkills(acc.skills),
 		Medals:         acc.medals,
+		Equipment:      acc.equipment,
 	}, survived, nil
 }

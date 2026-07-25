@@ -1,6 +1,7 @@
 // Package dice implements Traveller5's core randomizers: the six-sided die,
-// 2D6, and Flux (1D6-1D6). Used throughout generation — worlds, characters,
-// ships — wherever the rules call for a roll.
+// 2D6, Flux (1D6-1D6), and an arbitrary sum of D6 ("ND"). Used throughout
+// generation — worlds, characters, ships — wherever the rules call for a
+// roll.
 package dice
 
 import (
@@ -36,6 +37,19 @@ func (r *Roller) Flux() int {
 	a, b := r.D6(), r.D6()
 
 	return a - b
+}
+
+// SumD6 rolls n six-sided dice and sums them — T5's own generic "ND"
+// notation (e.g. "9D" for Craftsman's own Master Points check, Book 1
+// p.75), generalizing D6/TwoD6 to an arbitrary count.
+func (r *Roller) SumD6(n int) int {
+	total := 0
+
+	for range n {
+		total += r.D6()
+	}
+
+	return total
 }
 
 // Uniform rolls a uniform ("even distribution") random integer in [1,n],

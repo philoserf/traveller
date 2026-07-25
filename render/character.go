@@ -23,6 +23,9 @@ import (
 // "Fame +N"/"CrN,NNN" entry in the raw Benefits/Money lines to
 // accumulate — printing "0" there would be indistinguishable from a real
 // zero result, the same reasoning already applied to WoundBadges.
+// Equipment is likewise shown only when non-empty — Craftsman is the
+// first (and so far only) source that ever populates it, one entry per
+// Masterpiece created.
 // Position and RiskResult get local label functions
 // (positionAbbrev, riskResultLabel) rather than String() methods on the
 // character package's own types, matching this project's existing
@@ -65,6 +68,10 @@ func Character(c character.Character) string {
 
 	if c.Notes != "" {
 		fmt.Fprintf(&b, "**Notes:** %s\n\n", c.Notes)
+	}
+
+	if len(c.Equipment) > 0 {
+		fmt.Fprintf(&b, "**Equipment:** %s\n\n", strings.Join(c.Equipment, ", "))
 	}
 
 	fmt.Fprint(&b, "## Skills\n\n")

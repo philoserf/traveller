@@ -1,8 +1,8 @@
 // Command chargen generates a Traveller5 character and renders it as
-// Markdown. Twelve careers exist so far — Scout, Citizen, Noble, Marine,
-// Soldier, Spacer, Rogue, Scholar, Entertainer, Merchant, Agent, and
-// Functionary, selected via -career — see character/character_generate.go,
-// character/citizen_character_generate.go,
+// Markdown. All thirteen T5 careers are implemented — Scout, Citizen,
+// Noble, Marine, Soldier, Spacer, Rogue, Scholar, Entertainer, Merchant,
+// Agent, Functionary, and Craftsman, selected via -career — see
+// character/character_generate.go, character/citizen_character_generate.go,
 // character/noble_character_generate.go,
 // character/marine_character_generate.go,
 // character/soldier_character_generate.go,
@@ -11,28 +11,32 @@
 // character/scholar_character_generate.go,
 // character/entertainer_character_generate.go,
 // character/merchant_character_generate.go,
-// character/agent_character_generate.go, and
-// character/functionary_generate.go/functionary_loop.go for what's
-// generated and what's still deferred (Name, Equipment, Education,
-// Command College, a multi-term Prison-sentence simulation for Rogue,
-// Scholar's own Major/Minor selection and Waivers, Entertainer's own
-// optional 2nd/3rd Flux rolls and Comeback, Merchant's own Ship Owner
-// Fame bonus (this codebase tracks Ship Shares, not outright ownership),
-// Agent's own full Undercover Assignment table (rank titles, the
-// three-die A/B/C mechanic, and Citizen's/Scout's own special-cased rows
-// — simplified to a uniform pick among this codebase's own
-// already-implemented career skill tables), Functionary's own F6 Rank
-// title for preceding careers Book 1 doesn't name (falls back to the
-// generic "Director"), and Craftsman (architecturally blocked, see the
-// chargen plan history).
+// character/agent_character_generate.go,
+// character/functionary_generate.go/functionary_loop.go, and
+// character/craftsman_generate.go/craftsman_loop.go for what's generated
+// and what's still deferred (Name, Education, Command College, a
+// multi-term Prison-sentence simulation for Rogue, Scholar's own
+// Major/Minor selection and Waivers, Entertainer's own optional 2nd/3rd
+// Flux rolls and Comeback, Merchant's own Ship Owner Fame bonus (this
+// codebase tracks Ship Shares, not outright ownership), Agent's own full
+// Undercover Assignment table (rank titles, the three-die A/B/C
+// mechanic, and Citizen's/Scout's own special-cased rows — simplified to
+// a uniform pick among this codebase's own already-implemented career
+// skill tables), Functionary's own F6 Rank title for preceding careers
+// Book 1 doesn't name (falls back to the generic "Director"), and
+// Craftsman's own QREBS Masterpiece-dimension allocation and Vintage
+// Masterpiece value appreciation (no structured item record or
+// time-since-creation concept exists in this codebase to attach either
+// to).
 //
 // -career also accepts a comma-separated ordered list ("scout,spacer")
 // to chain multiple careers over one lifetime (character/career_chain.go:
 // GenerateCareerChainCharacter), falling back to Citizen if every listed
 // career fails to Begin — Noble isn't a valid chain entry (its Begin
 // doesn't fit the shape); use -career noble alone instead. Functionary
-// may only appear as a later entry, never first (Book 1: "never a first
-// career") — e.g. -career "scholar,functionary".
+// and Craftsman may only appear as later entries, never first (Book 1:
+// both "never a first career") — e.g. -career "scholar,functionary" or
+// -career "citizen,craftsman".
 //
 // -age N stops the chain from attempting any further term or career
 // once the character's age would reach or exceed N — never a
@@ -58,8 +62,9 @@ func main() {
 		"career",
 		"scout",
 		"career (or comma-separated ordered list, e.g. \"scholar,functionary\") to generate: scout, citizen, "+
-			"noble, marine, soldier, spacer, rogue, scholar, entertainer, merchant, agent, or functionary — "+
-			"noble may only be used alone; functionary may only be a later entry, never first",
+			"noble, marine, soldier, spacer, rogue, scholar, entertainer, merchant, agent, functionary, or "+
+			"craftsman — noble may only be used alone; functionary and craftsman may only be a later entry, "+
+			"never first",
 	)
 	ageTarget := flag.Int(
 		"age",

@@ -4,6 +4,7 @@ import (
 	"math/rand/v2"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -13,7 +14,7 @@ func TestCareerChainRegistryCoversExpectedCareers(t *testing.T) {
 	t.Parallel()
 
 	want := []string{
-		"agent", "citizen", "entertainer", "functionary", "marine", "merchant",
+		"agent", "citizen", "craftsman", "entertainer", "functionary", "marine", "merchant",
 		"rogue", "scholar", "scout", "soldier", "spacer",
 	}
 
@@ -46,6 +47,9 @@ func TestValidateCareerChain(t *testing.T) {
 		{"functionary not first", []string{"functionary"}, true},
 		{"functionary not first, mid-list", []string{"functionary", "scout"}, true},
 		{"functionary later is fine", []string{"scholar", "functionary"}, false},
+		{"craftsman not first", []string{"craftsman"}, true},
+		{"craftsman not first, mid-list", []string{"craftsman", "scout"}, true},
+		{"craftsman later is fine", []string{"citizen", "craftsman"}, false},
 		{"adjacent duplicate", []string{"scout", "scout"}, true},
 		{"non-adjacent repeat is fine", []string{"scout", "spacer", "scout"}, false},
 		{"single valid", []string{"scout"}, false},
@@ -554,5 +558,75 @@ func TestCareerChainMergesASkillRepeatedAcrossCareers(t *testing.T) {
 
 	if mergedLevel != 4 {
 		t.Errorf("merged Bureaucrat Level = %d, want 4", mergedLevel)
+	}
+}
+
+// TestCareerChainCraftsmanBeginFailsWithoutPriorSkills confirms a
+// normal chain (no deliberately-inflated skills) essentially never
+// meets Craftsman's own prerequisite yet — seed 1 confirmed by direct
+// inspection: a 12-term Citizen life still doesn't produce two level-6+
+// skills plus Craftsman-1, so the listed Craftsman entry fails to Begin
+// like any other career's own failed attempt.
+func TestCareerChainCraftsmanBeginFailsWithoutPriorSkills(t *testing.T) {
+	t.Parallel()
+
+	const seed = 1
+
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 2 || got.Careers[0].Name != CitizenCareerName || len(got.Careers[0].Terms) == 0 {
+		t.Fatalf("Careers[0] = %+v, want a real Citizen career", got.Careers)
+	}
+
+	if got.Careers[1].Name != CraftsmanCareerName || len(got.Careers[1].Terms) != 0 {
+		t.Fatalf("Careers[1] = %+v, want a zero-term failed Craftsman attempt", got.Careers[1])
+	}
+}
+
+// TestCareerChainCraftsmanSegmentProducesEquipmentAndFame exercises
+// resolveCraftsmanSegment directly with a crafted ctx guaranteed to
+// meet Craftsman's own prerequisite — real chargen essentially never
+// reaches these skill levels by chance within a short seed search, but
+// the segment adapter's own Equipment/Fame wiring is exactly what this
+// test needs to check, independent of how the skills were acquired.
+func TestCareerChainCraftsmanSegmentProducesEquipmentAndFame(t *testing.T) {
+	t.Parallel()
+
+	ctx := segmentContext{SkillsSoFar: craftsmanHighSkillFixture}
+
+	seg := resolveCraftsmanSegment(dice.New(rand.NewPCG(1, 1)), uppCraftsman12, maxCareerTerms, ctx)
+
+	if !seg.Survived {
+		t.Error("Survived = false, want true (Craftsman has no death mechanic)")
+	}
+
+	if seg.WoundBadges != 0 {
+		t.Errorf("WoundBadges = %d, want 0", seg.WoundBadges)
+	}
+
+	if len(seg.Equipment) == 0 {
+		t.Fatal("Equipment is empty, want at least one Masterpiece")
+	}
+
+	for _, item := range seg.Equipment {
+		if !strings.Contains(item, "Masterpiece") {
+			t.Errorf("Equipment entry %q doesn't mention Masterpiece", item)
+		}
+	}
+
+	wantFame := craftsmanCareerFame(seg.Career.Terms)
+	if seg.Fame < wantFame {
+		t.Errorf(
+			"Fame = %d, want at least %d (craftsmanCareerFame alone, before any Mustering Out bonus)",
+			seg.Fame,
+			wantFame,
+		)
 	}
 }

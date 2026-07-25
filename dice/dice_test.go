@@ -46,6 +46,29 @@ func TestFluxBounds(t *testing.T) {
 	}
 }
 
+func TestSumD6Bounds(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(7, 8))
+
+	for range 10000 {
+		v := r.SumD6(9)
+		if v < 9 || v > 54 {
+			t.Fatalf("SumD6(9) = %d, want 9..54", v)
+		}
+	}
+}
+
+func TestSumD6Zero(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(1, 1))
+
+	if v := r.SumD6(0); v != 0 {
+		t.Errorf("SumD6(0) = %d, want 0", v)
+	}
+}
+
 func TestUniformBounds(t *testing.T) {
 	t.Parallel()
 
