@@ -171,6 +171,8 @@ func termOutcomeLine(c character.Career, i int, t character.Term) string {
 		return prefix + ": " + citizenLifeLabel(t.CitizenLifeSucceeded)
 	case character.NobleCareerName:
 		return prefix + ": " + nobleTermLabel(t)
+	case character.RogueCareerName:
+		return prefix + ": " + rogueTermLabel(t)
 	}
 
 	line := prefix + ": " + riskResultLabel(t.RiskResult)
@@ -199,6 +201,44 @@ func nobleTermLabel(t character.Term) string {
 	}
 
 	return label
+}
+
+// rogueTermLabel renders "Scheme: Craftsman, Success (Payoff Cr45,000)"/
+// "Scheme: Noble, Imprisoned 2 years" — Rogue's own outcome has no
+// Wounded/Disabled/Dead concept to reuse riskResultLabel for.
+//
+// Reward is rolled unconditionally, independent of Risk's own outcome
+// (ResolveRogueTerm), so an Imprisoned term can still carry a real
+// Payoff or Ship Share — buildRogueCharacter always adds
+// t.SchemePayoff into Character.Cash regardless of Imprisoned. The
+// Imprisoned branch must therefore still report the Reward outcome
+// rather than returning early, or an Imprisoned term's own earned
+// Payoff/Ship Share would silently vanish from the rendered sheet.
+func rogueTermLabel(t character.Term) string {
+	label := "Scheme: " + t.Scheme + ", "
+
+	if t.Imprisoned {
+		label += fmt.Sprintf("Imprisoned %d years", t.PrisonYears)
+
+		switch {
+		case t.SchemeShipShare:
+			label += ", Reward: Ship Share"
+		case t.RewardSucceeded:
+			label += fmt.Sprintf(", Reward: Payoff Cr%d", t.SchemePayoff)
+		}
+
+		return label
+	}
+
+	if t.SchemeShipShare {
+		return label + "Success (Ship Share)"
+	}
+
+	if t.RewardSucceeded {
+		return label + fmt.Sprintf("Success (Payoff Cr%d)", t.SchemePayoff)
+	}
+
+	return label + "Success (No Reward)"
 }
 
 func citizenLifeLabel(succeeded bool) string {

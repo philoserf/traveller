@@ -33,6 +33,12 @@ type Term struct {
 	NobleAction               string // "Return" or "Intrigue" — Noble only
 	NobleSucceeded            bool   // Noble only
 	Elevated                  bool   // Noble only: Elevation succeeded this term
+	Scheme                    string // Rogue only: this term's own Scheme flavor name
+	Imprisoned                bool   // Rogue only: Risk failed this term
+	PrisonYears               int    // Rogue only: sentence length if Imprisoned (0-4)
+	RewardSucceeded           bool   // Rogue only: this term's own Reward roll outcome
+	SchemePayoff              int    // Rogue only: Cr payoff this term (0 if Reward failed; halved if Imprisoned)
+	SchemeShipShare           bool   // Rogue only: Reward succeeded on a Ship-Share-valued Scheme
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.

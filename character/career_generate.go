@@ -273,9 +273,12 @@ var scoutSkillTable = [7][6]string{
 // footnote (lost if C6=Caste) never applies here — GenerateUPP
 // (characteristic_generate.go) only generates Human characters, whose C6
 // is always Social Standing, never Caste.
-func rollSkillFromTable(r *dice.Roller, table [7][6]string) (SkillLevel, bool) {
-	column := r.Uniform(7) - 1
-	row := r.Uniform(6) - 1
+// resolveSkillCell resolves table[column][row] into a SkillLevel — split
+// out from rollSkillFromTable's own body once Rogue's own "In Prison:
+// Prison Skills from the Rogue Skills table column 1 or 2 only" (Book 1
+// p.84) became a second real caller needing a restricted column range
+// instead of the full 0-6.
+func resolveSkillCell(r *dice.Roller, table [7][6]string, column, row int) (SkillLevel, bool) {
 	name := table[column][row]
 
 	if column == 0 {
@@ -292,6 +295,10 @@ func rollSkillFromTable(r *dice.Roller, table [7][6]string) (SkillLevel, bool) {
 	default:
 		return skillLevel1(name, Skill), true
 	}
+}
+
+func rollSkillFromTable(r *dice.Roller, table [7][6]string) (SkillLevel, bool) {
+	return resolveSkillCell(r, table, r.Uniform(7)-1, r.Uniform(6)-1)
 }
 
 // rollSkillsFromTable rolls count skills via rollSkillFromTable. A roll

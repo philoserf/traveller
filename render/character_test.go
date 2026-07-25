@@ -272,6 +272,84 @@ func TestCharacterRendersNobleTermOutcome(t *testing.T) {
 	}
 }
 
+// TestCharacterRendersRogueTermOutcome mirrors
+// TestCharacterRendersNobleTermOutcome's own shape, covering every
+// combination rogueTermLabel must distinguish: a scaled Payoff, a Ship
+// Share, no Reward, a plain Imprisoned term (Reward also failed), and —
+// the case a code-review pass caught missing — an Imprisoned term where
+// Reward independently succeeded on both a Payoff and a Ship Share
+// Scheme. Reward is rolled unconditionally regardless of Risk's own
+// outcome (ResolveRogueTerm), so all four Imprisoned x Reward
+// combinations are real, reachable states, not just the "both failed"
+// case.
+func TestCharacterRendersRogueTermOutcome(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: character.RogueCareerName,
+				Terms: []character.Term{
+					{
+						ControllingCharacteristic: character.C6,
+						Scheme:                    "Entertainer",
+						RewardSucceeded:           true,
+						SchemePayoff:              600000,
+					},
+					{
+						ControllingCharacteristic: character.C6,
+						Scheme:                    "Merchant",
+						RewardSucceeded:           true,
+						SchemeShipShare:           true,
+					},
+					{
+						ControllingCharacteristic: character.C6,
+						Scheme:                    "Marine",
+						RewardSucceeded:           false,
+					},
+					{
+						ControllingCharacteristic: character.C6,
+						Scheme:                    "Soldier",
+						Imprisoned:                true,
+						PrisonYears:               2,
+					},
+					{
+						ControllingCharacteristic: character.C6,
+						Scheme:                    "Soldier",
+						Imprisoned:                true,
+						PrisonYears:               3,
+						RewardSucceeded:           true,
+						SchemePayoff:              75000,
+					},
+					{
+						ControllingCharacteristic: character.C6,
+						Scheme:                    "Merchant",
+						Imprisoned:                true,
+						PrisonYears:               1,
+						RewardSucceeded:           true,
+						SchemeShipShare:           true,
+					},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"Term 1 (Soc): Scheme: Entertainer, Success (Payoff Cr600000)",
+		"Term 2 (Soc): Scheme: Merchant, Success (Ship Share)",
+		"Term 3 (Soc): Scheme: Marine, Success (No Reward)",
+		"Term 4 (Soc): Scheme: Soldier, Imprisoned 2 years",
+		"Term 5 (Soc): Scheme: Soldier, Imprisoned 3 years, Reward: Payoff Cr75000",
+		"Term 6 (Soc): Scheme: Merchant, Imprisoned 1 years, Reward: Ship Share",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+}
+
 // TestCharacterOmitsZeroFameAndCash guards against showing "Fame: 0"/
 // "Cash: Cr0" for a Character whose Fame/Cash were never actually
 // computed — see Character's own doc comment on why that would
