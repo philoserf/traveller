@@ -76,10 +76,11 @@ func allSkillsFromTerms(terms []Term) []SkillLevel {
 // Begin succeeded on the first roll or needed the 1-year Retry isn't
 // surfaced by BeginScout's bool return, so this can undercount by up to a
 // year, per AgeFromTermsServed's own doc comment), and Notes only carries
-// text when Aging actually produced an illness or death event.
+// text when Aging actually produced an illness or death event. Birthdate
+// is computed via GenerateBirthdate (character/birthdate.go) from that
+// same approximate Age, so it inherits the same imprecision.
 //
-// Left at zero-value, each for a distinct reason: Name, Birthdate — nothing
-// in this codebase generates either yet.
+// Left at zero-value: Name — nothing in this codebase generates it yet.
 // Rank, Medals, Commendations — correctly zero for Scout, not a gap: p.65
 // states outright that "the Citizen, Entertainer, Craftsman, Scout, Agent,
 // and Rogue careers have no rank," and Scout's own p.79 box grants neither
@@ -128,6 +129,7 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
 	finalUPP, age, lifeStage, notes := finalizeAging(r, updatedUPP, len(career.Terms), ok)
+	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
 		Species:        "Human",
@@ -135,6 +137,7 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		UPP:            finalUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld, // same world; see GenerateHomeworldSkills' own doc comment
+		Birthdate:      birthdate,
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,

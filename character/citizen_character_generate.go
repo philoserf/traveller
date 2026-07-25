@@ -52,6 +52,7 @@ func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	// so there's always "the rest of their life" for finalizeAging to
 	// simulate.
 	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, len(career.Terms), true)
+	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
 		Species:        "Human",
@@ -59,6 +60,7 @@ func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		UPP:            finalUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
+		Birthdate:      birthdate,
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,

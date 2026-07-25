@@ -271,8 +271,6 @@ func TestBuildScoutCharacterFixedZeroValueFields(t *testing.T) {
 		t.Errorf("Equipment = %v, want nil", c.Equipment)
 	case c.Name != "":
 		t.Errorf("Name = %q, want empty", c.Name)
-	case c.Birthdate != "":
-		t.Errorf("Birthdate = %q, want empty", c.Birthdate)
 	}
 }
 
@@ -301,6 +299,20 @@ func TestBuildScoutCharacterSetsAgeAndLifeStage(t *testing.T) {
 	if c.Notes != "" {
 		t.Errorf("Notes = %q, want empty (Aging not simulated for a never-qualified attempt)", c.Notes)
 	}
+}
+
+// TestBuildScoutCharacterSetsBirthdate confirms Birthdate is actually
+// computed now (GenerateBirthdate), including for a never-qualified
+// attempt (Age is still set, so a Birthdate can still be computed).
+func TestBuildScoutCharacterSetsBirthdate(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	c, _ := buildScoutCharacter(r, upp, "hw", nil)
+
+	assertBirthdateFormat(t, c.Birthdate, c.Age)
 }
 
 // TestBuildScoutCharacterAgingBufferNeverTriggersIllness reuses

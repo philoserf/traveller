@@ -157,8 +157,6 @@ func TestBuildCitizenCharacterFixedZeroValueFields(t *testing.T) {
 		t.Errorf("Equipment = %v, want nil", c.Equipment)
 	case c.Name != "":
 		t.Errorf("Name = %q, want empty", c.Name)
-	case c.Birthdate != "":
-		t.Errorf("Birthdate = %q, want empty", c.Birthdate)
 	}
 }
 
@@ -189,6 +187,20 @@ func TestBuildCitizenCharacterSetsAgeAndLifeStage(t *testing.T) {
 	if c.LifeStage != 7 {
 		t.Errorf("LifeStage = %d, want 7 (Senior)", c.LifeStage)
 	}
+}
+
+// TestBuildCitizenCharacterSetsBirthdate confirms Birthdate is actually
+// computed now (GenerateBirthdate), mirroring
+// TestBuildScoutCharacterSetsBirthdate.
+func TestBuildCitizenCharacterSetsBirthdate(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(5, 5))
+
+	c := buildCitizenCharacter(r, upp, "hw", nil)
+
+	assertBirthdateFormat(t, c.Birthdate, c.Age)
 }
 
 func TestGenerateCitizenCharacterDeterminism(t *testing.T) {

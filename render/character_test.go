@@ -133,36 +133,26 @@ func TestCharacterShowsRankOnlyWhenSet(t *testing.T) {
 	}
 }
 
-// TestCharacterNeverRendersUngeneratedFields guards Birthdate — nothing
-// in character generates it yet, and render.Character has no code path
-// that prints it at all. Notes is separately guarded by
-// TestCharacterShowsNotesOnlyWhenSet (Notes IS generated now, just often
-// empty). Age/LifeStage are no longer guarded here — they're always
-// rendered now, covered by TestCharacterAlwaysShowsAgeAndLifeStage.
-func TestCharacterNeverRendersUngeneratedFields(t *testing.T) {
-	t.Parallel()
-
-	out := render.Character(scoutSheet)
-
-	if strings.Contains(out, "Birthdate") {
-		t.Errorf("render.Character should never render %q, got:\n%s", "Birthdate", out)
-	}
-}
-
-// TestCharacterAlwaysShowsAgeAndLifeStage confirms Age/Life Stage render
-// unconditionally, unlike Rank/Fame/Cash/Notes — every real generation
-// path now computes them (finalizeAging, character/aging.go), so there's
-// no zero-value ambiguity left to guard against.
-func TestCharacterAlwaysShowsAgeAndLifeStage(t *testing.T) {
+// TestCharacterAlwaysShowsAgeLifeStageAndBirthdate confirms Age, Life
+// Stage, and Birthdate all render unconditionally, unlike
+// Rank/Fame/Cash/Notes — every real generation path now computes them
+// (finalizeAging and GenerateBirthdate, character/aging.go and
+// character/birthdate.go), so there's no zero-value ambiguity left to
+// guard against. Name remains the one field character generation still
+// never sets, but render.Character has no dedicated "Name:" label to
+// guard — it only affects characterTitle's own fallback, already covered
+// by TestCharacterTitleFallsBackToUPP.
+func TestCharacterAlwaysShowsAgeLifeStageAndBirthdate(t *testing.T) {
 	t.Parallel()
 
 	aged := scoutSheet
 	aged.Age = 42
 	aged.LifeStage = 6
+	aged.Birthdate = "Wonday 044-1075"
 
 	out := render.Character(aged)
 
-	for _, w := range []string{"**Age:** 42", "**Life Stage:** Mid-Life"} {
+	for _, w := range []string{"**Age:** 42", "**Life Stage:** Mid-Life", "**Birthdate:** Wonday 044-1075"} {
 		if !strings.Contains(out, w) {
 			t.Errorf("render.Character missing %q in output:\n%s", w, out)
 		}

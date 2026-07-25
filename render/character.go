@@ -8,26 +8,27 @@ import (
 )
 
 // Character renders c as a Markdown character sheet: Species, Genetic
-// Profile, UPP, Age, Life Stage, Homeworld (and Birthworld only when it
-// differs), Wound Badges, the full Skills list, and each Career's Terms
-// and Mustering Out benefits. Age and Life Stage are always shown, like
-// WoundBadges: every real generation path computes them now
-// (finalizeAging, character/aging.go), with a minimum Age of 18, so
-// there's no ambiguous zero-value case to guard against the way
-// Fame/Cash/Rank/Notes still have. Name, Birthdate, Notes, Rank, Fame,
-// and Cash are shown only when set — nothing in the character package
-// generates Name or Birthdate yet (see character_generate.go's own doc
-// comment), Notes is empty unless Aging actually produced an event, and
-// for Fame/Cash printing "0" would contradict the very Benefits/Money
-// lines rendered a few lines below, which already show raw Mustering Out
-// award text like "Fame +2" or "Cr30,000" — nothing yet converts those
-// into Character.Fame/Cash (career_muster_out.go's own doc comments; a
-// real, separate future gap). Position and RiskResult get local label
-// functions (positionAbbrev, riskResultLabel) rather than String()
-// methods on the character package's own types, matching this project's
-// existing precedent (world.TradeCode/world.Base have no String() either
-// — render uses world.TradeCodeStrings/world.BaseStrings instead);
-// lifeStageLabel follows the same convention.
+// Profile, UPP, Age, Life Stage, Birthdate, Homeworld (and Birthworld
+// only when it differs), Wound Badges, the full Skills list, and each
+// Career's Terms and Mustering Out benefits. Age, Life Stage, and
+// Birthdate are always shown, like WoundBadges: every real generation
+// path computes them now (finalizeAging and GenerateBirthdate,
+// character/aging.go and character/birthdate.go), with a minimum Age of
+// 18, so there's no ambiguous zero-value case to guard against the way
+// Fame/Cash/Rank/Notes still have. Name, Notes, Rank, Fame, and Cash are
+// shown only when set — nothing in the character package generates Name
+// yet (see character_generate.go's own doc comment), Notes is empty
+// unless Aging actually produced an event, and for Fame/Cash printing "0"
+// would contradict the very Benefits/Money lines rendered a few lines
+// below, which already show raw Mustering Out award text like "Fame +2"
+// or "Cr30,000" — nothing yet converts those into Character.Fame/Cash
+// (career_muster_out.go's own doc comments; a real, separate future
+// gap). Position and RiskResult get local label functions
+// (positionAbbrev, riskResultLabel) rather than String() methods on the
+// character package's own types, matching this project's existing
+// precedent (world.TradeCode/world.Base have no String() either — render
+// uses world.TradeCodeStrings/world.BaseStrings instead); lifeStageLabel
+// follows the same convention.
 func Character(c character.Character) string {
 	var b strings.Builder
 
@@ -37,6 +38,7 @@ func Character(c character.Character) string {
 	fmt.Fprintf(&b, "**UPP:** %s\n\n", c.UPP)
 	fmt.Fprintf(&b, "**Age:** %d\n\n", c.Age)
 	fmt.Fprintf(&b, "**Life Stage:** %s\n\n", lifeStageLabel(c.LifeStage))
+	fmt.Fprintf(&b, "**Birthdate:** %s\n\n", c.Birthdate)
 	fmt.Fprintf(&b, "**Homeworld:** %s\n\n", c.Homeworld)
 
 	if c.Birthworld != "" && c.Birthworld != c.Homeworld {
