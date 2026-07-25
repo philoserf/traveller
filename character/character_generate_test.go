@@ -136,21 +136,35 @@ func TestBuildScoutCharacterFullTermSurvivor(t *testing.T) {
 }
 
 // TestBuildScoutCharacterUPPCarriesForwardReduction confirms
-// Character.UPP is the career-resolution-updated UPP, not the pre-career
-// one, by comparing against a same-seed direct ResolveScoutCareer call.
+// buildScoutCharacter feeds finalizeAging the career-resolution-updated
+// UPP, not the stale pre-career one — by replaying the exact same
+// pipeline (ResolveScoutCareer -> ResolveScoutMusterOut -> finalizeAging)
+// against an independent same-seed roller and comparing. A regression
+// here (e.g. passing the original upp instead of ResolveScoutCareer's own
+// returned UPP into finalizeAging) is exactly the class of copy-paste bug
+// Phase F's own aliasing-bug code review finding was about.
 func TestBuildScoutCharacterUPPCarriesForwardReduction(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{6, 6, 6, 12, 12, 0}}
 
 	r1 := dice.New(rand.NewPCG(23, 29))
-	r2 := dice.New(rand.NewPCG(23, 29))
 
-	_, wantUPP := ResolveScoutCareer(r1, upp)
+	wantCareer, updatedUPP := ResolveScoutCareer(r1, upp)
+	wantCareer.MusteringOut = ResolveScoutMusterOut(r1, wantCareer)
+	wantOK := len(wantCareer.Terms) > 0 && wantCareer.Terms[len(wantCareer.Terms)-1].RiskResult != Dead
+	wantUPP, wantAge, wantLifeStage, wantNotes := finalizeAging(r1, updatedUPP, len(wantCareer.Terms), wantOK)
+
+	r2 := dice.New(rand.NewPCG(23, 29))
 	c, _ := buildScoutCharacter(r2, upp, "hw", nil)
 
 	if c.UPP != wantUPP {
-		t.Errorf("Character.UPP = %+v, want %+v (ResolveScoutCareer's own updated UPP)", c.UPP, wantUPP)
+		t.Errorf("Character.UPP = %+v, want %+v (career resolution's own updated UPP, aged forward)", c.UPP, wantUPP)
+	}
+
+	if c.Age != wantAge || c.LifeStage != wantLifeStage || c.Notes != wantNotes {
+		t.Errorf("got Age=%d LifeStage=%d Notes=%q, want Age=%d LifeStage=%d Notes=%q",
+			c.Age, c.LifeStage, c.Notes, wantAge, wantLifeStage, wantNotes)
 	}
 }
 
@@ -259,12 +273,65 @@ func TestBuildScoutCharacterFixedZeroValueFields(t *testing.T) {
 		t.Errorf("Name = %q, want empty", c.Name)
 	case c.Birthdate != "":
 		t.Errorf("Birthdate = %q, want empty", c.Birthdate)
-	case c.Age != 0:
-		t.Errorf("Age = %d, want 0", c.Age)
-	case c.LifeStage != 0:
-		t.Errorf("LifeStage = %d, want 0", c.LifeStage)
-	case c.Notes != "":
-		t.Errorf("Notes = %q, want empty", c.Notes)
+	}
+}
+
+// TestBuildScoutCharacterSetsAgeAndLifeStage confirms Age/LifeStage are
+// actually computed now (finalizeAging), including for a never-qualified
+// attempt (0 terms served, still a meaningful "age 18, never got in" fact).
+func TestBuildScoutCharacterSetsAgeAndLifeStage(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	c, ok := buildScoutCharacter(r, upp, "hw", nil)
+	if ok {
+		t.Fatalf("buildScoutCharacter with zero UPP unexpectedly qualified")
+	}
+
+	if c.Age != 18 {
+		t.Errorf("Age = %d, want 18 (never qualified, 0 terms served)", c.Age)
+	}
+
+	if c.LifeStage != 3 {
+		t.Errorf("LifeStage = %d, want 3 (Young Adult)", c.LifeStage)
+	}
+
+	if c.Notes != "" {
+		t.Errorf("Notes = %q, want empty (Aging not simulated for a never-qualified attempt)", c.Notes)
+	}
+}
+
+// TestBuildScoutCharacterAgingBufferNeverTriggersIllness reuses
+// ResolveAging's own dice-outcome-independent buffer trick
+// (aging_test.go's TestResolveAgingNeverTriggersIllnessWithSufficientBuffer):
+// characteristics start high enough (15) that even the maximum possible
+// Aging reduction over maxCareerTerms terms can't reach 0, proving
+// finalizeAging actually calls ResolveAging (UPP still bounded, no
+// illness/death notes) without needing to control real dice outcomes.
+func TestBuildScoutCharacterAgingBufferNeverTriggersIllness(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{15, 15, 15, 15, 15, 0}}
+
+	for _, seed := range []uint64{1, 2, 3} {
+		r := dice.New(rand.NewPCG(seed, seed))
+
+		c, ok := buildScoutCharacter(r, upp, "hw", nil)
+		if !ok {
+			t.Fatalf("seed %d: buildScoutCharacter with immortal fixture unexpectedly died", seed)
+		}
+
+		if c.Notes != "" {
+			t.Errorf("seed %d: Notes = %q, want empty", seed, c.Notes)
+		}
+
+		for i, v := range c.UPP.Characteristics[:5] {
+			if v < 4 || v > 15 {
+				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, 15]", seed, i, v)
+			}
+		}
 	}
 }
 

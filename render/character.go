@@ -8,26 +8,26 @@ import (
 )
 
 // Character renders c as a Markdown character sheet: Species, Genetic
-// Profile, UPP, Homeworld (and Birthworld only when it differs), Wound
-// Badges, the full Skills list, and each Career's Terms and Mustering Out
-// benefits. Name, Birthdate, Age, LifeStage, Notes, Rank, Fame, and Cash
-// are shown only when set — nothing in the character package generates
-// any of these yet (see character_generate.go's own doc comment), and
-// printing "0" for them would be actively misleading, not merely
-// unpolished: for Age/LifeStage it would read as a real value (Age 0,
-// Life Stage Infant) rather than "not computed," and for Fame/Cash it
-// would contradict the very Benefits/Money lines rendered a few lines
-// below, which already show raw Mustering Out award text like "Fame +2"
-// or "Cr30,000" — nothing yet converts those into Character.Fame/Cash
-// (career_muster_out.go's own doc comments; a real, separate future
-// gap). WoundBadges is the one field always shown regardless of value —
-// unlike Fame/Cash, it's genuinely computed by scoutWoundBadges, so 0 is
-// a real, meaningful result (unharmed), not an uncomputed placeholder.
-// Position and RiskResult get local label functions (positionAbbrev,
-// riskResultLabel) rather than String() methods on the character
-// package's own types, matching this project's existing precedent
-// (world.TradeCode/world.Base have no String() either — render uses
-// world.TradeCodeStrings/world.BaseStrings instead).
+// Profile, UPP, Age, Life Stage, Homeworld (and Birthworld only when it
+// differs), Wound Badges, the full Skills list, and each Career's Terms
+// and Mustering Out benefits. Age and Life Stage are always shown, like
+// WoundBadges: every real generation path computes them now
+// (finalizeAging, character/aging.go), with a minimum Age of 18, so
+// there's no ambiguous zero-value case to guard against the way
+// Fame/Cash/Rank/Notes still have. Name, Birthdate, Notes, Rank, Fame,
+// and Cash are shown only when set — nothing in the character package
+// generates Name or Birthdate yet (see character_generate.go's own doc
+// comment), Notes is empty unless Aging actually produced an event, and
+// for Fame/Cash printing "0" would contradict the very Benefits/Money
+// lines rendered a few lines below, which already show raw Mustering Out
+// award text like "Fame +2" or "Cr30,000" — nothing yet converts those
+// into Character.Fame/Cash (career_muster_out.go's own doc comments; a
+// real, separate future gap). Position and RiskResult get local label
+// functions (positionAbbrev, riskResultLabel) rather than String()
+// methods on the character package's own types, matching this project's
+// existing precedent (world.TradeCode/world.Base have no String() either
+// — render uses world.TradeCodeStrings/world.BaseStrings instead);
+// lifeStageLabel follows the same convention.
 func Character(c character.Character) string {
 	var b strings.Builder
 
@@ -35,6 +35,8 @@ func Character(c character.Character) string {
 	fmt.Fprintf(&b, "**Species:** %s\n\n", c.Species)
 	fmt.Fprintf(&b, "**Genetic Profile:** %s\n\n", c.GeneticProfile)
 	fmt.Fprintf(&b, "**UPP:** %s\n\n", c.UPP)
+	fmt.Fprintf(&b, "**Age:** %d\n\n", c.Age)
+	fmt.Fprintf(&b, "**Life Stage:** %s\n\n", lifeStageLabel(c.LifeStage))
 	fmt.Fprintf(&b, "**Homeworld:** %s\n\n", c.Homeworld)
 
 	if c.Birthworld != "" && c.Birthworld != c.Homeworld {
@@ -53,6 +55,10 @@ func Character(c character.Character) string {
 
 	if c.Cash != 0 {
 		fmt.Fprintf(&b, "**Cash:** Cr%d\n\n", c.Cash)
+	}
+
+	if c.Notes != "" {
+		fmt.Fprintf(&b, "**Notes:** %s\n\n", c.Notes)
 	}
 
 	fmt.Fprint(&b, "## Skills\n\n")
@@ -219,6 +225,38 @@ func positionAbbrev(p character.Position) string {
 		return "Edu"
 	case character.C6:
 		return "Soc"
+	default:
+		return "?"
+	}
+}
+
+// lifeStageLabel names c.LifeStage per Book 1 p.89's own "THE STAGES OF
+// LIFE" table. "?" is unreachable in practice — character.LifeStageForAge
+// only ever returns 0-9 — but kept for the same reason positionAbbrev and
+// riskResultLabel keep their own default cases: no silent zero value for
+// an out-of-range input.
+func lifeStageLabel(stage int) string {
+	switch stage {
+	case 0:
+		return "Infant"
+	case 1:
+		return "Child"
+	case 2:
+		return "Adolescent"
+	case 3:
+		return "Young Adult"
+	case 4:
+		return "Adult"
+	case 5:
+		return "Peak"
+	case 6:
+		return "Mid-Life"
+	case 7:
+		return "Senior"
+	case 8:
+		return "Elder"
+	case 9:
+		return "Retirement"
 	default:
 		return "?"
 	}

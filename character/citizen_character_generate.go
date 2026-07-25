@@ -11,13 +11,21 @@ import (
 // multi-term Citizen career, and Citizen's own Mustering Out benefits.
 //
 // Unlike GenerateScoutCharacter, this returns only Character, no ok
-// bool: a Citizen attempt can't fail. Begin is Automatic (BeginCitizen
-// always returns true) and Citizen Life has no wound or death mechanic
-// at all, so every possible roll sequence produces a career with at
-// least one term and no "this attempt didn't survive" outcome to
-// report — a bool that can never observably be false would be dead
-// surface area, not mirrored from Scout's own shape just for
-// consistency's sake.
+// bool: a Citizen attempt can't fail Career Resolution itself. Begin is
+// Automatic (BeginCitizen always returns true) and Citizen Life has no
+// wound or death mechanic at all, so every possible roll sequence
+// produces a career with at least one term and no "this attempt didn't
+// survive Career Resolution" outcome to report — a bool that can never
+// observably be false would be dead surface area, not mirrored from
+// Scout's own shape just for consistency's sake.
+//
+// This is narrower than "can't die at all": finalizeAging (below) still
+// runs the full Aging simulation (character/aging.go's ResolveAging)
+// against the resulting Character, which genuinely can end in death
+// decades later (Book 1 p.89) — the same "Aging death isn't a voided
+// attempt" distinction GenerateScoutCharacter's own doc comment makes.
+// That death, if it happens, is recorded in Notes; it doesn't reintroduce
+// an ok bool here, for the same reason.
 func GenerateCitizenCharacter(r *dice.Roller) Character {
 	upp := GenerateUPP(r)
 	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
@@ -30,21 +38,30 @@ func GenerateCitizenCharacter(r *dice.Roller) Character {
 // own split for testability (fixed upp fixtures instead of seed-hunting
 // rare GenerateUPP outcomes). WoundBadges is left at its zero value —
 // correct for Citizen, not a gap: Citizen Life has no wound mechanic to
-// count. Character.UPP is set directly from upp, not from
-// ResolveCitizenCareer's return — it only returns Career, since Citizen
-// Life never modifies a characteristic.
+// count. Character.UPP comes from finalizeAging, not upp directly —
+// ResolveCitizenCareer itself never modifies a characteristic (it only
+// returns Career), but Aging still can, over the character's
+// approximated remaining lifetime.
 func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) Character {
 	career := ResolveCitizenCareer(r, upp)
 	career.MusteringOut = ResolveCitizenMusterOut(r, career)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
+	// survivedCareer is always true: Citizen Life has no death mechanic,
+	// so there's always "the rest of their life" for finalizeAging to
+	// simulate.
+	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, len(career.Terms), true)
+
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            upp,
+		UPP:            finalUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
+		Age:            age,
+		LifeStage:      lifeStage,
+		Notes:          notes,
 		Careers:        []Career{career},
 		Skills:         skills,
 	}

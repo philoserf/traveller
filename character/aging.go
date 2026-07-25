@@ -2,6 +2,7 @@ package character
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/philoserf/traveller/dice"
 )
@@ -205,4 +206,29 @@ func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string) {
 	}
 
 	return upp, true, notes
+}
+
+// finalizeAging computes a character's approximate final Age (via
+// AgeFromTermsServed) and, if survivedCareer, runs ResolveAging against upp
+// for the rest of their life. Returns the resulting UPP (upp unchanged if
+// !survivedCareer), Age, LifeStage, and a semicolon-joined summary of any
+// illness/death Aging produced (empty if none, or if !survivedCareer).
+//
+// survivedCareer should be false only for a character who died during
+// Career Resolution itself (Book 1 p.69's "Dying During Character
+// Generation," e.g. buildScoutCharacter's own ok) — a categorically
+// different, narrower rule than Aging's own general death (p.89), which
+// this function's own ResolveAging call already handles on its own terms
+// without needing to be gated by, or gate, that earlier outcome.
+func finalizeAging(r *dice.Roller, upp UPP, termsServed int, survivedCareer bool) (UPP, int, int, string) {
+	age := AgeFromTermsServed(termsServed)
+	lifeStage := LifeStageForAge(age)
+
+	if !survivedCareer {
+		return upp, age, lifeStage, ""
+	}
+
+	agedUPP, _, notes := ResolveAging(r, upp, age)
+
+	return agedUPP, age, lifeStage, strings.Join(notes, "; ")
 }

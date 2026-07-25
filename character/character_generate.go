@@ -47,25 +47,39 @@ func allSkillsFromTerms(terms []Term) []SkillLevel {
 // Scout career, and Scout's own Mustering Out benefits — the first
 // function in this package to construct a Character value.
 //
-// Returns false when this attempt didn't produce a usable, living
-// character: either the career never qualified (Begin and Retry both
-// failed — Book 1's own "this career may not be used," not an error; no
-// other career exists in this codebase yet to fall back to) or the last
-// term ended in Death (Book 1 p.69's "Dying During Character Generation":
-// "If the Controlling Characteristic is reduced to zero or less, the
-// Character is dead (and all efforts in this particular character
-// creation process are lost)" — stronger than "no benefits," RAW voids
-// the whole attempt). Either way the partial Character is still returned,
-// not zero-valued, so a caller has something to inspect or retry from —
-// matching the existing return-both-value-and-signal pattern already used
-// throughout this package (BeginScout, ResolveScoutTerm).
+// Returns false specifically when Career Resolution itself didn't produce
+// a usable character: either the career never qualified (Begin and Retry
+// both failed — Book 1's own "this career may not be used," not an error;
+// no other career exists in this codebase yet to fall back to) or the
+// last term ended in Death (Book 1 p.69's "Dying During Character
+// Generation": "If the Controlling Characteristic is reduced to zero or
+// less, the Character is dead (and all efforts in this particular
+// character creation process are lost)" — stronger than "no benefits,"
+// RAW voids the whole attempt). Either way the partial Character is still
+// returned, not zero-valued, so a caller has something to inspect or
+// retry from — matching the existing return-both-value-and-signal pattern
+// already used throughout this package (BeginScout, ResolveScoutTerm).
 //
-// Left at zero-value, each for a distinct reason: Name, Birthdate, Age,
-// LifeStage, Notes — nothing in this codebase generates any of these yet
-// (Age specifically can't even be cheaply approximated: whether Begin
-// succeeded on the first roll or needed the 1-year Retry, Book 1's own
-// "each failed attempt... takes one year," isn't surfaced by BeginScout's
-// bool return, so any guess would already be off by up to a year).
+// This does NOT cover an Aging-caused death (character/aging.go's own
+// ResolveAging, applied via finalizeAging below): p.69's rule above is
+// scoped to a Risk-roll reduction during an active Career Resolution
+// attempt, a categorically different, narrower rule than Aging's own
+// general "ultimately... bringing on inevitable death" (p.89), which the
+// book frames as a normal outcome, not a voided attempt. A character who
+// died of old age decades after a successful career still returns
+// ok=true — the story of that death is recorded in Notes, not signaled
+// by this return value. A caller that needs to detect it should check
+// Notes rather than ok.
+//
+// Age, LifeStage, Notes are computed via finalizeAging (character/aging.go):
+// Age is only an approximation (18 plus 4 years per term served — whether
+// Begin succeeded on the first roll or needed the 1-year Retry isn't
+// surfaced by BeginScout's bool return, so this can undercount by up to a
+// year, per AgeFromTermsServed's own doc comment), and Notes only carries
+// text when Aging actually produced an illness or death event.
+//
+// Left at zero-value, each for a distinct reason: Name, Birthdate — nothing
+// in this codebase generates either yet.
 // Rank, Medals, Commendations — correctly zero for Scout, not a gap: p.65
 // states outright that "the Citizen, Entertainer, Craftsman, Scout, Agent,
 // and Rogue careers have no rank," and Scout's own p.79 box grants neither
@@ -113,12 +127,17 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
+	finalUPP, age, lifeStage, notes := finalizeAging(r, updatedUPP, len(career.Terms), ok)
+
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            updatedUPP,
+		UPP:            finalUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld, // same world; see GenerateHomeworldSkills' own doc comment
+		Age:            age,
+		LifeStage:      lifeStage,
+		Notes:          notes,
 		Careers:        []Career{career},
 		Skills:         skills,
 		WoundBadges:    scoutWoundBadges(career),

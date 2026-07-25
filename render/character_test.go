@@ -133,18 +133,59 @@ func TestCharacterShowsRankOnlyWhenSet(t *testing.T) {
 	}
 }
 
-// TestCharacterNeverRendersUngeneratedFields guards Name/Birthdate/Age/
-// LifeStage/Notes — nothing in character generates any of these yet, and
-// render.Character has no code path that prints them at all.
+// TestCharacterNeverRendersUngeneratedFields guards Birthdate — nothing
+// in character generates it yet, and render.Character has no code path
+// that prints it at all. Notes is separately guarded by
+// TestCharacterShowsNotesOnlyWhenSet (Notes IS generated now, just often
+// empty). Age/LifeStage are no longer guarded here — they're always
+// rendered now, covered by TestCharacterAlwaysShowsAgeAndLifeStage.
 func TestCharacterNeverRendersUngeneratedFields(t *testing.T) {
 	t.Parallel()
 
 	out := render.Character(scoutSheet)
 
-	for _, field := range []string{"Birthdate", "Age", "LifeStage", "Notes"} {
-		if strings.Contains(out, field) {
-			t.Errorf("render.Character should never render %q, got:\n%s", field, out)
+	if strings.Contains(out, "Birthdate") {
+		t.Errorf("render.Character should never render %q, got:\n%s", "Birthdate", out)
+	}
+}
+
+// TestCharacterAlwaysShowsAgeAndLifeStage confirms Age/Life Stage render
+// unconditionally, unlike Rank/Fame/Cash/Notes — every real generation
+// path now computes them (finalizeAging, character/aging.go), so there's
+// no zero-value ambiguity left to guard against.
+func TestCharacterAlwaysShowsAgeAndLifeStage(t *testing.T) {
+	t.Parallel()
+
+	aged := scoutSheet
+	aged.Age = 42
+	aged.LifeStage = 6
+
+	out := render.Character(aged)
+
+	for _, w := range []string{"**Age:** 42", "**Life Stage:** Mid-Life"} {
+		if !strings.Contains(out, w) {
+			t.Errorf("render.Character missing %q in output:\n%s", w, out)
 		}
+	}
+}
+
+// TestCharacterShowsNotesOnlyWhenSet mirrors
+// TestCharacterShowsRankOnlyWhenSet: Notes is empty unless Aging actually
+// produced an illness/death event.
+func TestCharacterShowsNotesOnlyWhenSet(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(scoutSheet) // Notes is unset
+	if strings.Contains(out, "Notes") {
+		t.Errorf("render.Character should omit Notes when unset, got:\n%s", out)
+	}
+
+	noted := scoutSheet
+	noted.Notes = "Age 70: extremely major illness"
+
+	out = render.Character(noted)
+	if !strings.Contains(out, "**Notes:** Age 70: extremely major illness") {
+		t.Errorf("render.Character should show set Notes, got:\n%s", out)
 	}
 }
 

@@ -9,16 +9,60 @@ import (
 	"github.com/philoserf/traveller/ehex"
 )
 
-func TestBuildCitizenCharacterUPPIsUnchanged(t *testing.T) {
+// TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset confirms
+// Character.UPP is exactly the pre-career UPP (not just "close to it")
+// when the character's approximated Age never reaches Physical Aging's
+// own onset (34): Citizen Life itself never modifies a characteristic
+// (ResolveCitizenCareer's own signature only returns Career, nothing to
+// mutate upp with), and finalizeAging's own ResolveAging call is a
+// structural no-op below onset regardless of dice (agingCheckpoints
+// returns empty). Seed 4 was found by direct search to produce exactly 1
+// Citizen term (Age 22): 18 + 4*1 = 22 < 34.
+func TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset(t *testing.T) {
 	t.Parallel()
 
-	upp := UPP{Characteristics: [6]ehex.Value{6, 7, 8, 9, 0, 0}}
-	r := dice.New(rand.NewPCG(1, 1))
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(4, 4))
 
 	c := buildCitizenCharacter(r, upp, "hw", nil)
 
+	if len(c.Careers[0].Terms) != 1 {
+		t.Fatalf("seed 4: len(Terms) = %d, want 1 (fixture assumption broke)", len(c.Careers[0].Terms))
+	}
+
 	if c.UPP != upp {
-		t.Errorf("UPP = %+v, want unchanged %+v (Citizen Life never modifies a characteristic)", c.UPP, upp)
+		t.Errorf("UPP = %+v, want unchanged %+v (Age %d is below Physical Aging's own onset of 34)", c.UPP, upp, c.Age)
+	}
+}
+
+// TestBuildCitizenCharacterUPPBoundedWithAgingBuffer confirms
+// finalizeAging is actually wired into buildCitizenCharacter for a
+// long-enough career to cross Aging's onset — using the same
+// dice-outcome-independent buffer trick as aging_test.go's
+// TestResolveAgingNeverTriggersIllnessWithSufficientBuffer: starting
+// characteristics high enough (15) that even the maximum possible Aging
+// reduction over maxCareerTerms terms can't reach 0, so Notes stays
+// empty and every characteristic stays within the provable bound —
+// without needing to control real dice outcomes.
+func TestBuildCitizenCharacterUPPBoundedWithAgingBuffer(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{15, 15, 15, 15, 15, 0}}
+
+	for _, seed := range []uint64{1, 2, 3} {
+		r := dice.New(rand.NewPCG(seed, seed))
+
+		c := buildCitizenCharacter(r, upp, "hw", nil)
+
+		for i, v := range c.UPP.Characteristics[:5] {
+			if v < 4 || v > 15 {
+				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, 15]", seed, i, v)
+			}
+		}
+
+		if c.Notes != "" {
+			t.Errorf("seed %d: Notes = %q, want empty", seed, c.Notes)
+		}
 	}
 }
 
@@ -115,12 +159,35 @@ func TestBuildCitizenCharacterFixedZeroValueFields(t *testing.T) {
 		t.Errorf("Name = %q, want empty", c.Name)
 	case c.Birthdate != "":
 		t.Errorf("Birthdate = %q, want empty", c.Birthdate)
-	case c.Age != 0:
-		t.Errorf("Age = %d, want 0", c.Age)
-	case c.LifeStage != 0:
-		t.Errorf("LifeStage = %d, want 0", c.LifeStage)
-	case c.Notes != "":
-		t.Errorf("Notes = %q, want empty", c.Notes)
+	}
+}
+
+// TestBuildCitizenCharacterSetsAgeAndLifeStage confirms Age/LifeStage are
+// actually computed now (finalizeAging) from termsServed, mirroring
+// TestBuildScoutCharacterSetsAgeAndLifeStage. Age is pinned to an exact,
+// independently-known value (18 + 4*termsServed, not re-derived from
+// c.Age itself) so a regression that wires the wrong termsServed into
+// finalizeAging — e.g. passing 0 instead of len(career.Terms) — would
+// still be caught. Seed 5 was found by direct search to produce exactly
+// 8 Citizen terms (Age 18 + 4*8 = 50, Life Stage 7 Senior).
+func TestBuildCitizenCharacterSetsAgeAndLifeStage(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
+	r := dice.New(rand.NewPCG(5, 5))
+
+	c := buildCitizenCharacter(r, upp, "hw", nil)
+
+	if len(c.Careers[0].Terms) != 8 {
+		t.Fatalf("seed 5: len(Terms) = %d, want 8 (fixture assumption broke)", len(c.Careers[0].Terms))
+	}
+
+	if c.Age != 50 {
+		t.Errorf("Age = %d, want 50 (18 + 4*8 terms served)", c.Age)
+	}
+
+	if c.LifeStage != 7 {
+		t.Errorf("LifeStage = %d, want 7 (Senior)", c.LifeStage)
 	}
 }
 
