@@ -173,6 +173,8 @@ func termOutcomeLine(c character.Career, i int, t character.Term) string {
 		return prefix + ": " + nobleTermLabel(t)
 	case character.RogueCareerName:
 		return prefix + ": " + rogueTermLabel(t)
+	case character.ScholarCareerName:
+		return prefix + ": " + scholarTermLabel(t)
 	}
 
 	line := prefix + ": " + riskResultLabel(t.RiskResult)
@@ -239,6 +241,33 @@ func rogueTermLabel(t character.Term) string {
 	}
 
 	return label + "Success (No Reward)"
+}
+
+// scholarTermLabel renders "Research: Unharmed, Publication: Success"/
+// "Research: Wounded"/"Research: Unharmed, Publication: Award-Winning,
+// Tenure Granted" — reuses riskResultLabel for the Risk half; Scholar's
+// own PublicationSucceeded/AwardWinning/TenureGranted are typed bools
+// like Rogue's own fields, not a fit for the generic bare-string
+// RewardResult shape every other risk career uses.
+func scholarTermLabel(t character.Term) string {
+	label := "Research: " + riskResultLabel(t.RiskResult)
+
+	if t.RiskResult == character.Unharmed {
+		switch {
+		case t.AwardWinning:
+			label += ", Publication: Award-Winning"
+		case t.PublicationSucceeded:
+			label += ", Publication: Success"
+		default:
+			label += ", Publication: Rejected"
+		}
+	}
+
+	if t.TenureGranted {
+		label += ", Tenure Granted"
+	}
+
+	return label
 }
 
 func citizenLifeLabel(succeeded bool) string {

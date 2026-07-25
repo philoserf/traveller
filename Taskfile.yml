@@ -104,6 +104,7 @@ tasks:
       - go run ./cmd/chargen -career soldier || true
       - go run ./cmd/chargen -career spacer || true
       - go run ./cmd/chargen -career rogue || true
+      - go run ./cmd/chargen -career scholar || true
 
   demo:stop:
     internal: true

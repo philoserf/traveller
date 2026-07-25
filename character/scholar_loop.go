@@ -1,0 +1,49 @@
+package character
+
+import "github.com/philoserf/traveller/dice"
+
+// continueScholar has no natural-roll exception (unlike Marine's
+// natural-2 or Rogue's natural-12) — confirmed directly against the box
+// and the Master Checklist, both of which describe a plain roll.
+func continueScholar(r *dice.Roller, edu, mod int) bool {
+	return rollAgainstTarget(r, edu, mod)
+}
+
+// ResolveScholarCareer resolves a full multi-term Scholar career (Book 1
+// p.76). priorTerms accumulates via closure capture (the same pattern
+// established for Rogue's own termCount, career.go's own Terms not
+// being available until resolveCareerLoop returns) since
+// scholarPublicationsTotal needs terms-so-far for both the term
+// resolver's own Promotion/Tenure Mod and the Continue check's own Mod.
+func ResolveScholarCareer(r *dice.Roller, upp UPP) (Career, UPP) {
+	career := Career{Name: ScholarCareerName, HasRank: true}
+
+	edu := int(upp.Characteristics[C5])
+
+	ok, tier := BeginScholar(r, edu)
+	if !ok {
+		return career, upp
+	}
+
+	var priorTerms []Term
+
+	terms, finalUPP := resolveCareerLoop(r, upp, scholarRiskRewardPositions,
+		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
+			var (
+				term       Term
+				updatedUPP UPP
+			)
+
+			term, updatedUPP, tier = ResolveScholarTerm(r, upp, ccPos, edu, tier, priorTerms)
+			priorTerms = append(priorTerms, term)
+
+			return term, updatedUPP
+		},
+		func(r *dice.Roller, _ UPP) bool {
+			return continueScholar(r, edu, scholarPublicationsTotal(priorTerms))
+		},
+	)
+	career.Terms = terms
+
+	return career, finalUPP
+}

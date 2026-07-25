@@ -350,6 +350,66 @@ func TestCharacterRendersRogueTermOutcome(t *testing.T) {
 	}
 }
 
+// TestCharacterRendersScholarTermOutcome mirrors
+// TestCharacterRendersRogueTermOutcome's own shape, covering
+// scholarTermLabel's own branches: Wounded/Disabled skip the Publication
+// clause entirely (Reward is only rolled on Unharmed, per
+// ResolveScholarTerm), an Unharmed term shows Publication Success/
+// Rejected/Award-Winning, and Tenure Granted appends independently of
+// the Publication outcome.
+func TestCharacterRendersScholarTermOutcome(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{
+			{
+				Name: character.ScholarCareerName,
+				Terms: []character.Term{
+					{ControllingCharacteristic: character.C1, RiskResult: character.Wounded},
+					{ControllingCharacteristic: character.C1, RiskResult: character.Disabled},
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Unharmed,
+						PublicationSucceeded:      false,
+					},
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Unharmed,
+						PublicationSucceeded:      true,
+					},
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Unharmed,
+						PublicationSucceeded:      true,
+						AwardWinning:              true,
+					},
+					{
+						ControllingCharacteristic: character.C1,
+						RiskResult:                character.Unharmed,
+						PublicationSucceeded:      true,
+						TenureGranted:             true,
+					},
+				},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"Term 1 (Str): Research: Wounded",
+		"Term 2 (Str): Research: Disabled",
+		"Term 3 (Str): Research: Unharmed, Publication: Rejected",
+		"Term 4 (Str): Research: Unharmed, Publication: Success",
+		"Term 5 (Str): Research: Unharmed, Publication: Award-Winning",
+		"Term 6 (Str): Research: Unharmed, Publication: Success, Tenure Granted",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+}
+
 // TestCharacterOmitsZeroFameAndCash guards against showing "Fame: 0"/
 // "Cash: Cr0" for a Character whose Fame/Cash were never actually
 // computed — see Character's own doc comment on why that would

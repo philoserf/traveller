@@ -39,6 +39,9 @@ type Term struct {
 	RewardSucceeded           bool   // Rogue only: this term's own Reward roll outcome
 	SchemePayoff              int    // Rogue only: Cr payoff this term (0 if Reward failed; halved if Imprisoned)
 	SchemeShipShare           bool   // Rogue only: Reward succeeded on a Ship-Share-valued Scheme
+	PublicationSucceeded      bool   // Scholar only: this term's own Publication roll outcome
+	AwardWinning              bool   // Scholar only: Publication beat CC by 4+, counts as two Publications
+	TenureGranted             bool   // Scholar only: Tenure roll succeeded this term
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.
