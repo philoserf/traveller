@@ -1,12 +1,13 @@
 // Command chargen generates a Traveller5 character and renders it as
-// Markdown. Five careers exist so far — Scout, Citizen, Noble, Marine,
-// and Soldier, selected via -career — see character/character_generate.go,
-// character/citizen_character_generate.go,
+// Markdown. Six careers exist so far — Scout, Citizen, Noble, Marine,
+// Soldier, and Spacer, selected via -career — see
+// character/character_generate.go, character/citizen_character_generate.go,
 // character/noble_character_generate.go,
-// character/marine_character_generate.go, and
-// character/soldier_character_generate.go for what's generated and
-// what's still deferred (Name, Equipment, Education, Command College,
-// Spacer, and the other 7 T5 careers).
+// character/marine_character_generate.go,
+// character/soldier_character_generate.go, and
+// character/spacer_character_generate.go for what's generated and what's
+// still deferred (Name, Equipment, Education, Command College, and the
+// other 7 T5 careers).
 package main
 
 import (
@@ -21,7 +22,11 @@ import (
 )
 
 func main() {
-	careerName := flag.String("career", "scout", "career to generate: scout, citizen, noble, marine, or soldier")
+	careerName := flag.String(
+		"career",
+		"scout",
+		"career to generate: scout, citizen, noble, marine, soldier, or spacer",
+	)
 
 	// dice.SeedFlag itself calls flag.Parse, so every other flag must be
 	// registered above this line.
@@ -44,10 +49,12 @@ func main() {
 		c, ok = character.GenerateMarineCharacter(r)
 	case "soldier":
 		c, ok = character.GenerateSoldierCharacter(r)
+	case "spacer":
+		c, ok = character.GenerateSpacerCharacter(r)
 	default:
 		fmt.Fprintf(
 			os.Stderr,
-			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", or \"soldier\", got %q\n",
+			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", \"soldier\", or \"spacer\", got %q\n",
 			*careerName,
 		)
 		os.Exit(1)
@@ -65,7 +72,7 @@ func main() {
 		fmt.Fprintln(
 			os.Stderr,
 			"chargen: this attempt did not survive character generation, or never qualified "+
-				"(Scout/Marine/Soldier: Book 1 p.69; Noble: Soc < B, p.85)",
+				"(Scout/Marine/Soldier/Spacer: Book 1 p.69; Noble: Soc < B, p.85)",
 		)
 		os.Exit(1)
 	}

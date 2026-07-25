@@ -102,6 +102,7 @@ tasks:
       - go run ./cmd/chargen -career noble || true
       - go run ./cmd/chargen -career marine || true
       - go run ./cmd/chargen -career soldier || true
+      - go run ./cmd/chargen -career spacer || true
 
   demo:stop:
     internal: true

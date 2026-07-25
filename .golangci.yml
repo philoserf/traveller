@@ -81,7 +81,17 @@ linters:
       # (Citizen has no Dies path at all) and should stay covered by dupl.
       # Add a future risk-based career's own file here only once it
       # actually mirrors this exact shape.
-      - path: character/(marine|soldier)_character_generate_test\.go
+      - path: character/(marine|soldier|spacer)_character_generate_test\.go
+        linters:
+          - dupl
+      # The same deliberate mirroring as above, now also true of the three
+      # Armed Forces careers' own _loop_test.go (Begin/Continue/CC-rotation/
+      # Disabled/Death regression suites) and _promotion_test.go (rank
+      # table pins, Commission/Promotion rate tests) once Spacer became a
+      # third real instance of both shapes — each career's own exact
+      # targets, seeds, and rank data are the point, not the surrounding
+      # test scaffolding.
+      - path: character/(marine|soldier|spacer)_(loop|promotion)_test\.go
         linters:
           - dupl
 
