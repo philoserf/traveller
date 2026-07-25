@@ -27,6 +27,25 @@ func TestBeginNoble(t *testing.T) {
 	}
 }
 
+func TestNobleBaseFame(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		soc  ehex.Value
+		want int
+	}{
+		{10, 15},
+		{11, 16}, // floor(16.5)
+		{12, 18},
+	}
+
+	for _, c := range cases {
+		if got := nobleBaseFame(c.soc); got != c.want {
+			t.Errorf("nobleBaseFame(%v) = %d, want %d", c.soc, got, c.want)
+		}
+	}
+}
+
 func TestReturnIntrigueMod(t *testing.T) {
 	t.Parallel()
 

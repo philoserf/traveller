@@ -37,6 +37,13 @@ func TestBuildNobleCharacterNeverQualified(t *testing.T) {
 	if c.WoundBadges != 0 {
 		t.Errorf("WoundBadges = %d, want 0", c.WoundBadges)
 	}
+
+	// A never-qualified character never became a Noble at all — p.85's
+	// "Nobles have a Base Fame..." doesn't apply, matching Scout's own
+	// precedent that Fame stays 0 on a never-qualified path.
+	if c.Fame != 0 {
+		t.Errorf("Fame = %d, want 0 (never qualified, Base Fame shouldn't apply)", c.Fame)
+	}
 }
 
 // TestBuildNobleCharacterQualified confirms a real career actually
@@ -80,5 +87,12 @@ func TestBuildNobleCharacterQualified(t *testing.T) {
 
 	if len(c.Skills) < len(homeworldSkills) {
 		t.Errorf("len(Skills) = %d, want at least %d (homeworld skills alone)", len(c.Skills), len(homeworldSkills))
+	}
+
+	// >=, not ==: Mustering Out can additionally grant "Fame +2" on top of
+	// Base Fame, and this fixture doesn't control for that, so an exact
+	// equality would be flaky against real dice.
+	if want := nobleBaseFame(upp.Characteristics[C6]); c.Fame < want {
+		t.Errorf("Fame = %d, want >= %d (nobleBaseFame)", c.Fame, want)
 	}
 }

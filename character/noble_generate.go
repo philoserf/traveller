@@ -16,6 +16,17 @@ const NobleCareerName = "Noble"
 // Characteristic set (Book 1 p.85: "Return & Intrigue C2 C3 C4 C5").
 var nobleReturnIntriguePositions = []Position{C2, C3, C4, C5}
 
+// nobleBaseFame is Book 1 p.85's own "Fame. Nobles have a Base Fame equal
+// to 1.5 times Soc." Integer math (3*soc/2, floor-rounded) rather than
+// float64 — the book doesn't specify rounding for a fractional result
+// (odd Soc values), and floor is the simplest, most defensible default
+// absent a stated rule. Distinct from ApplyMusteringOut's own Fame
+// accumulation (Mustering Out's "Fame +N" rolls) — this is what a Noble
+// starts with, not an end-of-career total.
+func nobleBaseFame(soc ehex.Value) int {
+	return 3 * int(soc) / 2
+}
+
 // nobleSkillTable is Book 1 p.85's "C NOBLE SKILLS" table (7 columns, 1D
 // per row). Column 1 (Personal) is the universal six-characteristic
 // boost list every career's own skill table shares (row N always names
