@@ -77,12 +77,16 @@ func TestBuildMarineCharacterDies(t *testing.T) {
 }
 
 // TestBuildMarineCharacterQualified confirms a real career actually
-// populates Age/LifeStage/Birthdate/Skills/WoundBadges, mirroring the
-// equivalent Scout/Citizen/Noble build tests. C1=C4=20 is high enough
+// populates Age/LifeStage/Birthdate/Skills/WoundBadges/Rank, mirroring
+// the equivalent Scout/Citizen/Noble build tests. C1=C4=20 is high enough
 // that even the worst-case combined Mod (Branch's own max 2 +
 // Operations' own max 3 = 5) still leaves a target above 2D6's own
 // maximum, guaranteeing survival and Continue (see
 // TestResolveMarineCareerRespectsMaxTermsCap's own identical reasoning).
+// C3=End=0 keeps Officer Commission's own target unreachable (2D6's own
+// minimum is 2), so this character stays Enlisted the whole career;
+// C1=20 guarantees Enlisted Promotion always succeeds, deterministically
+// capping at M6 Sergeant Major well within maxCareerTerms.
 func TestBuildMarineCharacterQualified(t *testing.T) {
 	t.Parallel()
 
@@ -124,12 +128,13 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 
 	// This fixture's own 14 terms all resolve Risk as Unharmed (the same
 	// guarantee TestResolveMarineCareerRespectsMaxTermsCap relies on), so
-	// WoundBadges is 0 and every term's flat XS grant contributes no
-	// Fame — but two Reward rolls this seed happen to resolve to MCUF
-	// (+1 each) and one to SEH (+3), for an exact total of 5. Confirms
-	// marineCareerFame is wired end to end, not just unit-correct.
-	if c.Fame != 5 {
-		t.Errorf("Fame = %d, want 5 (2 MCUF + 1 SEH from this seed's own Reward rolls)", c.Fame)
+	// WoundBadges is 0. Enlisted rank carries no Officer Rank Fame
+	// (marineCareerFame's own rule); this seed's own Reward rolls happen
+	// to resolve to MCUF (+1 Fame each) 5 times and MCG (+2) once, for an
+	// exact total of 7. Confirms marineCareerFame is wired end to end,
+	// not just unit-correct.
+	if c.Fame != 7 {
+		t.Errorf("Fame = %d, want 7 (5 MCUF + 1 MCG from this seed's own Reward rolls)", c.Fame)
 	}
 
 	if c.WoundBadges != 0 {
@@ -145,5 +150,13 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 	if len(c.Medals) != 28 {
 		t.Errorf("len(Medals) = %d, want 28 (2 medals x 14 terms: flat XS plus a Reward-table medal each)",
 			len(c.Medals))
+	}
+
+	// Regression test for Phase V's own core mechanic: Enlisted Promotion
+	// always succeeds against C1=20, capping the rank at M6 well before
+	// the career's own 14-term run ends; Commission never succeeds
+	// against C3=End=0, so the character never transitions to Officer.
+	if c.Rank != "M6 Sergeant Major" {
+		t.Errorf("Rank = %q, want %q", c.Rank, "M6 Sergeant Major")
 	}
 }

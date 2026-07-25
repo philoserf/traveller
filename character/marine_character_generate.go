@@ -31,16 +31,20 @@ func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 }
 
 // marineCareerFame is Book 1 p.91's own Armed Forces Fame bracket
-// (Army/Marine/Navy). The "Officer Rank*" component is 0 for every
-// Marine this codebase generates (*Armed Forces Enlisted = no Fame — no
-// character is ever assigned an Officer Rank yet). The bracket's nested
-// Medal/Wound-Badge Fame values (Exemplary Service XS x0, Wound Badge WB
-// x1, MCUF x1, MCG x2, SEH x3) are read as scoped only to the "Rank*"
-// line by the asterisk's own placement, not to the whole bracket —
-// Medals and Wound Badges are earned with no Officer gate anywhere in
-// the Risk & Reward mechanic, so this codebase applies their Fame
-// regardless of rank. A documented judgment call, not a directly-quoted
-// rule — see this slice's own plan-file Context for the full reasoning.
+// (Army/Marine/Navy). Since Phase V, Officer Rank is a real, reachable
+// outcome (marineRankState/ResolveMarineTerm), so the bracket's own
+// "Officer Rank*" line (*Armed Forces Enlisted = no Fame) genuinely
+// applies now — read as "=Rank" (the numeric tier, O1=1 .. O7=7),
+// matching the same "=Rank" formula shape p.91 already uses for Scholar
+// and Merchant; no explicit multiplier is printed for Armed Forces the
+// way Medals/Noble each get one, so this is a documented judgment call,
+// not a directly-quoted formula. The bracket's nested Medal/Wound-Badge
+// Fame values (Exemplary Service XS x0, Wound Badge WB x1, MCUF x1,
+// MCG x2, SEH x3) are read as scoped only to the "Rank*" line by the
+// asterisk's own placement, not to the whole bracket — Medals and Wound
+// Badges are earned with no Officer gate anywhere in the Risk & Reward
+// mechanic, so their Fame applies regardless of rank. See this and the
+// prior slice's own plan-file Context entries for the full reasoning.
 func marineCareerFame(career Career) int {
 	fame := 0
 
@@ -50,5 +54,11 @@ func marineCareerFame(career Career) int {
 		}
 	}
 
-	return fame + scoutWoundBadges(career) // Wound Badge Fame, x1 each, p.91
+	fame += scoutWoundBadges(career) // Wound Badge Fame, x1 each, p.91
+
+	if isOfficer, tier := marineRankState(career.Terms); isOfficer {
+		fame += tier // Officer Rank Fame, read as =Rank (the numeric tier)
+	}
+
+	return fame
 }

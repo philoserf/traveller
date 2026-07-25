@@ -23,12 +23,12 @@ type Term struct {
 	Branch                    string   // Armed Forces only
 	Assignment                string   // Armed Forces only
 	Medals                    []string // Armed Forces only: medal codes earned this term (XS/MCUF/MCG/SEH)
-	Rank                      string
-	Commissioned              bool
+	Rank                      string   // Armed Forces only: rank held after this term (e.g. "M3 Sergeant")
+	Commissioned              bool     // Armed Forces only: Commission succeeded this term
 	RiskResult                RiskResult
 	RewardResult              string
 	SkillsAwarded             []SkillLevel
-	Promoted                  bool
+	Promoted                  bool   // Armed Forces only: Officer/Enlisted Promotion succeeded this term
 	CitizenLifeSucceeded      bool   // Citizen only
 	NobleAction               string // "Return" or "Intrigue" — Noble only
 	NobleSucceeded            bool   // Noble only

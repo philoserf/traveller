@@ -78,11 +78,12 @@ func TestMarineSkillTableMatchesBook1P86(t *testing.T) {
 func TestMarineMedalTableMatchesBook1P70(t *testing.T) {
 	t.Parallel()
 
-	wantCodes := [11]string{
+	wantCodes := [12]string{
 		"XS", "XS", "XS", "XS", "XS", "XS", "XS",
 		"MCUF", "MCUF",
 		"MCG",
 		"SEH",
+		"SEHD",
 	}
 	if marineMedalCodes != wantCodes {
 		t.Errorf("marineMedalCodes =\n%v\nwant\n%v", marineMedalCodes, wantCodes)
@@ -93,6 +94,7 @@ func TestMarineMedalTableMatchesBook1P70(t *testing.T) {
 		"MCUF": "MCUF Meritorious Conduct Under Fire",
 		"MCG":  "MCG Medal for Conspicuous Gallantry",
 		"SEH":  "SEH Starburst for Extreme Heroism",
+		"SEHD": "SEH With Diamonds",
 	}
 	if len(marineMedalNames) != len(wantNames) {
 		t.Fatalf("marineMedalNames has %d entries, want %d", len(marineMedalNames), len(wantNames))
@@ -104,7 +106,7 @@ func TestMarineMedalTableMatchesBook1P70(t *testing.T) {
 		}
 	}
 
-	wantFame := map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3}
+	wantFame := map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3, "SEHD": 4}
 	if len(marineMedalFame) != len(wantFame) {
 		t.Fatalf("marineMedalFame has %d entries, want %d", len(marineMedalFame), len(wantFame))
 	}
@@ -125,7 +127,7 @@ func TestMarineMedalFromReward(t *testing.T) {
 		roll int
 		want string
 	}{
-		{2, "XS"}, {8, "XS"}, {9, "MCUF"}, {10, "MCUF"}, {11, "MCG"}, {12, "SEH"},
+		{2, "XS"}, {8, "XS"}, {9, "MCUF"}, {10, "MCUF"}, {11, "MCG"}, {12, "SEH"}, {13, "SEHD"},
 	}
 
 	for _, c := range cases {
@@ -242,7 +244,7 @@ func TestResolveMarineTermAppliesCombinedMod(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{6, 0, 0, 6, 8, 0}}
 	r := dice.New(rand.NewPCG(11, 13))
 
-	term, _ := ResolveMarineTerm(r, upp, C1, "Commando", marineBranchMods[5]) // index 5 = Commando
+	term, _ := ResolveMarineTerm(r, upp, C1, "Commando", marineBranchMods[5], nil) // index 5 = Commando
 
 	if term.Branch != "Commando" {
 		t.Errorf("Branch = %q, want %q", term.Branch, "Commando")
@@ -259,7 +261,7 @@ func TestResolveMarineTermSkipsRewardAndSkillsOnDeath(t *testing.T) {
 	upp := UPP{} // guarantees Risk failure and a fatal reduction
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveMarineTerm(r, upp, C1, "Infantry", 1)
+	term, _ := ResolveMarineTerm(r, upp, C1, "Infantry", 1, nil)
 
 	if term.RiskResult != Dead {
 		t.Fatalf("RiskResult = %v, want Dead (fixture assumption broke)", term.RiskResult)
@@ -281,6 +283,53 @@ func TestResolveMarineTermSkipsRewardAndSkillsOnDeath(t *testing.T) {
 	}
 }
 
+// TestResolveMarineTermPreservesRankOnDeath is the regression test for a
+// code-review-caught bug: an earlier draft only set term.Rank after the
+// Dead early-return, so a fallen Officer's own final term silently
+// showed an empty Rank instead of the rank actually held entering it.
+func TestResolveMarineTermPreservesRankOnDeath(t *testing.T) {
+	t.Parallel()
+
+	priorTerms := []Term{{Commissioned: true}, {Promoted: true}, {Promoted: true}} // O3 Captain
+	upp := UPP{}                                                                   // Str=0: fatal Risk
+	r := dice.New(rand.NewPCG(1, 1))
+
+	term, _ := ResolveMarineTerm(r, upp, C1, "Infantry", 1, priorTerms)
+
+	if term.RiskResult != Dead {
+		t.Fatalf("RiskResult = %v, want Dead (fixture assumption broke)", term.RiskResult)
+	}
+
+	if term.Rank != "O3 Captain" {
+		t.Errorf("Rank = %q, want %q (the rank held entering this fatal term)", term.Rank, "O3 Captain")
+	}
+}
+
+// TestResolveMarineTermOfficerRewardBonusReachesSEHD is the regression
+// test for a code-review-caught bug: an Officer's Reward roll never got
+// Book 1 p.70's own "If Officer, increase +1" bonus, making roll 13's
+// own "SEH With Diamonds" tier permanently unreachable even though the
+// surrounding function is otherwise fully rank-aware. Seed 4710 (found
+// by direct search, priorTerms showing a Commissioned character) rolls a
+// natural 12 that resolves to SEHD only once the Officer bonus is
+// applied — without it, this would be plain SEH.
+func TestResolveMarineTermOfficerRewardBonusReachesSEHD(t *testing.T) {
+	t.Parallel()
+
+	priorTerms := []Term{{Commissioned: true}}
+	r := dice.New(rand.NewPCG(4710, 4710))
+
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0, priorTerms)
+
+	if !slices.Contains(term.Medals, "SEHD") {
+		t.Errorf("Medals = %v, want to contain %q (Officer +1 Reward bonus reaching roll 13)", term.Medals, "SEHD")
+	}
+
+	if want := marineMedalNames["SEHD"]; term.RewardResult != want {
+		t.Errorf("RewardResult = %q, want %q", term.RewardResult, want)
+	}
+}
+
 // marineMedalFixtureUPP is shared by the Medals-granting tests below —
 // Str 10 makes Risk failures/successes both reachable across seeds,
 // Int 10 gives Reward the same range, Edu 8 keeps the Operations eduDM
@@ -298,7 +347,7 @@ func TestResolveMarineTermGrantsFlatXSOnRiskSuccess(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3513, 3513))
 
-	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0)
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0, nil)
 
 	if term.RiskResult != Unharmed {
 		t.Fatalf("RiskResult = %v, want Unharmed (fixture assumption broke)", term.RiskResult)
@@ -324,7 +373,7 @@ func TestResolveMarineTermGrantsRewardMedal(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3, 3))
 
-	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0)
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0, nil)
 
 	if want := []string{"XS", "MCUF"}; !slices.Equal(term.Medals, want) {
 		t.Errorf("Medals = %v, want %v (fixture assumption broke)", term.Medals, want)
@@ -344,7 +393,7 @@ func TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(8, 8))
 
-	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0)
+	term, _ := ResolveMarineTerm(r, marineMedalFixtureUPP, C1, "Commando", 0, nil)
 
 	if term.RiskResult == Unharmed || term.RiskResult == Dead {
 		t.Fatalf("RiskResult = %v, want Wounded or Disabled (fixture assumption broke)", term.RiskResult)
@@ -355,12 +404,181 @@ func TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
 	}
 }
 
+// marinePromotionFixtureUPP is shared by the Commission/Promotion tests
+// below — moderate values (End=0 deliberately excluded from Risk &
+// Reward's own {C1,C4} set, so it stays a stable, unmodified Commission
+// target throughout) keep both success and failure reachable across
+// seeds for Commission (C3), Enlisted Promotion (C1), and Officer
+// Promotion (C4/Int).
+var marinePromotionFixtureUPP = UPP{Characteristics: [6]ehex.Value{8, 0, 8, 8, 8, 8}}
+
+// TestResolveMarineTermSetsRankEveryTerm confirms term.Rank is set even
+// when neither Commission nor Promotion fires — seed 12 (found by direct
+// search) produces exactly that outcome for a fresh (no prior terms)
+// character, who should show Book 1 p.65's own starting rank, "M1
+// Private," with no skill-eligibility bonus (marineSkillsPerTerm only).
+func TestResolveMarineTermSetsRankEveryTerm(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(12, 12))
+
+	term, _ := ResolveMarineTerm(r, marinePromotionFixtureUPP, C1, "Commando", 0, nil)
+
+	if term.RiskResult == Dead {
+		t.Fatalf("RiskResult = Dead (fixture assumption broke)")
+	}
+
+	if term.Commissioned || term.Promoted {
+		t.Fatalf(
+			"Commissioned=%v Promoted=%v, want both false (fixture assumption broke)",
+			term.Commissioned,
+			term.Promoted,
+		)
+	}
+
+	if term.Rank != "M1 Private" {
+		t.Errorf("Rank = %q, want %q", term.Rank, "M1 Private")
+	}
+
+	if len(term.SkillsAwarded) != marineSkillsPerTerm {
+		t.Errorf(
+			"len(SkillsAwarded) = %d, want %d (no Commission/Promotion bonus)",
+			len(term.SkillsAwarded),
+			marineSkillsPerTerm,
+		)
+	}
+}
+
+// TestResolveMarineTermGrantsCommission is the regression test for a
+// still-Enlisted character's own Commission roll — seed 2 (found by
+// direct search) succeeds, moving the character to the Officer track at
+// O1 and granting the skill-eligibility bonus.
+func TestResolveMarineTermGrantsCommission(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(2, 2))
+
+	term, _ := ResolveMarineTerm(r, marinePromotionFixtureUPP, C1, "Commando", 0, nil)
+
+	if !term.Commissioned {
+		t.Fatalf("Commissioned = false, want true (fixture assumption broke)")
+	}
+
+	if term.Promoted {
+		t.Errorf("Promoted = true, want false (Commission and Enlisted Promotion don't both fire the same term)")
+	}
+
+	if term.Rank != "O1 2nd Lieutenant" {
+		t.Errorf("Rank = %q, want %q", term.Rank, "O1 2nd Lieutenant")
+	}
+
+	if len(term.SkillsAwarded) != marineSkillsPerTerm+1 {
+		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Commission's own +1)",
+			len(term.SkillsAwarded), marineSkillsPerTerm+1)
+	}
+}
+
+// TestResolveMarineTermGrantsEnlistedPromotion confirms a still-Enlisted
+// character whose Commission roll fails can still separately succeed at
+// Enlisted Promotion the same term — seed 1 (found by direct search).
+func TestResolveMarineTermGrantsEnlistedPromotion(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(1, 1))
+
+	term, _ := ResolveMarineTerm(r, marinePromotionFixtureUPP, C1, "Commando", 0, nil)
+
+	if term.Commissioned {
+		t.Fatalf("Commissioned = true, want false (fixture assumption broke)")
+	}
+
+	if !term.Promoted {
+		t.Fatalf("Promoted = false, want true (fixture assumption broke)")
+	}
+
+	if term.Rank != "M2 Lance Corporal" {
+		t.Errorf("Rank = %q, want %q", term.Rank, "M2 Lance Corporal")
+	}
+
+	if len(term.SkillsAwarded) != marineSkillsPerTerm+1 {
+		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Promotion's own +1)",
+			len(term.SkillsAwarded), marineSkillsPerTerm+1)
+	}
+}
+
+// TestResolveMarineTermGrantsOfficerPromotion confirms an already-Officer
+// character (priorTerms holding one Commissioned term) rolls Officer
+// Promotion, not Commission/Enlisted Promotion — seed 1 (found by direct
+// search) succeeds, advancing from O1 to O2.
+func TestResolveMarineTermGrantsOfficerPromotion(t *testing.T) {
+	t.Parallel()
+
+	priorTerms := []Term{{Commissioned: true}}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	term, _ := ResolveMarineTerm(r, marinePromotionFixtureUPP, C1, "Commando", 0, priorTerms)
+
+	if term.Commissioned {
+		t.Errorf("Commissioned = true, want false (already an Officer)")
+	}
+
+	if !term.Promoted {
+		t.Fatalf("Promoted = false, want true (fixture assumption broke)")
+	}
+
+	if term.Rank != "O2 1st Lieutenant" {
+		t.Errorf("Rank = %q, want %q", term.Rank, "O2 1st Lieutenant")
+	}
+
+	if len(term.SkillsAwarded) != marineSkillsPerTerm+1 {
+		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Promotion's own +1)",
+			len(term.SkillsAwarded), marineSkillsPerTerm+1)
+	}
+}
+
+// TestResolveMarineTermNeverPromotesPastTheRankCap is the regression
+// test for a code-review-caught bug: a Promotion roll kept "succeeding"
+// (granting an unearned +1 skill every term) even after a track was
+// already at its own maximum tier, since only marineRankState's own
+// tier value was capped, not whether the roll fired at all. Uses an
+// immortal-ish fixture (C1=20 would guarantee Enlisted Promotion success
+// every time if it were even attempted) with priorTerms already at M6 —
+// deterministic, not seed-hunted, since the fix gates the roll itself on
+// tier < max, not just its consequence.
+func TestResolveMarineTermNeverPromotesPastTheRankCap(t *testing.T) {
+	t.Parallel()
+
+	priorTerms := []Term{
+		{Promoted: true},
+		{Promoted: true},
+		{Promoted: true},
+		{Promoted: true},
+		{Promoted: true}, // tier now 6, M6 Sergeant Major
+	}
+	upp := UPP{Characteristics: [6]ehex.Value{20, 0, 0, 20, 8, 0}}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	term, _ := ResolveMarineTerm(r, upp, C1, "Commando", 0, priorTerms)
+
+	if term.Promoted {
+		t.Errorf("Promoted = true, want false (already at the M6 cap)")
+	}
+
+	if term.Rank != "M6 Sergeant Major" {
+		t.Errorf("Rank = %q, want %q (capped, unchanged)", term.Rank, "M6 Sergeant Major")
+	}
+
+	if len(term.SkillsAwarded) > marineSkillsPerTerm {
+		t.Errorf("len(SkillsAwarded) = %d, want at most %d (no unearned Promotion bonus)",
+			len(term.SkillsAwarded), marineSkillsPerTerm)
+	}
+}
+
 // TestMarineCareerFame confirms marineCareerFame sums each term's own
-// Medal Fame (Book 1 p.91's per-medal values) plus Wound Badge Fame
-// (via scoutWoundBadges, x1 each) — the Officer-Rank-based component
-// stays 0 (no character is ever assigned an Officer Rank yet), but
-// Medals/Wound Badges are earned with no Officer gate, so their Fame
-// applies regardless of rank (see this slice's own plan-file Context).
+// Medal Fame (Book 1 p.91's per-medal values), Wound Badge Fame (via
+// scoutWoundBadges, x1 each), and — for an Officer — Rank Fame (the
+// numeric tier, derived via marineRankState) — see this and the prior
+// slice's own plan-file Context entries for the full reasoning.
 func TestMarineCareerFame(t *testing.T) {
 	t.Parallel()
 
@@ -400,6 +618,23 @@ func TestMarineCareerFame(t *testing.T) {
 				{RiskResult: Wounded},
 			},
 			1 + 1,
+		},
+		{
+			"officer rank adds its own numeric tier",
+			[]Term{
+				{Commissioned: true},
+				{Promoted: true},
+				{Medals: []string{"XS"}},
+			},
+			2 + 0, // O2, plus the XS medal's own 0 Fame
+		},
+		{
+			"enlisted rank never adds Fame",
+			[]Term{
+				{Promoted: true},
+				{Promoted: true},
+			},
+			0,
 		},
 	}
 

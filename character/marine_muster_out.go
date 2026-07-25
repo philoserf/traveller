@@ -32,16 +32,19 @@ var marineMusterOutBenefits = [10]string{
 // already applied to resolveRisk/resolveReward/riskOutcome/
 // resolveCareerLoop in Phase T1.
 //
-// dm is p.86's own "DM +Terms +Officer Rank" with the second term
-// omitted, not silently dropped: no character in this codebase is ever
-// assigned an Officer Rank yet (Promotion/Commission deferred to a
-// follow-up slice), so it's always effectively +0 — the identical
-// treatment Scout's own "+Fame/2" Mustering Out DM term got before Fame
-// existed to compute it.
+// dm is p.86's own "DM +Terms +Officer Rank" — Officer Rank is a real,
+// reachable outcome since Phase V (marine_promotion.go's Commission/
+// Promotion mechanics), read as the numeric tier (O1=1 .. O7=7), the
+// same "=Rank" judgment call marineCareerFame's own Officer Rank Fame
+// term already makes (no explicit multiplier is printed for this DM
+// either).
 func ResolveMarineMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
 	dm := len(career.Terms)
+	if isOfficer, tier := marineRankState(career.Terms); isOfficer {
+		dm += tier
+	}
 
 	for range scoutMusterOutRollCount(career) {
 		row := musterOutRow(r.D6()+dm, len(marineMusterOutMoney))

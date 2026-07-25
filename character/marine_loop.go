@@ -25,13 +25,21 @@ func continueMarine(r *dice.Roller, upp UPP) bool {
 // ResolveScoutCareer once Marine became a second real caller of the
 // identical loop shape). Branch is selected once, before the term loop
 // — Book 1's own "Officers may not change Branch once selected;
-// Enlisted may select a new Branch upon Promotion," and Promotion is
-// deferred to a follow-up slice, so no re-selection path exists yet.
+// Enlisted may select a new Branch upon Promotion" — a real
+// simplification: this codebase doesn't yet model that Enlisted
+// re-selection path, matching Book 1's own "record what's true now,
+// defer what's complex" precedent elsewhere.
+//
+// priorTerms accumulates locally via closure capture rather than
+// widening resolveCareerLoop's own shared resolveTerm signature — Scout
+// doesn't need a terms-so-far view, so the shared loop stays untouched;
+// only Marine's own closure needs it, to give ResolveMarineTerm
+// (marine_generate.go) what it needs to derive rank state and cumulative
+// Medal Mods for Commission/Promotion rolls.
 //
 // HasRank is true — Marine is not in Book 1 p.65's own no-rank career
-// list — even though Term.Rank itself stays unpopulated until Officer/
-// Enlisted Promotion is implemented: a real, documented, temporary gap,
-// not "correctly zero" the way Scout's own no-rank careers are.
+// list — and Term.Rank is now genuinely populated every term
+// (marineRankName), not a deferred gap.
 func ResolveMarineCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 	career := Career{Name: MarineCareerName, HasRank: true}
 
@@ -41,13 +49,27 @@ func ResolveMarineCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 
 	branch, branchMod := rollMarineBranch(r)
 
+	var priorTerms []Term
+
 	terms, finalUPP := resolveCareerLoop(r, upp, marineRiskRewardPositions,
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
-			return ResolveMarineTerm(r, upp, ccPos, branch, branchMod)
+			term, updatedUPP := ResolveMarineTerm(r, upp, ccPos, branch, branchMod, priorTerms)
+			priorTerms = append(priorTerms, term)
+
+			return term, updatedUPP
 		},
 		continueMarine,
 	)
 	career.Terms = terms
+
+	// marineBranchAutomaticSkill is a one-time grant tied to Branch
+	// selection (once per career), not a per-term mechanic — applied to
+	// term 1's own SkillsAwarded after the loop completes.
+	if len(career.Terms) > 0 {
+		if skill, ok := marineBranchAutomaticSkill(r, branch); ok {
+			career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
+		}
+	}
 
 	return career, finalUPP
 }

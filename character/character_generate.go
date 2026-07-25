@@ -55,6 +55,18 @@ func allMedalsFromTerms(terms []Term) []string {
 	return medals
 }
 
+// lastTermRank returns the rank held after the final term — "" if there
+// are no terms, or if the career has no rank mechanic (Term.Rank is
+// Armed Forces only; always "" for Scout, since a Scout term never sets
+// it).
+func lastTermRank(terms []Term) string {
+	if len(terms) == 0 {
+		return ""
+	}
+
+	return terms[len(terms)-1].Rank
+}
+
 // GenerateScoutCharacter generates a full Human Scout Character end to
 // end: a UPP, a homeworld and its background skills, a full multi-term
 // Scout career, and Scout's own Mustering Out benefits — the first
@@ -217,6 +229,7 @@ func buildRiskCareerCharacter(
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,
+		Rank:           lastTermRank(career.Terms),
 		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},

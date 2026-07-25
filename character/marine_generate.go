@@ -67,16 +67,16 @@ var marineSkillTable = [7][6]string{
 const marineSkillsPerTerm = 4
 
 // marineMedalCodes is Book 1 p.70's own "IMPERIAL MEDALS" table, keyed
-// by the raw unmodified Reward roll (2-12; index 0 = roll 2). Roll 13
-// (SEH With Diamonds, the +1 Officer bonus) is unreachable in this
-// codebase yet — no character is ever assigned an Officer Rank
-// (Promotion/Commission deferred), the same "+Officer" omission already
-// documented for Mustering Out's own DM.
-var marineMedalCodes = [11]string{
+// by the raw unmodified Reward roll (2-13; index 0 = roll 2). Roll 13
+// ("SEHD", SEH With Diamonds) is only reachable via the table's own "If
+// Officer, increase +1" bonus (ResolveMarineTerm applies it to the raw
+// roll before this lookup) — a natural 12 plus that bonus.
+var marineMedalCodes = [12]string{
 	"XS", "XS", "XS", "XS", "XS", "XS", "XS", // rolls 2-8
 	"MCUF", "MCUF", // rolls 9-10
-	"MCG", // roll 11
-	"SEH", // roll 12
+	"MCG",  // roll 11
+	"SEH",  // roll 12
+	"SEHD", // roll 13 (Officer bonus only)
 }
 
 // marineMedalNames are the Medals table's own "Medal Description"
@@ -89,15 +89,17 @@ var marineMedalNames = map[string]string{
 	"MCUF": "MCUF Meritorious Conduct Under Fire",
 	"MCG":  "MCG Medal for Conspicuous Gallantry",
 	"SEH":  "SEH Starburst for Extreme Heroism",
+	"SEHD": "SEH With Diamonds",
 }
 
 // marineMedalFame is Book 1 p.91's own per-medal Fame contribution —
-// distinct from marineMedalCodes' own Mod column (p.70), which feeds a
-// still-deferred Promotion roll.
-var marineMedalFame = map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3}
+// distinct from marineMedalCodes' own Mod column (p.70), which feeds
+// Promotion rolls (marine_promotion.go's own marineMedalMod).
+var marineMedalFame = map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3, "SEHD": 4}
 
-// marineMedalFromReward converts a raw, unmodified Reward roll (2-12)
-// into its Medals table code.
+// marineMedalFromReward converts a raw Reward roll (2-13, already
+// including the Officer +1 bonus if applicable) into its Medals table
+// code.
 func marineMedalFromReward(roll int) string {
 	return marineMedalCodes[roll-2]
 }
@@ -154,6 +156,10 @@ func rollMarineOperations(r *dice.Roller, branch string, edu int) (string, int) 
 // Book 1 p.65's universal "-Mod under Risk, +Mod under Reward"
 // convention) feeds resolveRisk/resolveReward with the same
 // shared-mod-value convention ResolveScoutTerm already establishes.
+// priorTerms is every term already resolved this career (oldest first,
+// not including this one) — needed to derive the current rank state
+// (marineRankState) and the cumulative Medal Mod (marineMedalModTotal)
+// Promotion rolls consume; see character/marine_promotion.go.
 //
 // Medals p.86's own box describes two separate, stackable grants per
 // term, not one: Risk success alone grants a flat XS Exemplary Service
@@ -165,11 +171,40 @@ func rollMarineOperations(r *dice.Roller, branch string, edu int) (string, int) 
 // termOutcomeLine already handles any non-"None" RewardResult
 // generically, so Marine needs no new render branch, unlike Citizen/
 // Noble's own distinct outcome shapes.
-func ResolveMarineTerm(r *dice.Roller, upp UPP, ccPos Position, branch string, branchMod int) (Term, UPP) {
+//
+// Rank state (isOfficer/tier) is derived from priorTerms up front, so
+// term.Rank reflects the rank actually held entering this term even on
+// an early return (RiskResult == Dead) — a code-review-caught bug in an
+// earlier draft computed rank state only after the Dead check, leaving
+// a fallen Officer's own final term.Rank empty.
+//
+// Commission/Promotion: a still-Enlisted character rolls Commission
+// first; if it succeeds, Enlisted Promotion is not separately rolled
+// that same term (the character is no longer Enlisted by the time that
+// roll would apply) — a documented judgment call resolving a genuine
+// ambiguity in the Master Checklist's own flat per-term step listing.
+// An Officer only ever rolls Officer Promotion. Neither roll is even
+// attempted once a track is already at its own maximum tier (M6/O7) —
+// another code-review-caught bug let Promotion keep "succeeding" past
+// the cap, granting an unearned +1 skill every remaining term. Both
+// Promotion rolls use medalMod (cumulative Medal Mods, including this
+// term's own just-earned medals — Book 1 p.66's own worked example adds
+// a medal earned in the same term to that term's own Promotion roll)
+// but not Wound Badges, despite the box's own "+Medals and WB Mods"
+// footnote — see this slice's own plan-file Context for the full
+// reasoning. Commission/Promotion success each grant +1 skill this term
+// (p.86's own "Skill Eligibility: Commission 1 / Promotion 1") plus any
+// Automatic Skill by Rank (marineRankAutomaticSkill) the newly-reached
+// rank carries.
+func ResolveMarineTerm(
+	r *dice.Roller, upp UPP, ccPos Position, branch string, branchMod int, priorTerms []Term,
+) (Term, UPP) {
 	opName, opMod := rollMarineOperations(r, branch, int(upp.Characteristics[C5]))
 
 	cc := upp.Characteristics[ccPos]
 	mod := -(branchMod + opMod)
+
+	isOfficer, tier := marineRankState(priorTerms)
 
 	term := Term{
 		Length:                    4,
@@ -177,6 +212,7 @@ func ResolveMarineTerm(r *dice.Roller, upp UPP, ccPos Position, branch string, b
 		Branch:                    branch,
 		Assignment:                opName,
 		RewardResult:              "None",
+		Rank:                      marineRankName(isOfficer, tier),
 	}
 
 	risk, reducedCC := resolveRisk(r, cc, mod)
@@ -192,12 +228,44 @@ func ResolveMarineTerm(r *dice.Roller, upp UPP, ccPos Position, branch string, b
 	}
 
 	if ok, rewardRoll := resolveReward(r, reducedCC, mod); ok {
+		if isOfficer {
+			rewardRoll++ // Book 1 p.70's own "If Officer, increase +1"
+		}
+
 		medal := marineMedalFromReward(rewardRoll)
 		term.RewardResult = marineMedalNames[medal]
 		term.Medals = append(term.Medals, medal)
 	}
 
-	term.SkillsAwarded = rollSkillsFromTable(r, marineSkillTable, marineSkillsPerTerm)
+	medalMod := marineMedalModTotal(priorTerms) + marineMedalModSum(term.Medals)
+
+	switch {
+	case isOfficer:
+		if tier < len(marineOfficerRankNames) && rollMarineOfficerPromotion(r, int(upp.Characteristics[C4]), medalMod) {
+			term.Promoted = true
+			tier++
+		}
+	case rollMarineCommission(r, int(upp.Characteristics[C3])):
+		term.Commissioned = true
+		isOfficer = true
+		tier = 1
+	case tier < len(marineEnlistedRankNames) && rollMarineEnlistedPromotion(r, int(upp.Characteristics[C1]), medalMod):
+		term.Promoted = true
+		tier++
+	}
+
+	term.Rank = marineRankName(isOfficer, tier)
+
+	skillCount := marineSkillsPerTerm
+	if term.Commissioned || term.Promoted {
+		skillCount++
+
+		if skill, ok := marineRankAutomaticSkill(isOfficer, tier); ok {
+			term.SkillsAwarded = append(term.SkillsAwarded, skill)
+		}
+	}
+
+	term.SkillsAwarded = append(term.SkillsAwarded, rollSkillsFromTable(r, marineSkillTable, skillCount)...)
 
 	return term, upp
 }
