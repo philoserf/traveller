@@ -624,6 +624,17 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		upp = seg.UPP
 		acc.addSegment(seg)
 
+		// Checked before the zero-term continue below, not after it: a
+		// segment that served no terms can still have killed the
+		// character, since a failed Begin costs a year (Book 1 p.65) and
+		// that year can cross an Aging checkpoint. seg.Survived answers
+		// only "did this career kill them?", so Aging — which is tracked
+		// separately and spans the whole chain — has to be asked on its
+		// own or the next named career is attempted by someone dead.
+		if !aging.alive() {
+			break
+		}
+
 		if len(seg.Career.Terms) == 0 {
 			continue
 		}
@@ -637,20 +648,14 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 			break
 		}
 
-		// seg.Survived answers only "did this career kill them?" — Aging
-		// is tracked separately and spans the whole chain, so it has to be
-		// checked on its own or the next named career gets attempted by a
-		// character who is already dead.
-		if !aging.alive() {
-			break
-		}
-
 		if segmentEndsCareerResolution(seg) {
 			break
 		}
 	}
 
-	if !everSucceeded {
+	// Guaranteed fallback only for the living: a character Aging killed
+	// during a failed Begin never reaches Citizen Life either.
+	if !everSucceeded && aging.alive() {
 		upp = applyCitizenFallback(r, upp, &acc, &aging, ageTarget)
 	}
 

@@ -235,22 +235,23 @@ func (s *agingSimulation) livingAge() int {
 	return AgeFromTermsServed(s.termsServed) + s.failedYears
 }
 
-// chargeFailedAttempts adds one year per failed Begin or Retry roll
-// (Book 1 p.65) and runs any Aging checkpoint those years cross. n is a
-// count of rolls, not of careers: Scout can fail twice in one attempt,
-// its Begin and then its Retry.
-func (s *agingSimulation) chargeFailedAttempts(r *dice.Roller, upp UPP, n int) UPP {
-	for range n {
-		if !s.alive() {
-			break
-		}
-
-		from := s.livingAge()
-		s.failedYears++
-		upp = s.checkpointsIn(r, upp, from, s.livingAge())
+// chargeFailedAttempt adds the year one failed Begin or Retry roll costs
+// (Book 1 p.65) and runs any Aging checkpoint that year crosses.
+//
+// One roll at a time, deliberately. Scout can fail twice — its Begin and
+// then its Retry — but those are two calls with the Retry rolled between
+// them, because the year the first failure costs elapses before the
+// second is attempted: it can age the character, and it can kill them,
+// in which case there is no second attempt at all.
+func (s *agingSimulation) chargeFailedAttempt(r *dice.Roller, upp UPP) UPP {
+	if !s.alive() {
+		return upp
 	}
 
-	return upp
+	from := s.livingAge()
+	s.failedYears++
+
+	return s.checkpointsIn(r, upp, from, s.livingAge())
 }
 
 // checkpointsIn runs every Aging checkpoint falling after from and at or

@@ -54,7 +54,7 @@ func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, a
 		// Begin is a prerequisite rather than a roll (Noble's Soc B+,
 		// Craftsman's held skills, Citizen's automatic entry) charge
 		// nothing here — there was no attempt to fail.
-		upp = aging.chargeFailedAttempts(r, upp, 1)
+		upp = aging.chargeFailedAttempt(r, upp)
 
 		return career, upp
 	}

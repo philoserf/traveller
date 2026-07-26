@@ -235,11 +235,18 @@ func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
 	career := Career{Name: "Scout"}
 
-	_, began, failed := BeginScout(r, upp)
+	// Each attempt's own year is charged before the next is rolled, so
+	// the Retry sees whatever the intervening Aging checkpoint did — and
+	// isn't rolled at all if that checkpoint killed the character.
+	if _, began := BeginScout(r, upp); !began {
+		upp = aging.chargeFailedAttempt(r, upp)
+		if !aging.alive() {
+			return career, upp
+		}
 
-	upp = aging.chargeFailedAttempts(r, upp, failed)
-	if !began {
-		return career, upp
+		if !RetryScout(r, upp) {
+			return career, aging.chargeFailedAttempt(r, upp)
+		}
 	}
 
 	terms, finalUPP := resolveCareerLoop(r, upp, scoutRiskRewardPositions,

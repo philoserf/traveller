@@ -524,3 +524,106 @@ func TestFailedBeginYearsAccumulateAcrossAChain(t *testing.T) {
 			got.Age, want, termsServed, failed)
 	}
 }
+
+// TestAgingDeathDuringAFailedBeginStopsGeneration covers PR #75's own
+// review findings: a failed Begin costs a year, that year can cross an
+// Aging checkpoint, and the checkpoint can be fatal — so a segment that
+// served no terms at all can still have killed the character.
+//
+// Both paths this guards were reachable only through a zero-term
+// segment, which is exactly the shape the chain's "nothing happened,
+// carry on" continuation was written to skip past.
+func TestAgingDeathDuringAFailedBeginStopsGeneration(t *testing.T) {
+	t.Parallel()
+
+	// One year short of a checkpoint (34) and one extreme illness in
+	// already, so the next fatal batch needs only this one year to land.
+	almostGone := func() *agingSimulation {
+		return &agingSimulation{
+			termsServed:  3, // age 30
+			failedYears:  3, // age 33 — a single failed Begin reaches 34
+			extremeCount: 1, // a second extreme batch is fatal
+		}
+	}
+
+	frail := UPP{Characteristics: [6]ehex.Value{1, 1, 1, 1, 0, 0}}
+
+	t.Run("the year is charged and can kill", func(t *testing.T) {
+		t.Parallel()
+
+		var killed bool
+
+		for seed := range uint64(200) {
+			aging := almostGone()
+			_, _ = resolveMarineCareerWithBudget(dice.New(rand.NewPCG(seed+1, seed+1)), frail, maxCareerTerms, aging)
+
+			if !aging.alive() {
+				killed = true
+
+				if aging.age() != 34 {
+					t.Errorf("died at %d, want the age-34 checkpoint the failed Begin's year reached", aging.age())
+				}
+
+				break
+			}
+		}
+
+		if !killed {
+			t.Fatal("no seed died during a failed Begin — the fixture can't reach the path under test")
+		}
+	})
+
+	t.Run("a dead character starts no further career", func(t *testing.T) {
+		t.Parallel()
+
+		dead := &agingSimulation{termsServed: 5, diedAtAge: 38, notes: []string{"Age 38: died of natural causes (x)"}}
+
+		career, _ := resolveMarineCareerWithBudget(dice.New(rand.NewPCG(1, 1)), frail, maxCareerTerms, dead)
+		if len(career.Terms) != 0 {
+			t.Errorf("terms served = %d, want 0", len(career.Terms))
+		}
+	})
+}
+
+// TestScoutRetryIsRolledAfterTheFailedBeginYear covers the second review
+// finding: BeginScout and RetryScout used to roll back to back inside
+// one call, with both years charged afterward. That let the Retry be
+// taken by a character the intervening year had already killed.
+//
+// Asserted through the roller rather than the outcome: if the Retry were
+// still rolled after a fatal checkpoint it would consume dice, so a
+// dead-on-arrival simulation must leave the sequence untouched.
+func TestScoutRetryIsRolledAfterTheFailedBeginYear(t *testing.T) {
+	t.Parallel()
+
+	frail := UPP{Characteristics: [6]ehex.Value{1, 1, 1, 1, 12, 0}}
+
+	// Already dead: neither attempt may be rolled at all.
+	dead := &agingSimulation{termsServed: 5, diedAtAge: 38, notes: []string{"Age 38: died of natural causes (x)"}}
+
+	career, _ := resolveScoutCareerWithBudget(dice.New(rand.NewPCG(1, 1)), frail, maxCareerTerms, dead)
+	if len(career.Terms) != 0 {
+		t.Errorf("terms served = %d, want 0 (the character was dead before the career began)", len(career.Terms))
+	}
+
+	// Edu 12 means RetryScout always succeeds, so a Scout who reaches it
+	// alive always qualifies — proving the split didn't drop the Retry.
+	alive := &agingSimulation{}
+
+	qualified := false
+
+	for seed := range uint64(50) {
+		c, _ := resolveScoutCareerWithBudget(dice.New(rand.NewPCG(seed+1, seed+1)), frail, maxCareerTerms, alive)
+		if len(c.Terms) > 0 {
+			qualified = true
+
+			break
+		}
+
+		alive = &agingSimulation{}
+	}
+
+	if !qualified {
+		t.Error("no Scout qualified despite Edu 12 — the Retry is no longer being rolled")
+	}
+}

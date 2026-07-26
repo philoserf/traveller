@@ -832,3 +832,80 @@ func TestCareerChainAgingDeathGrantsNoMusterOut(t *testing.T) {
 		t.Errorf("Cash = %d, want 0", got.Cash)
 	}
 }
+
+// TestCareerChainStopsWhenAFailedBeginIsFatal covers PR #75's review
+// findings at the chain level. The chain used to treat a zero-term
+// segment as "nothing happened" and continue, without asking whether
+// the year that failed Begin cost had just killed the character; the
+// Citizen fallback had the same gap.
+//
+// The living path is asserted end to end, since guarding the fallback on
+// aging.alive() is exactly the change that could have broken it. The
+// fatal path is asserted at segment level, because GenerateCareerChainCharacter
+// rolls its own UPP and simulation and gives no way to start one dead.
+func TestCareerChainStopsWhenAFailedBeginIsFatal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("a living character still reaches the Citizen fallback", func(t *testing.T) {
+		t.Parallel()
+
+		// Noble needs Soc B+, so most seeds fail to Begin it — and Noble's
+		// Begin is a prerequisite, charging no year, which keeps the
+		// character comfortably alive for the fallback to matter.
+		for seed := range uint64(50) {
+			got, ok, err := GenerateCareerChainCharacter(
+				dice.New(rand.NewPCG(seed+1, seed+1)), []string{"noble"}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(got.Careers) != 2 || got.Careers[0].Name != NobleCareerName {
+				continue // this seed qualified for Noble; try another
+			}
+
+			if !ok {
+				t.Fatalf("seed %d: ok = false for a living character, Notes = %q", seed+1, got.Notes)
+			}
+
+			if got.Careers[1].Name != CitizenCareerName {
+				t.Fatalf("seed %d: Careers = %v, want the Citizen fallback after a failed Noble Begin",
+					seed+1, careerNamesOf(got))
+			}
+
+			return
+		}
+
+		t.Fatal("no seed in 1..50 failed Noble's Begin — the fallback path went unexercised")
+	})
+
+	t.Run("a dead character begins no career and gets no fallback", func(t *testing.T) {
+		t.Parallel()
+
+		dead := func() *agingSimulation {
+			return &agingSimulation{
+				termsServed: 5,
+				diedAtAge:   38,
+				notes:       []string{"Age 38: died of natural causes (x)"},
+			}
+		}
+
+		for name, resolve := range map[string]careerSegmentResolver{
+			"marine":  resolveMarineSegment,
+			"citizen": resolveCitizenSegment, // the fallback career itself
+		} {
+			seg := resolve(dice.New(rand.NewPCG(1, 1)), UPP{}, maxCareerTerms, segmentContext{Aging: dead()})
+			if len(seg.Career.Terms) != 0 {
+				t.Errorf("%s: a dead character served %d terms, want 0", name, len(seg.Career.Terms))
+			}
+		}
+	})
+}
+
+func careerNamesOf(c Character) []string {
+	names := make([]string, 0, len(c.Careers))
+	for _, career := range c.Careers {
+		names = append(names, career.Name)
+	}
+
+	return names
+}
