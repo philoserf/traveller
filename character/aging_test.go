@@ -394,7 +394,7 @@ func TestAgingDeathStopsServiceAndMusterOut(t *testing.T) {
 			return len(c.Terms)
 		},
 		"hand-rolled Noble": func(a *agingSimulation) int {
-			c, _ := resolveNobleCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+			c, _, _ := resolveNobleCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
 
 			return len(c.Terms)
 		},
