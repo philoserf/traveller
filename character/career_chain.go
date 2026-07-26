@@ -277,7 +277,7 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 
 	fame := bonuses.Fame
 	if ok {
-		fame += merchantCareerFame(tier)
+		fame += merchantCareerFame(tier) + merchantShipOwnerFame(r, career)
 	}
 
 	return careerSegment{

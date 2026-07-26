@@ -1,6 +1,7 @@
 package character
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"testing"
 
@@ -119,5 +120,84 @@ func TestGenerateMerchantCharacterProducesAHumanCharacter(t *testing.T) {
 
 	if len(c.Careers) != 1 || c.Careers[0].Name != MerchantCareerName {
 		t.Errorf("Careers = %+v, want one Career named %q", c.Careers, MerchantCareerName)
+	}
+}
+
+// TestShipSharesAwarded parses a term's own Escalating Ship Shares
+// Reward result back into a count. The singular/plural split is real —
+// ResolveMerchantTerm writes "1 Ship Share" but "2 Ship Shares".
+func TestShipSharesAwarded(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		in    string
+		want  int
+		valid bool
+	}{
+		{"1 Ship Share", 1, true},
+		{"2 Ship Shares", 2, true},
+		{"7 Ship Shares", 7, true},
+		{"None", 0, false},
+		{"", 0, false},
+		{"Ship Share", 0, false},
+		{"Discovery", 0, false},
+	}
+
+	for _, c := range cases {
+		got, ok := shipSharesAwarded(c.in)
+		if ok != c.valid || got != c.want {
+			t.Errorf("shipSharesAwarded(%q) = (%d, %v), want (%d, %v)", c.in, got, ok, c.want, c.valid)
+		}
+	}
+}
+
+// TestMerchantShipShares totals both sources Book 1 p.90 names: the
+// career's own Escalating Ship Share rewards, and one per "Ship Share"
+// benefit rolled at Mustering Out.
+func TestMerchantShipShares(t *testing.T) {
+	t.Parallel()
+
+	career := Career{
+		Terms: []Term{
+			{RewardResult: "1 Ship Share"},
+			{RewardResult: "None"},
+			{RewardResult: "2 Ship Shares"},
+		},
+		MusteringOut: MusteringOut{Benefits: []string{"Ship Share", "Knighthood", "Ship Share"}},
+	}
+
+	if got, want := merchantShipShares(career), 5; got != want {
+		t.Errorf("merchantShipShares = %d, want %d (1+2 from terms, 2 from Mustering Out)", got, want)
+	}
+
+	if got := merchantShipShares(Career{}); got != 0 {
+		t.Errorf("merchantShipShares(empty) = %d, want 0", got)
+	}
+}
+
+// TestMerchantShipOwnerFame pins Book 1 p.91's "Merchant: Ship Owner =
+// 1D" against p.90's own share costs: two shares buy a Scout, the
+// cheapest ship on the table, so that is where ownership begins. Below
+// it a character holds a fraction of nothing and earns no Fame for it.
+func TestMerchantShipOwnerFame(t *testing.T) {
+	t.Parallel()
+
+	fameFor := func(shares int) int {
+		career := Career{Terms: []Term{{RewardResult: fmt.Sprintf("%d Ship Shares", shares)}}}
+
+		return merchantShipOwnerFame(dice.New(rand.NewPCG(1, 1)), career)
+	}
+
+	for _, short := range []int{0, 1} {
+		if got := fameFor(short); got != 0 {
+			t.Errorf("%d shares earned Fame %d, want 0 — too few for any ship on p.90", short, got)
+		}
+	}
+
+	for _, owns := range []int{shipOwnershipMinimumShares, 4, 8} {
+		got := fameFor(owns)
+		if got < 1 || got > 6 {
+			t.Errorf("%d shares earned Fame %d, want a 1D roll in [1,6]", owns, got)
+		}
 	}
 }
