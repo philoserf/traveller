@@ -22,9 +22,9 @@ func TestMusterOutCashAmount(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		amount, ok := musterOutCashAmount(c.entry)
+		amount, ok := MusterOutCashAmount(c.entry)
 		if amount != c.wantAmount || ok != c.wantOK {
-			t.Errorf("musterOutCashAmount(%q) = (%d, %v), want (%d, %v)", c.entry, amount, ok, c.wantAmount, c.wantOK)
+			t.Errorf("MusterOutCashAmount(%q) = (%d, %v), want (%d, %v)", c.entry, amount, ok, c.wantAmount, c.wantOK)
 		}
 	}
 }
@@ -103,11 +103,11 @@ func TestMusterOutTableEntriesParseAsExpected(t *testing.T) {
 func assertMoneyEntryClassification(t *testing.T, entry string) {
 	t.Helper()
 
-	_, isCash := musterOutCashAmount(entry)
+	_, isCash := MusterOutCashAmount(entry)
 	wantCash := strings.HasPrefix(entry, "Cr")
 
 	if isCash != wantCash {
-		t.Errorf("musterOutCashAmount(%q) ok = %v, want %v", entry, isCash, wantCash)
+		t.Errorf("MusterOutCashAmount(%q) ok = %v, want %v", entry, isCash, wantCash)
 	}
 }
 

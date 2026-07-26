@@ -65,14 +65,14 @@ func TestCharacterContainsAllFields(t *testing.T) {
 		"A788899-C",
 		"**Wound Badges:** 1",
 		"**Fame:** 2",
-		"**Cash:** Cr30000",
+		"**Cash:** Cr30,000",
 		"### Scout",
 		"Term 1 (Str): Unharmed",
 		"Term 2 (Dex): Wounded, Reward: Discovery",
 		"Vacc Suit-1",
 		"Zero-G",
 		"- Benefits: Ship Share",
-		"- Money: Cr30,000",
+		"- Money: None",
 	}
 
 	for _, w := range want {
@@ -427,7 +427,7 @@ func TestCharacterOmitsZeroFameAndCash(t *testing.T) {
 	if got := render.Character(
 		scoutSheet,
 	); !strings.Contains(got, "**Fame:** 2") ||
-		!strings.Contains(got, "**Cash:** Cr30000") {
+		!strings.Contains(got, "**Cash:** Cr30,000") {
 		t.Errorf("render.Character should show a nonzero Fame/Cash, got:\n%s", got)
 	}
 }
@@ -491,6 +491,94 @@ func TestCharacterJoinsMultipleMusteringOutEntriesWithCommas(t *testing.T) {
 
 	if !strings.Contains(out, "- Benefits: Forbidden Knowledge, Ship Share") {
 		t.Errorf("render.Character should comma-join multiple Benefits entries, got:\n%s", out)
+	}
+}
+
+// TestCharacterOmitsCashEntriesFromMoneyList is the regression test for
+// #46: every parseable "CrN,NNN" Money entry already contributes to the
+// character-wide accumulated Cash total (shown once, near the top of
+// the sheet) and must not also be repeated verbatim in a career's own
+// Mustering Out section.
+func TestCharacterOmitsCashEntriesFromMoneyList(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		money []string
+		want  string
+	}{
+		{"cash-only Money renders as None", []string{"Cr80,000"}, "- Money: None"},
+		{
+			"mixed cash and passage keeps only the passage, cash removed",
+			[]string{"Middle Passage", "Cr40,000", "High Passage"},
+			"- Money: Middle Passage, High Passage",
+		},
+		{"passage-only Money is unaffected", []string{"Low Passage"}, "- Money: Low Passage"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			out := render.Character(character.Character{
+				Careers: []character.Career{{Name: "Scout", MusteringOut: character.MusteringOut{Money: c.money}}},
+			})
+
+			if !strings.Contains(out, c.want) {
+				t.Errorf("render.Character(Money: %v) should contain %q, got:\n%s", c.money, c.want, out)
+			}
+		})
+	}
+}
+
+// TestCharacterFiltersMoneyIndependentlyPerCareer confirms each career's
+// own Money list is filtered on its own terms, not merged: Scout's own
+// non-cash Passage survives while Merchant's own all-cash list reduces
+// to None, and the character-wide Cash total still sums exactly once.
+func TestCharacterFiltersMoneyIndependentlyPerCareer(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Cash: 110000,
+		Careers: []character.Career{
+			{Name: "Scout", MusteringOut: character.MusteringOut{Money: []string{"Cr30,000", "Low Passage"}}},
+			{Name: "Merchant", MusteringOut: character.MusteringOut{Money: []string{"Cr80,000"}}},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{"**Cash:** Cr110,000", "- Money: Low Passage", "- Money: None"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character missing %q in output:\n%s", want, out)
+		}
+	}
+}
+
+// TestCharacterFormatsCashWithThousandsSeparators is the regression test
+// for #46's other half: Character.Cash previously rendered as an
+// ungrouped run of digits ("Cr720000"), unlike every Money-column table
+// literal, which already uses Book 1's own comma-grouped notation.
+func TestCharacterFormatsCashWithThousandsSeparators(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		cash int
+		want string
+	}{
+		{500, "Cr500"},
+		{1000, "Cr1,000"},
+		{30000, "Cr30,000"},
+		{720000, "Cr720,000"},
+		{1234567, "Cr1,234,567"},
+	}
+
+	for _, c := range cases {
+		out := render.Character(character.Character{Cash: c.cash})
+
+		if want := "**Cash:** " + c.want; !strings.Contains(out, want) {
+			t.Errorf("render.Character(Cash: %d) should contain %q, got:\n%s", c.cash, want, out)
+		}
 	}
 }
 

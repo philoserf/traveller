@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/philoserf/traveller/character"
@@ -63,7 +64,7 @@ func Character(c character.Character) string {
 	}
 
 	if c.Cash != 0 {
-		fmt.Fprintf(&b, "**Cash:** Cr%d\n\n", c.Cash)
+		fmt.Fprintf(&b, "**Cash:** %s\n\n", formatCr(c.Cash))
 	}
 
 	if c.Notes != "" {
@@ -360,11 +361,20 @@ func citizenLifeLabel(succeeded bool) string {
 // world.JoinOrNone's own short fixed-token use cases (trade codes,
 // bases) — a plain space join would run two or more such phrases
 // together with no way to tell where one ends and the next begins.
+//
+// Money omits every entry MusterOutCashAmount recognizes as cash
+// ("CrN,NNN"): Character.Cash (rendered once, near the top of the
+// sheet) already accumulates these across every career, so repeating
+// each raw roll here is pure duplication, not additional information.
+// Non-cash Money-column awards (Low/Middle/High Passage, StarPass) have
+// no accumulated character-wide field of their own, so they still print
+// here — joinPhrasesOrNone's own "None" falls out naturally if that
+// leaves nothing to show.
 func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
 	fmt.Fprint(b, "**Mustering Out**\n\n")
 	fmt.Fprintf(b, "- Automatics: %s\n", joinPhrasesOrNone(m.Automatics))
 	fmt.Fprintf(b, "- Benefits: %s\n", joinPhrasesOrNone(m.Benefits))
-	fmt.Fprintf(b, "- Money: %s\n", joinPhrasesOrNone(m.Money))
+	fmt.Fprintf(b, "- Money: %s\n", joinPhrasesOrNone(nonCashMoney(m.Money)))
 	fmt.Fprintf(b, "- Entitlements: %s\n", joinPhrasesOrNone(m.Entitlements))
 
 	if m.Pension != 0 {
@@ -376,6 +386,51 @@ func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
 	}
 
 	fmt.Fprint(b, "\n")
+}
+
+// nonCashMoney filters money down to the entries MusterOutCashAmount
+// doesn't recognize as cash — every other Money-column award (Low/
+// Middle/High Passage, StarPass) — preserving order. A nil result
+// (every entry was cash) renders as "None" via joinPhrasesOrNone, not a
+// special case here.
+func nonCashMoney(money []string) []string {
+	var filtered []string
+
+	for _, entry := range money {
+		if _, ok := character.MusterOutCashAmount(entry); !ok {
+			filtered = append(filtered, entry)
+		}
+	}
+
+	return filtered
+}
+
+// formatCr renders amount as Book 1's own "CrN,NNN" thousands-grouped
+// notation — the same comma-grouped form every muster-out table literal
+// already uses (career_muster_out.go's own "Cr30,000" etc.), now also
+// applied to Character.Cash's own accumulated total, which previously
+// printed as an ungrouped "Cr720000".
+func formatCr(amount int) string {
+	sign := ""
+
+	if amount < 0 {
+		sign = "-"
+		amount = -amount
+	}
+
+	digits := strconv.Itoa(amount)
+
+	var grouped strings.Builder
+
+	for i, d := range digits {
+		if i > 0 && (len(digits)-i)%3 == 0 {
+			grouped.WriteByte(',')
+		}
+
+		grouped.WriteRune(d)
+	}
+
+	return fmt.Sprintf("Cr%s%s", sign, grouped.String())
 }
 
 // positionAbbrev returns p's Human characteristic abbreviation, matching
