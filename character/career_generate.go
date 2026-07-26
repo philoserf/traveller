@@ -108,6 +108,30 @@ func grantBranchSkillToFirstTerm(r *dice.Roller, career *Career, branch string) 
 	}
 }
 
+// grantStartingRankAutoSkillToFirstTerm mirrors
+// grantBranchSkillToFirstTerm's own one-time-grant shape (career, not
+// per-term) for each Armed Forces career's own Rank table "Auto Skill"
+// column at the starting rank. Every Marine/Soldier/Spacer career
+// begins Enlisted at tier 1 (rankState's own doc comment) — a state
+// Commission/Promotion never returns to once left — so autoSkill(false,
+// 1) is otherwise permanently unreachable through the term-by-term
+// Commissioned/Promoted-gated grant those same tables also feed
+// (marineRankAutomaticSkill/soldierRankAutomaticSkill/
+// spacerRankAutomaticSkill). A no-op if career never qualified (no
+// terms at all).
+func grantStartingRankAutoSkillToFirstTerm(
+	career *Career,
+	autoSkill func(isOfficer bool, tier int) (SkillLevel, bool),
+) {
+	if len(career.Terms) == 0 {
+		return
+	}
+
+	if skill, ok := autoSkill(false, 1); ok {
+		career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
+	}
+}
+
 // BeginScout resolves Book 1 p.79's "To Begin" check for the Scout
 // career ("To Begin: C1 or C2 or C3"; "Retry R&R: C5" — confirmed
 // against Book 1's own generic-engine text, "Some Careers allow Retry.

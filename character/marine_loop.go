@@ -72,5 +72,10 @@ func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Caree
 
 	grantBranchSkillToFirstTerm(r, &career, branch)
 
+	// No grantStartingRankAutoSkillToFirstTerm call: unlike Soldier's own
+	// S1 Private and Spacer's own R1 Spacehand, M1 Private has no
+	// automatic skill at all (marineRankAutomaticSkill's own doc
+	// comment) — there is nothing to grant.
+
 	return career, finalUPP
 }

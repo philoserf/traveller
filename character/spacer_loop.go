@@ -58,6 +58,7 @@ func resolveSpacerCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Caree
 	career.Terms = terms
 
 	grantBranchSkillToFirstTerm(r, &career, spacerBranchEnlistedNames[branchRow])
+	grantStartingRankAutoSkillToFirstTerm(&career, spacerRankAutomaticSkill)
 
 	return career, finalUPP
 }
