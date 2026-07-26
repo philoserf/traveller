@@ -108,7 +108,7 @@ func TestBeginEntertainer(t *testing.T) {
 func TestResolveEntertainerTermFameIncreases(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(1, 1))
+	r := dice.New(rand.NewPCG(132, 132))
 
 	term, fame, talent := ResolveEntertainerTerm(r, 8, 8)
 
@@ -116,12 +116,12 @@ func TestResolveEntertainerTermFameIncreases(t *testing.T) {
 		t.Fatal("FameIncreased = false, want true")
 	}
 
-	if term.FameAfterTerm != 13 {
-		t.Errorf("FameAfterTerm = %d, want 13", term.FameAfterTerm)
+	if term.FameAfterTerm != 10 {
+		t.Errorf("FameAfterTerm = %d, want 10", term.FameAfterTerm)
 	}
 
-	if fame != 13 {
-		t.Errorf("returned fame = %d, want 13", fame)
+	if fame != 10 {
+		t.Errorf("returned fame = %d, want 10", fame)
 	}
 
 	// Talent started 8, +1 for the Fame increase (9), then this fixture's
@@ -162,8 +162,8 @@ func TestResolveEntertainerTermFameDoesNotIncrease(t *testing.T) {
 		t.Errorf("RewardResult = %q, want %q", term.RewardResult, "Success")
 	}
 
-	if fame != 4 {
-		t.Errorf("fame = %d, want 4", fame)
+	if fame != 5 {
+		t.Errorf("fame = %d, want 5", fame)
 	}
 }
 
@@ -175,7 +175,7 @@ func TestResolveEntertainerTermFameDoesNotIncrease(t *testing.T) {
 func TestResolveEntertainerTermWoundedStillRollsReward(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(18, 18))
+	r := dice.New(rand.NewPCG(5, 5))
 
 	term, _, _ := ResolveEntertainerTerm(r, 8, 8)
 
@@ -209,5 +209,61 @@ func TestResolveEntertainerTermTalentExhaustedIsDead(t *testing.T) {
 
 	if term.RewardResult != "" {
 		t.Errorf("RewardResult = %q, want empty (Reward skipped on Dead)", term.RewardResult)
+	}
+}
+
+// TestRollEntertainerFameChangeUsesOptionalFluxes covers Book 1 p.77's
+// "Fame +F +F* +F*" — one mandatory Flux and two optional ones. Only the
+// mandatory roll was made, so Fame moved across a third of its range.
+//
+// Checked by range and spread rather than by pinned values, since which
+// optional rolls are taken is itself random: one Flux spans [-5,+5],
+// three span [-15,+15], so observing any result outside the single-Flux
+// range proves the optional ones are reaching the total.
+func TestRollEntertainerFameChangeUsesOptionalFluxes(t *testing.T) {
+	t.Parallel()
+
+	const (
+		singleFluxMax = 5
+		allFluxMax    = 15
+	)
+
+	sawBeyondOneFlux := false
+
+	for seed := range uint64(400) {
+		got := rollEntertainerFameChange(dice.New(rand.NewPCG(seed+1, seed+1)))
+
+		if got < -allFluxMax || got > allFluxMax {
+			t.Fatalf("seed %d: Fame change %d is outside three Fluxes' own [-15,+15]", seed+1, got)
+		}
+
+		if got < -singleFluxMax || got > singleFluxMax {
+			sawBeyondOneFlux = true
+		}
+	}
+
+	if !sawBeyondOneFlux {
+		t.Error("no result exceeded a single Flux's own range across 400 rolls — " +
+			"the two optional Fluxes are not reaching the total")
+	}
+}
+
+// TestEntertainerTakesComeback pins when a fading Entertainer stages
+// p.77's Comeback ("Reset Fame to 2D; Talent is unchanged"). The reset
+// is worth taking exactly when Fame has fallen below what 2D pays on
+// average, and never when it hasn't.
+func TestEntertainerTakesComeback(t *testing.T) {
+	t.Parallel()
+
+	for fame := range 7 {
+		if !entertainerTakesComeback(fame) {
+			t.Errorf("Fame %d: no Comeback, want one (below 2D's own average of %d)", fame, twoD6Expectation)
+		}
+	}
+
+	for _, fame := range []int{twoD6Expectation, 8, 12, 20} {
+		if entertainerTakesComeback(fame) {
+			t.Errorf("Fame %d: Comeback taken, want none — a reset to 2D would not improve it", fame)
+		}
 	}
 }

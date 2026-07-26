@@ -73,7 +73,20 @@ func resolveEntertainerCareerAndUPPWithBudget(
 			break
 		}
 
-		if !term.RiskResult.Survived() || term.RiskResult == Disabled || !continueEntertainer(r, fame) {
+		if !term.RiskResult.Survived() || term.RiskResult == Disabled {
+			break
+		}
+
+		// Comeback before the Continue roll, which is made against Fame:
+		// a performer whose Fame has collapsed resets it to 2D rather
+		// than rolling against the collapsed value and ending the career
+		// (p.77, "Comeback is possible any number of times").
+		if entertainerTakesComeback(fame) {
+			fame = rollEntertainerFameTalent(r)
+			terms[len(terms)-1].FameAfterTerm = fame
+		}
+
+		if !continueEntertainer(r, fame) {
 			break
 		}
 	}
