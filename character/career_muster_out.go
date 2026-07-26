@@ -169,6 +169,9 @@ func resolveRankMusterOut(
 		appendMusterOutRoll(r, &out, dm, money, benefits)
 	}
 
+	isOfficer, _ := rankState(career.Terms, enlistedRankCount, officerRankCount)
+	applyRetirementPay(&out, career, isOfficer)
+
 	return out
 }
 
@@ -243,6 +246,86 @@ func rerollDuplicateBenefit(r *dice.Roller, received []string, dm int, benefits 
 	}
 
 	return entry
+}
+
+// Entitlement rates, Book 1 p.70. All are annual.
+const (
+	citizenPensionRate     = 5_000
+	functionaryPensionRate = 15_000
+	professorPensionRate   = 10_000
+
+	enlistedRetirementRate = 2_000
+	officerRetirementRate  = 3_000
+
+	// retirementMinimumTerms is p.70's own "served on active duty (not
+	// the Reserves) for at least 4 terms".
+	retirementMinimumTerms = 4
+)
+
+// Money-column tokens that multiply an Entitlement rather than paying
+// out, spelled as the muster-out tables spell them.
+const (
+	pensionDoubling    = "Pension x2"
+	retirementDoubling = "Retirement x2"
+)
+
+// entitlementMultiple counts a doubling token and returns what to
+// multiply the base Entitlement by, per Book 1 p.68:
+//
+//	"Pension x 2 doubles the Pension the character receives from the
+//	career. Each doubling is of the original Pension: the first x2
+//	doubles the Pension, the second x2 triples the pension, the third x2
+//	quadruples the original Pension."
+//
+// The awards are therefore additive multiples of the base, not
+// compounding: three of them pay four times the original, not eight.
+func entitlementMultiple(money []string, doublingToken string) int {
+	multiple := 1
+
+	for _, entry := range money {
+		if entry == doublingToken {
+			multiple++
+		}
+	}
+
+	return multiple
+}
+
+// applyRetirementPay sets p.70's Retirement Pay for the Armed Forces
+// careers:
+//
+//	"Soldiers, Spacers, and Marines who served on active duty (not the
+//	Reserves) for at least 4 terms are eligible for Retirement Pay based
+//	on total combined terms served."
+//	"Enlisted Retirement... Cr2,000 per term in the service."
+//	"Officer Retirement... (and who musters out as an Officer) receives
+//	annually Cr3,000 per term in the service."
+//
+// Unlike a Pension this does not wait for Life Stage 9. p.70: "Retirement
+// begins when the individual ends his career activity and begins
+// adventuring" — which is exactly when generation finishes.
+func applyRetirementPay(out *MusteringOut, career Career, isOfficer bool) {
+	if len(career.Terms) < retirementMinimumTerms {
+		return
+	}
+
+	rate := enlistedRetirementRate
+	if isOfficer {
+		rate = officerRetirementRate
+	}
+
+	out.RetirementPay = rate * len(career.Terms) * entitlementMultiple(out.Money, retirementDoubling)
+}
+
+// applyPension sets an annual Pension of rate, scaled by any "Pension x2"
+// awards. Eligibility differs per career, so callers decide it.
+//
+// p.70 starts a Pension at "Life Stage 9 Retirement (= age 66 for
+// Humans)" — recorded here as the entitlement the career confers, with
+// the age gate a matter for whoever reads it, since a character's final
+// age isn't known until Aging has run.
+func applyPension(out *MusteringOut, rate int) {
+	out.Pension = rate * entitlementMultiple(out.Money, pensionDoubling)
 }
 
 // ResolveScoutMusterOut resolves Book 1 p.79's Scout Mustering Out table

@@ -435,3 +435,85 @@ func TestUniqueMusterOutBenefitsMatchTheBooksExamples(t *testing.T) {
 		}
 	}
 }
+
+// TestEntitlementMultiple pins Book 1 p.68's stacking rule: "Each
+// doubling is of the original Pension: the first x2 doubles the Pension,
+// the second x2 triples the pension, the third x2 quadruples the
+// original Pension." Additive multiples of the base, not compounding —
+// three awards pay four times, not eight.
+func TestEntitlementMultiple(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		money []string
+		want  int
+	}{
+		{"none", []string{"Cr30,000"}, 1},
+		{"one doubles", []string{"Pension x2"}, 2},
+		{"two triples", []string{"Pension x2", "Cr30,000", "Pension x2"}, 3},
+		{"three quadruples", []string{"Pension x2", "Pension x2", "Pension x2"}, 4},
+		{"the other token is ignored", []string{"Retirement x2"}, 1},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := entitlementMultiple(c.money, pensionDoubling); got != c.want {
+				t.Errorf("entitlementMultiple(%v) = %d, want %d", c.money, got, c.want)
+			}
+		})
+	}
+}
+
+// TestApplyRetirementPay pins p.70's Armed Forces Retirement Pay: at
+// least 4 terms of active duty, Cr2,000 per term enlisted or Cr3,000 as
+// an Officer, scaled by any "Retirement x2" awards.
+func TestApplyRetirementPay(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		terms     int
+		isOfficer bool
+		money     []string
+		want      int
+	}{
+		{"three terms is short of the minimum", 3, false, nil, 0},
+		{"four terms enlisted", 4, false, nil, 4 * enlistedRetirementRate},
+		{"four terms as an Officer pays the higher rate", 4, true, nil, 4 * officerRetirementRate},
+		{"ten terms enlisted", 10, false, nil, 10 * enlistedRetirementRate},
+		{
+			"a Retirement x2 award doubles it",
+			4, false,
+			[]string{"Retirement x2"},
+			2 * 4 * enlistedRetirementRate,
+		},
+		{
+			"two of them triple it",
+			4, true,
+			[]string{"Retirement x2", "Retirement x2"},
+			3 * 4 * officerRetirementRate,
+		},
+		{
+			"a Pension x2 award does not touch it",
+			4, false,
+			[]string{"Pension x2"},
+			4 * enlistedRetirementRate,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			out := MusteringOut{Money: c.money}
+			applyRetirementPay(&out, Career{Terms: make([]Term, c.terms)}, c.isOfficer)
+
+			if out.RetirementPay != c.want {
+				t.Errorf("RetirementPay = %d, want %d", out.RetirementPay, c.want)
+			}
+		})
+	}
+}

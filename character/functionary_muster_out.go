@@ -57,6 +57,13 @@ func ResolveFunctionaryMusterOut(r *dice.Roller, career Career, finalTier int) M
 		appendMusterOutRoll(r, &out, dm, functionaryMusterOutMoney[:], functionaryMusterOutBenefits[:])
 	}
 
+	// p.70: "a Functionary receives Cr15,000 per year (which replaces a
+	// Citizen's pension, if any)." That replacement is resolved where a
+	// character's careers are combined — this resolver sees only one.
+	if len(career.Terms) > 0 {
+		applyPension(&out, functionaryPensionRate)
+	}
+
 	if len(career.Terms) > 0 {
 		out.Automatics = append(out.Automatics, fmt.Sprintf("Gold Watch (Cr%d)", 100*len(career.Terms)))
 
