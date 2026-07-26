@@ -2,6 +2,8 @@ package character
 
 import (
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/philoserf/traveller/dice"
 )
@@ -12,12 +14,81 @@ import (
 // tier alone, not isOfficer — a code-review pass caught an earlier
 // version threading a discarded isOfficer parameter through here, which
 // hid the "Fame depends only on tier" rule behind a no-op argument. The
-// page's own second row, "Ship Owner = 1D", is deliberately not
-// modeled: this codebase tracks Mustering Out Ship Shares, not outright
-// ship ownership, and the page gives no share-count threshold for
-// "Owner" status.
+// page's own second row, "Ship Owner = 1D", is merchantShipOwnerFame
+// below.
 func merchantCareerFame(tier int) int {
 	return tier
+}
+
+// shipOwnershipMinimumShares is the fewest shares that buy any ship at
+// all on Book 1 p.90's own Ship Shares table — a 100-ton Scout, at 2.
+// The rest cost more (Free Trader and Yacht 4, Lab Ship and Close
+// Escort 8), so 2 is the point at which a character stops holding a
+// fraction of nothing and owns something.
+//
+// p.91's Fame row is "Ship Owner = 1D" with no threshold of its own,
+// which is why this was previously read as unspecified. The share costs
+// are a page earlier, in the Ship Shares section rather than the Fame
+// table.
+const shipOwnershipMinimumShares = 2
+
+// merchantShipShares totals the ship shares a Merchant career produced,
+// from both sources p.90 describes as acquiring them.
+//
+// Term rewards escalate — Book 1 p.80's Escalating Ship Shares, where
+// the Nth successful Reward grants N shares — and are recorded in the
+// term's own Reward result ("2 Ship Shares"). Mustering Out grants one
+// per "Ship Share" benefit rolled.
+func merchantShipShares(career Career) int {
+	shares := 0
+
+	for _, term := range career.Terms {
+		if n, ok := shipSharesAwarded(term.RewardResult); ok {
+			shares += n
+		}
+	}
+
+	for _, benefit := range career.MusteringOut.Benefits {
+		if benefit == shipShareBenefit {
+			shares++
+		}
+	}
+
+	return shares
+}
+
+// shipShareBenefit is the Mustering Out table entry granting one share.
+const shipShareBenefit = "Ship Share"
+
+// shipSharesAwarded parses a term's own "N Ship Share"/"N Ship Shares"
+// Reward result back into its count.
+func shipSharesAwarded(rewardResult string) (int, bool) {
+	count, rest, found := strings.Cut(rewardResult, " Ship Share")
+	if !found || (rest != "" && rest != "s") {
+		return 0, false
+	}
+
+	n, err := strconv.Atoi(count)
+	if err != nil {
+		return 0, false
+	}
+
+	return n, true
+}
+
+// merchantShipOwnerFame rolls Book 1 p.91's own "Merchant: Ship Owner =
+// 1D" — Fame for a Merchant whose accumulated shares actually buy a
+// ship, which p.90 makes possible from two shares up.
+//
+// Rolled rather than fixed: the row gives 1D, not a constant. Returns 0
+// for a Merchant still short of a ship, who owns a fraction and is no
+// more famous for it.
+func merchantShipOwnerFame(r *dice.Roller, career Career) int {
+	if merchantShipShares(career) < shipOwnershipMinimumShares {
+		return 0
+	}
+
+	return r.D6()
 }
 
 // GenerateMerchantCharacter generates a full Human Merchant Character
@@ -60,13 +131,17 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	// fails) — ok collapses to "didn't die on the last term."
 	survivedCareer := career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
-	birthdate := GenerateBirthdate(r, age)
-
+	// Fame is rolled before the birthdate, matching resolveMerchantSegment
+	// (career_chain.go) so both generation paths draw the Ship Owner die
+	// at the same point in the sequence and produce the same character
+	// for a given seed.
 	fame := bonuses.Fame
 	if survivedCareer {
-		fame += merchantCareerFame(tier)
+		fame += merchantCareerFame(tier) + merchantShipOwnerFame(r, career)
 	}
+
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
+	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
 		Species:        "Human",
