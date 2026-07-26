@@ -65,7 +65,7 @@ func TestCharacterContainsAllFields(t *testing.T) {
 		"A788899-C",
 		"**Wound Badges:** 1",
 		"**Fame:** 2",
-		"**Cash:** Cr30000",
+		"**Cash:** Cr30,000",
 		"### Scout",
 		"Term 1 (Str): Unharmed",
 		"Term 2 (Dex): Wounded, Reward: Discovery",
@@ -427,7 +427,7 @@ func TestCharacterOmitsZeroFameAndCash(t *testing.T) {
 	if got := render.Character(
 		scoutSheet,
 	); !strings.Contains(got, "**Fame:** 2") ||
-		!strings.Contains(got, "**Cash:** Cr30000") {
+		!strings.Contains(got, "**Cash:** Cr30,000") {
 		t.Errorf("render.Character should show a nonzero Fame/Cash, got:\n%s", got)
 	}
 }
@@ -491,6 +491,33 @@ func TestCharacterJoinsMultipleMusteringOutEntriesWithCommas(t *testing.T) {
 
 	if !strings.Contains(out, "- Benefits: Forbidden Knowledge, Ship Share") {
 		t.Errorf("render.Character should comma-join multiple Benefits entries, got:\n%s", out)
+	}
+}
+
+// TestCharacterFormatsCashWithThousandsSeparators is the regression test
+// for #46's other half: Character.Cash previously rendered as an
+// ungrouped run of digits ("Cr720000"), unlike every Money-column table
+// literal, which already uses Book 1's own comma-grouped notation.
+func TestCharacterFormatsCashWithThousandsSeparators(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		cash int
+		want string
+	}{
+		{500, "Cr500"},
+		{1000, "Cr1,000"},
+		{30000, "Cr30,000"},
+		{720000, "Cr720,000"},
+		{1234567, "Cr1,234,567"},
+	}
+
+	for _, c := range cases {
+		out := render.Character(character.Character{Cash: c.cash})
+
+		if want := "**Cash:** " + c.want; !strings.Contains(out, want) {
+			t.Errorf("render.Character(Cash: %d) should contain %q, got:\n%s", c.cash, want, out)
+		}
 	}
 }
 

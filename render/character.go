@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/philoserf/traveller/character"
@@ -63,7 +64,7 @@ func Character(c character.Character) string {
 	}
 
 	if c.Cash != 0 {
-		fmt.Fprintf(&b, "**Cash:** Cr%d\n\n", c.Cash)
+		fmt.Fprintf(&b, "**Cash:** %s\n\n", formatCr(c.Cash))
 	}
 
 	if c.Notes != "" {
@@ -360,6 +361,19 @@ func citizenLifeLabel(succeeded bool) string {
 // world.JoinOrNone's own short fixed-token use cases (trade codes,
 // bases) — a plain space join would run two or more such phrases
 // together with no way to tell where one ends and the next begins.
+//
+// Money prints every raw roll, cash included, even though
+// Character.Cash (rendered once, near the top of the sheet) already
+// sums the same cash entries across every career. This is a per-career
+// historical record, not a staging area the character-wide total
+// supersedes: a career whose Mustering Out rolls happened to land on
+// cash every time still produced real results that term, and hiding
+// them behind "None" would misreport what actually happened, not just
+// omit a redundant number. (An earlier version of this function
+// filtered cash entries out here — reverted once that was shown to
+// blank out the Money line for most veteran characters, since a high
+// DM from Terms served pushes Money rolls toward a table's cash rows;
+// see this repo's own PR discussion for #46.)
 func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
 	fmt.Fprint(b, "**Mustering Out**\n\n")
 	fmt.Fprintf(b, "- Automatics: %s\n", joinPhrasesOrNone(m.Automatics))
@@ -376,6 +390,34 @@ func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
 	}
 
 	fmt.Fprint(b, "\n")
+}
+
+// formatCr renders amount as Book 1's own "CrN,NNN" thousands-grouped
+// notation — the same comma-grouped form every muster-out table literal
+// already uses (career_muster_out.go's own "Cr30,000" etc.), now also
+// applied to Character.Cash's own accumulated total, which previously
+// printed as an ungrouped "Cr720000".
+func formatCr(amount int) string {
+	sign := ""
+
+	if amount < 0 {
+		sign = "-"
+		amount = -amount
+	}
+
+	digits := strconv.Itoa(amount)
+
+	var grouped strings.Builder
+
+	for i, d := range digits {
+		if i > 0 && (len(digits)-i)%3 == 0 {
+			grouped.WriteByte(',')
+		}
+
+		grouped.WriteRune(d)
+	}
+
+	return fmt.Sprintf("Cr%s%s", sign, grouped.String())
 }
 
 // positionAbbrev returns p's Human characteristic abbreviation, matching
