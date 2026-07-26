@@ -37,5 +37,11 @@ func ResolveScholarMusterOut(r *dice.Roller, career Career, upp UPP) MusteringOu
 		appendMusterOutRoll(r, &out, dm, scholarMusterOutMoney[:], scholarMusterOutBenefits[:])
 	}
 
+	// p.70: "A tenured Professor receives a pension of Cr10,000 per
+	// year." Tenure gates it, not rank (hasTenure, scholar_generate.go).
+	if hasTenure(career.Terms) {
+		applyPension(&out, professorPensionRate)
+	}
+
 	return out
 }

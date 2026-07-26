@@ -53,5 +53,11 @@ func ResolveCitizenMusterOut(r *dice.Roller, career Career) MusteringOut {
 		appendMusterOutRoll(r, &out, dm, citizenMusterOutMoney[:], citizenMusterOutBenefits[:])
 	}
 
+	// p.70: "Any character who has been a Citizen or Functionary for at
+	// least one Term is eligible for a Citizen's Pension."
+	if len(career.Terms) > 0 {
+		applyPension(&out, citizenPensionRate)
+	}
+
 	return out
 }

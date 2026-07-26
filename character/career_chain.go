@@ -446,6 +446,41 @@ func sortedCareerChainNames() []string {
 	return names
 }
 
+// resolveCitizenPensionReplacement applies Book 1 p.70's precedence
+// between the two overlapping pensions: "a Functionary receives
+// Cr15,000 per year (which replaces a Citizen's pension, if any)."
+//
+// Only these two interact. p.70 is explicit that Entitlements otherwise
+// stack — "A character may receive duplicate Entitlements (for example,
+// a Reserve and a Functionary pension, or both Military and Professor's
+// retirement pay)" — so a Professor's pension and Retirement Pay sit
+// happily beside either of these.
+//
+// Resolved here rather than in the Functionary resolver because it is a
+// statement about a whole character: a muster-out resolver sees one
+// career and cannot know another produced a Citizen's pension.
+func resolveCitizenPensionReplacement(careers []Career) {
+	functionaryPensioned := false
+
+	for _, career := range careers {
+		if career.Name == FunctionaryCareerName && career.MusteringOut.Pension > 0 {
+			functionaryPensioned = true
+
+			break
+		}
+	}
+
+	if !functionaryPensioned {
+		return
+	}
+
+	for i := range careers {
+		if careers[i].Name == CitizenCareerName {
+			careers[i].MusteringOut.Pension = 0
+		}
+	}
+}
+
 // chainRank returns the Rank held after the whole chain, scanning
 // careers in reverse for the first non-empty lastTermRank — Book 1
 // p.66's own Reserves rule: "A character who leaves a military, naval,
@@ -658,6 +693,8 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	if !everSucceeded && aging.alive() {
 		upp = applyCitizenFallback(r, upp, &acc, &aging, ageTarget)
 	}
+
+	resolveCitizenPensionReplacement(acc.careers)
 
 	age, lifeStage, notes, survived := finalizeAging(&aging, survived)
 	birthdate := GenerateBirthdate(r, age)

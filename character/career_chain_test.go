@@ -909,3 +909,53 @@ func careerNamesOf(c Character) []string {
 
 	return names
 }
+
+// TestFunctionaryPensionReplacesCitizenPension pins Book 1 p.70's one
+// interaction between Entitlements: "a Functionary receives Cr15,000 per
+// year (which replaces a Citizen's pension, if any)."
+//
+// Everything else stacks — p.70 says so outright ("A character may
+// receive duplicate Entitlements... both Military and Professor's
+// retirement pay") — so the test also pins what must survive alongside.
+func TestFunctionaryPensionReplacesCitizenPension(t *testing.T) {
+	t.Parallel()
+
+	careers := []Career{
+		{Name: CitizenCareerName, MusteringOut: MusteringOut{Pension: citizenPensionRate}},
+		{Name: ScholarCareerName, MusteringOut: MusteringOut{Pension: professorPensionRate}},
+		{Name: MarineCareerName, MusteringOut: MusteringOut{RetirementPay: 8000}},
+		{Name: FunctionaryCareerName, MusteringOut: MusteringOut{Pension: functionaryPensionRate}},
+	}
+
+	resolveCitizenPensionReplacement(careers)
+
+	if got := careers[0].MusteringOut.Pension; got != 0 {
+		t.Errorf("Citizen pension = %d, want 0 (replaced by the Functionary's)", got)
+	}
+
+	if got := careers[1].MusteringOut.Pension; got != professorPensionRate {
+		t.Errorf("Professor pension = %d, want %d — only the Citizen's is replaced", got, professorPensionRate)
+	}
+
+	if got := careers[2].MusteringOut.RetirementPay; got != 8000 {
+		t.Errorf("Retirement Pay = %d, want 8000 — Entitlements otherwise stack", got)
+	}
+
+	if got := careers[3].MusteringOut.Pension; got != functionaryPensionRate {
+		t.Errorf("Functionary pension = %d, want %d", got, functionaryPensionRate)
+	}
+}
+
+// TestCitizenPensionSurvivesWithoutAFunctionary is the converse: nothing
+// to replace it, so it stands.
+func TestCitizenPensionSurvivesWithoutAFunctionary(t *testing.T) {
+	t.Parallel()
+
+	careers := []Career{{Name: CitizenCareerName, MusteringOut: MusteringOut{Pension: citizenPensionRate}}}
+
+	resolveCitizenPensionReplacement(careers)
+
+	if got := careers[0].MusteringOut.Pension; got != citizenPensionRate {
+		t.Errorf("Citizen pension = %d, want %d", got, citizenPensionRate)
+	}
+}
