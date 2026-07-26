@@ -135,10 +135,18 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	// (career_chain.go) so both generation paths draw the Ship Owner die
 	// at the same point in the sequence and produce the same character
 	// for a given seed.
-	fame := bonuses.Fame
+	// Book 1 p.91 Fame Stacks: the individual awards, not a running
+	// total — a single award past 20 stands where an accumulated one
+	// would be capped there.
+	fameAwards := bonuses.FameAwards
 	if survivedCareer {
-		fame += merchantCareerFame(tier) + merchantShipOwnerFame(r, career)
+		fameAwards = append(fameAwards, merchantCareerFame(tier))
+		if owner := merchantShipOwnerFame(r, career); owner > 0 {
+			fameAwards = append(fameAwards, owner)
+		}
 	}
+
+	fame := resolveFameStacks(fameAwards)
 
 	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)

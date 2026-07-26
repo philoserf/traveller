@@ -343,7 +343,7 @@ func applyPension(out *MusteringOut, rate int) {
 // dm = len(career.Terms) + fame/2, per p.79's own "DM +Terms +Fame/2".
 //
 // fame is a running local accumulator seeded from the Fame this career
-// already earned before Mustering Out began — scoutDiscoveryFame's own
+// already earned before Mustering Out began — scoutDiscoveryFameAwards's own
 // "Discoveries x4" (p.91). It used to start at zero, on the reasoning
 // that Character.Fame doesn't exist yet at this point in the pipeline
 // (ApplyMusteringOut derives it from this function's own returned
@@ -385,14 +385,17 @@ func ResolveScoutMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
 	terms := len(career.Terms)
-	fame := scoutDiscoveryFame(career)
+	fameAwards := scoutDiscoveryFameAwards(career)
 
 	// The same Discovery Fame that seeds the DM also decides p.68's
 	// Fame-19+ extra roll. Evaluated once, before the loop: a "Fame +2"
 	// landing mid-sequence raises the DM for later rolls (below) but
-	// cannot retroactively grant another roll.
-	for range musterOutRollCount(career, fame) {
-		row := rollScoutMusterOutRow(r, terms+fame/2)
+	// cannot retroactively grant another roll. Both readings go through
+	// resolveFameStacks (fame.go) rather than a raw sum, so the p.91
+	// Fame Stacks cap reaches the DM and the extra-roll threshold too —
+	// a character can't buy rolls with Fame the cap says he doesn't have.
+	for range musterOutRollCount(career, resolveFameStacks(fameAwards)) {
+		row := rollScoutMusterOutRow(r, terms+resolveFameStacks(fameAwards)/2)
 
 		if r.Uniform(2) == 1 {
 			out.Money = append(out.Money, scoutMusterOutMoney[row])
@@ -401,7 +404,7 @@ func ResolveScoutMusterOut(r *dice.Roller, career Career) MusteringOut {
 			out.Benefits = append(out.Benefits, entry)
 
 			if bonus, ok := musterOutFameBonus(entry); ok {
-				fame += bonus
+				fameAwards = append(fameAwards, bonus)
 			}
 		}
 	}

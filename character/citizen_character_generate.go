@@ -67,9 +67,10 @@ func buildCitizenCharacter(
 		Age:            age,
 		LifeStage:      lifeStage,
 		Notes:          notes,
-		Fame:           bonuses.Fame,
-		Cash:           bonuses.Cash,
-		Careers:        []Career{career},
-		Skills:         aggregateSkills(skills),
+		// p.91: "Citizen no intrinsic Fame" — Mustering Out awards only.
+		Fame:    resolveFameStacks(bonuses.FameAwards),
+		Cash:    bonuses.Cash,
+		Careers: []Career{career},
+		Skills:  aggregateSkills(skills),
 	}, ok
 }

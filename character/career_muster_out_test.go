@@ -156,7 +156,7 @@ func TestResolveScoutMusterOutRollCountMatchesTerms(t *testing.T) {
 	r := dice.New(rand.NewPCG(9, 10))
 
 	for _, career := range careers {
-		want := musterOutRollCount(career, scoutDiscoveryFame(career))
+		want := musterOutRollCount(career, sumInts(scoutDiscoveryFameAwards(career)))
 
 		out := ResolveScoutMusterOut(r, career)
 		if got := len(out.Money) + len(out.Benefits); got != want {
@@ -335,12 +335,12 @@ func TestResolveScoutMusterOutSeedsFameDMFromDiscoveries(t *testing.T) {
 		without.Terms[i].RewardResult = "None"
 	}
 
-	if scoutDiscoveryFame(without) != 0 {
+	if sumInts(scoutDiscoveryFameAwards(without)) != 0 {
 		t.Fatal("control career has Discovery Fame, want none")
 	}
 
-	if got := scoutDiscoveryFame(withDiscoveries); got != terms*4 {
-		t.Fatalf("scoutDiscoveryFame = %d, want %d", got, terms*4)
+	if got := sumInts(scoutDiscoveryFameAwards(withDiscoveries)); got != terms*4 {
+		t.Fatalf("scoutDiscoveryFameAwards = %d, want %d", got, terms*4)
 	}
 
 	rich := ResolveScoutMusterOut(dice.New(rand.NewPCG(7, 7)), withDiscoveries)

@@ -29,10 +29,10 @@ func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging)
-		}, ResolveMarineMusterOut, marineCareerFame)
+		}, ResolveMarineMusterOut, marineCareerFameAwards)
 }
 
-// marineCareerFame is Book 1 p.91's own Armed Forces Fame bracket
+// marineCareerFameAwards is Book 1 p.91's own Armed Forces Fame bracket
 // (Army/Marine/Navy). Since Phase V, Officer Rank is a real, reachable
 // outcome (rankState/ResolveMarineTerm), so the bracket's own "Officer
 // Rank*" line (*Armed Forces Enlisted = no Fame) genuinely applies now —
@@ -49,6 +49,6 @@ func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 // the full reasoning. The shared formula body lives in
 // rankBasedCareerFame (career_rank.go), common to Marine, Soldier, and
 // Spacer.
-func marineCareerFame(career Career) int {
-	return rankBasedCareerFame(career, len(marineEnlistedRankNames), len(marineOfficerRankNames))
+func marineCareerFameAwards(career Career) []int {
+	return rankBasedCareerFameAwards(career, len(marineEnlistedRankNames), len(marineOfficerRankNames))
 }

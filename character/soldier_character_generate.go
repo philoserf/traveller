@@ -25,16 +25,16 @@ func buildSoldierCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, aging)
-		}, ResolveSoldierMusterOut, soldierCareerFame)
+		}, ResolveSoldierMusterOut, soldierCareerFameAwards)
 }
 
-// soldierCareerFame mirrors marineCareerFame's own corrected formula
+// soldierCareerFameAwards mirrors marineCareerFameAwards's own corrected formula
 // exactly (character/marine_character_generate.go) — Medal Fame + Wound
 // Badge Fame + Officer Rank Fame (=Rank, the numeric tier) — since
 // Soldier shares the same "Army/Marine/Navy: Officer Rank*" Fame bracket
 // (Book 1 p.91) Marine does. See that function's own doc comment for
 // the full reasoning. The shared formula body lives in
 // rankBasedCareerFame (career_rank.go).
-func soldierCareerFame(career Career) int {
-	return rankBasedCareerFame(career, len(soldierEnlistedRankNames), len(soldierOfficerRankNames))
+func soldierCareerFameAwards(career Career) []int {
+	return rankBasedCareerFameAwards(career, len(soldierEnlistedRankNames), len(soldierOfficerRankNames))
 }

@@ -196,24 +196,12 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveScoutCareerWithBudget(r, upp, maxCareerTerms, aging)
-		}, ResolveScoutMusterOut, scoutDiscoveryFame)
+		}, ResolveScoutMusterOut, scoutDiscoveryFameAwards)
 }
 
-// scoutDiscoveryFame is Book 1 p.91's own "Scout: Discoveries x4" —
+// scoutDiscoveryFameAwards is Book 1 p.91's own "Scout: Discoveries x4" —
 // Scout's own intrinsic Fame source, distinct from ApplyMusteringOut's
 // separate Fame accumulation (Mustering Out's own "Fame +N" rolls).
-func scoutDiscoveryFame(career Career) int {
-	discoveries := 0
-
-	for _, t := range career.Terms {
-		if t.RewardResult == "Discovery" {
-			discoveries++
-		}
-	}
-
-	return discoveries * 4
-}
-
 // buildRiskCareerCharacter assembles a Character for any career sharing
 // Scout's own shape: resolveCareer returns (Career, UPP) threading a
 // Risk-driven characteristic reduction forward, ok is len(Terms) > 0 &&
@@ -241,7 +229,7 @@ func buildRiskCareerCharacter(
 	homeworldSkills []SkillLevel,
 	resolveCareer func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
-	careerFame func(career Career) int,
+	careerFameAwards func(career Career) []int,
 ) (Character, bool) {
 	var aging agingSimulation
 
@@ -271,10 +259,15 @@ func buildRiskCareerCharacter(
 	// from an earlier term's Discovery — bonuses.Fame doesn't need the
 	// same gate, since resolveMusterOut's own roll-count already zeroes
 	// out on a Dead last term.
-	fame := bonuses.Fame
+	// Book 1 p.91 Fame Stacks: the individual awards, not a running
+	// total — a single award past 20 stands where an accumulated one
+	// would be capped there.
+	fameAwards := bonuses.FameAwards
 	if survivedCareer {
-		fame += careerFame(career)
+		fameAwards = append(fameAwards, careerFameAwards(career)...)
 	}
+
+	fame := resolveFameStacks(fameAwards)
 
 	return Character{
 		Species:        "Human",

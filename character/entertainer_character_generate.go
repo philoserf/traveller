@@ -63,7 +63,10 @@ func buildEntertainerCharacter(
 	// no Mustering Out rolls (the only case ok is false), so no
 	// additional ok gate is needed — a code-review pass caught an
 	// earlier version adding a redundant one here.
-	totalFame := fame + bonuses.Fame
+	// Book 1 p.91 Fame Stacks. The Entertainer's own Fame is a single
+	// award — it is the running value the career tracked, not an
+	// accumulation of separate receipts.
+	totalFame := resolveFameStacks(append(bonuses.FameAwards, fame))
 
 	return Character{
 		Species:        "Human",

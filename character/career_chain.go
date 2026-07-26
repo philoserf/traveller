@@ -17,10 +17,14 @@ import (
 // Birthdate/Notes come from a single finalizeAging pass over the whole
 // chain's total terms served, not per segment.
 type careerSegment struct {
-	Career      Career
-	UPP         UPP // boosted by this segment's own Mustering Out
-	Survived    bool
-	Fame        int
+	Career   Career
+	UPP      UPP // boosted by this segment's own Mustering Out
+	Survived bool
+	Fame     int
+	// FameAwards is this segment's own Fame as individual awards, which
+	// Book 1 p.91's Fame Stacks rule needs — the chain resolves it over
+	// every award from every career, not over per-career subtotals.
+	FameAwards  []int
 	Cash        int
 	WoundBadges int
 	Skills      []SkillLevel
@@ -112,7 +116,7 @@ func resolveRiskCareerSegment(
 	ctx segmentContext,
 	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
-	careerFame func(career Career) int,
+	careerFameAwards func(career Career) []int,
 ) careerSegment {
 	aging := ctx.aging()
 
@@ -126,14 +130,16 @@ func resolveRiskCareerSegment(
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	fame := bonuses.Fame
+	fameAwards := bonuses.FameAwards
 	if ok {
-		fame += careerFame(career)
+		fameAwards = append(fameAwards, careerFameAwards(career)...)
 	}
+
+	fame := sumInts(fameAwards)
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok,
-		Fame: fame, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
 }
@@ -146,23 +152,23 @@ func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		ctx,
 		resolveScoutCareerWithBudget,
 		ResolveScoutMusterOut,
-		scoutDiscoveryFame,
+		scoutDiscoveryFameAwards,
 	)
 }
 
 func resolveMarineSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r, upp, maxTerms, ctx, resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFame)
+		r, upp, maxTerms, ctx, resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFameAwards)
 }
 
 func resolveSoldierSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r, upp, maxTerms, ctx, resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFame)
+		r, upp, maxTerms, ctx, resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFameAwards)
 }
 
 func resolveSpacerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r, upp, maxTerms, ctx, resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFame)
+		r, upp, maxTerms, ctx, resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFameAwards)
 }
 
 func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
@@ -173,7 +179,7 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		ctx,
 		resolveAgentCareerWithBudget,
 		ResolveAgentMusterOut,
-		agentCareerFame,
+		agentCareerFameAwards,
 	)
 }
 
@@ -181,7 +187,7 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 // (rogue_character_generate.go), stopping short of finalizeAging. Rogue
 // has no Risk-driven characteristic reduction; Personal awards can
 // still improve UPP. There is no death mechanic, so Survived is always true.
-// Fame/Cash share rogueTermsFameCash with buildRogueCharacter.
+// Fame/Cash share rogueTermsCash with buildRogueCharacter.
 func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
@@ -195,17 +201,24 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 	ok := len(career.Terms) > 0
 
 	cash := bonuses.Cash
-	fame := bonuses.Fame
+	fameAwards := bonuses.FameAwards
 
 	if ok {
-		termFame, termCash := rogueTermsFameCash(career.Terms)
-		fame += termFame
+		termCash := rogueTermsCash(career.Terms)
+		fameAwards = append(fameAwards, rogueTermFameAwards(career.Terms)...)
 		cash += termCash
 	}
 
+	fame := sumInts(fameAwards)
+
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok,
-		Fame: fame, Cash: cash, Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Career:     career,
+		UPP:        boostedUPP,
+		Survived:   ok,
+		Fame:       fame,
+		FameAwards: fameAwards,
+		Cash:       cash,
+		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
 
@@ -223,15 +236,17 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	fame := bonuses.Fame
+	fameAwards := bonuses.FameAwards
 
 	if ok {
-		fame += scholarSegmentFame(careerUPP, career.Terms)
+		fameAwards = append(fameAwards, scholarSegmentFameAwards(careerUPP, career.Terms)...)
 	}
+
+	fame := sumInts(fameAwards)
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok,
-		Fame: fame, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
 }
@@ -257,7 +272,7 @@ func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok,
-		Fame: fame + bonuses.Fame, Cash: bonuses.Cash,
+		Fame: fame + bonuses.Fame, FameAwards: append(bonuses.FameAwards, fame), Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
@@ -280,14 +295,16 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	fame := bonuses.Fame
+	fameAwards := bonuses.FameAwards
 	if ok {
-		fame += merchantCareerFame(tier) + merchantShipOwnerFame(r, career)
+		fameAwards = append(fameAwards, merchantCareerFame(tier)+merchantShipOwnerFame(r, career))
 	}
+
+	fame := sumInts(fameAwards)
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok,
-		Fame: fame, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
@@ -308,7 +325,7 @@ func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
-		Fame: bonuses.Fame, Cash: bonuses.Cash,
+		Fame: bonuses.Fame, FameAwards: bonuses.FameAwards, Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
@@ -334,7 +351,7 @@ func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
-		Fame: bonuses.Fame, Cash: bonuses.Cash,
+		Fame: bonuses.Fame, FameAwards: bonuses.FameAwards, Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
@@ -367,7 +384,8 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
-		Fame: bonuses.Fame + craftsmanCareerFame(career.Terms), Cash: bonuses.Cash,
+		Fame:       bonuses.Fame + craftsmanCareerFame(career.Terms),
+		FameAwards: append(bonuses.FameAwards, craftsmanCareerFame(career.Terms)), Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Equipment: equipment,
 	}
 }
@@ -383,14 +401,21 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
 	ok := len(career.Terms) > 0
 
-	fame := bonuses.Fame
+	fameAwards := bonuses.FameAwards
 	if ok {
-		fame += nobleBaseFame(upp.Characteristics[C6]) + nobleExileFame(career.Terms)
+		fameAwards = append(fameAwards, nobleBaseFame(upp.Characteristics[C6])+nobleExileFame(career.Terms))
 	}
 
+	fame := sumInts(fameAwards)
+
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok,
-		Fame: fame, Cash: bonuses.Cash, Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Career:     career,
+		UPP:        boostedUPP,
+		Survived:   ok,
+		Fame:       fame,
+		FameAwards: fameAwards,
+		Cash:       bonuses.Cash,
+		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
 
@@ -507,11 +532,14 @@ func chainRank(careers []Career) string {
 // only has to decide continue/break, not also thread six separate
 // running variables through it.
 type careerChainAccumulator struct {
-	careers                              []Career
-	skills                               []SkillLevel
-	medals                               []string
-	equipment                            []string
-	fame, cash, woundBadges, termsServed int
+	careers                        []Career
+	skills                         []SkillLevel
+	medals                         []string
+	equipment                      []string
+	cash, woundBadges, termsServed int
+	// fameAwards are every Fame award from every career, kept separate
+	// for Book 1 p.91's Fame Stacks rule (resolveFameStacks).
+	fameAwards []int
 }
 
 // addSegment folds seg into the accumulator. A zero-term seg (Begin
@@ -529,7 +557,7 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 	acc.skills = append(acc.skills, seg.Skills...)
 	acc.medals = append(acc.medals, seg.Medals...)
 	acc.equipment = append(acc.equipment, seg.Equipment...)
-	acc.fame += seg.Fame
+	acc.fameAwards = append(acc.fameAwards, seg.FameAwards...)
 	acc.cash += seg.Cash
 	acc.woundBadges += seg.WoundBadges
 }
@@ -721,7 +749,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		LifeStage:      lifeStage,
 		Notes:          notes,
 		Rank:           chainRank(acc.careers),
-		Fame:           acc.fame,
+		Fame:           resolveFameStacks(acc.fameAwards),
 		Cash:           acc.cash,
 		WoundBadges:    acc.woundBadges,
 		Careers:        acc.careers,

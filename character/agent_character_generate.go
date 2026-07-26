@@ -2,10 +2,15 @@ package character
 
 import "github.com/philoserf/traveller/dice"
 
-// agentCareerFame is Book 1 p.91's own "Agent =Number of Commendations"
+// agentCareerFameAwards is Book 1 p.91's own "Agent =Number of Commendations"
 // Fame row.
-func agentCareerFame(career Career) int {
-	return agentCommendationCount(career.Terms)
+func agentCareerFameAwards(career Career) []int {
+	awards := make([]int, 0, agentCommendationCount(career.Terms))
+	for range agentCommendationCount(career.Terms) {
+		awards = append(awards, 1)
+	}
+
+	return awards
 }
 
 // GenerateAgentCharacter generates a full Human Agent Character end to
@@ -22,5 +27,5 @@ func GenerateAgentCharacter(r *dice.Roller) (Character, bool) {
 	return buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills,
 		func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveAgentCareerWithBudget(r, upp, maxCareerTerms, aging)
-		}, ResolveAgentMusterOut, agentCareerFame)
+		}, ResolveAgentMusterOut, agentCareerFameAwards)
 }

@@ -56,10 +56,18 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	// prerequisite. A never-qualified character never entered the career
 	// at all, matching Scout's own precedent that Fame stays 0
 	// (bonuses.Fame alone) on a never-qualified path.
-	fame := bonuses.Fame
+	// Book 1 p.91 Fame Stacks: the individual awards, not a running
+	// total — a single award past 20 stands where an accumulated one
+	// would be capped there.
+	fameAwards := bonuses.FameAwards
 	if survivedCareer {
-		fame += nobleBaseFame(upp.Characteristics[C6]) + nobleExileFame(career.Terms)
+		fameAwards = append(fameAwards, nobleBaseFame(upp.Characteristics[C6]))
+		if exile := nobleExileFame(career.Terms); exile > 0 {
+			fameAwards = append(fameAwards, exile)
+		}
 	}
+
+	fame := resolveFameStacks(fameAwards)
 
 	return Character{
 		Species:        "Human",
