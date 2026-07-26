@@ -210,9 +210,9 @@ func buildRiskCareerCharacter(
 	// any).
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
-	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
+	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// careerFame is gated on ok, matching buildNobleCharacter's own
@@ -222,7 +222,7 @@ func buildRiskCareerCharacter(
 	// same gate, since resolveMusterOut's own roll-count already zeroes
 	// out on a Dead last term.
 	fame := bonuses.Fame
-	if ok {
+	if survivedCareer {
 		fame += careerFame(career)
 	}
 

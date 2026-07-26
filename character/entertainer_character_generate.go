@@ -44,9 +44,9 @@ func buildEntertainerCharacter(
 	// A code-review pass caught an earlier version of this checking
 	// RiskResult != Dead here, which silently skipped ResolveAging for a
 	// perfectly alive Entertainer whose Talent had merely run out.
-	ok := len(career.Terms) > 0
+	survivedCareer := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// fame is already the character's own current Fame (the initial 2D

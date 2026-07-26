@@ -36,14 +36,14 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
-	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
+	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	fame := bonuses.Fame
 
-	if ok {
+	if survivedCareer {
 		fame += scholarSegmentFame(careerUPP, career.Terms)
 	}
 

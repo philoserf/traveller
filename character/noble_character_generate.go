@@ -40,9 +40,9 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
-	ok := len(career.Terms) > 0
+	survivedCareer := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// Base Fame (p.85's "Base Fame equal to 1.5 times Soc") and Exile Fame
@@ -52,7 +52,7 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	// at all, matching Scout's own precedent that Fame stays 0
 	// (bonuses.Fame alone) on a never-qualified path.
 	fame := bonuses.Fame
-	if ok {
+	if survivedCareer {
 		fame += nobleBaseFame(upp.Characteristics[C6]) + nobleExileFame(career.Terms)
 	}
 

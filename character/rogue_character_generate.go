@@ -44,15 +44,15 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
-	ok := len(career.Terms) > 0
+	survivedCareer := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	cash := bonuses.Cash
 	fame := bonuses.Fame
 
-	if ok {
+	if survivedCareer {
 		termFame, termCash := rogueTermsFameCash(career.Terms)
 		fame += termFame
 		cash += termCash
