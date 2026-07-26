@@ -23,7 +23,7 @@ var scholarMusterOutBenefits = [11]string{
 // final tier — this is why Scholar gets its own bespoke
 // buildScholarCharacter instead of buildRiskCareerCharacter's shared
 // (r, career)-only MusterOut signature. DM is Book 1's own "+Scholar
-// Rank +Terms". Reuses scoutMusterOutRollCount (career_muster_out.go)
+// Rank +Terms". Reuses musterOutRollCount (career_muster_out.go)
 // directly for the Double-on-Disabled/Dead-zeroing roll count — already
 // career-agnostic.
 func ResolveScholarMusterOut(r *dice.Roller, career Career, upp UPP) MusteringOut {
@@ -33,7 +33,7 @@ func ResolveScholarMusterOut(r *dice.Roller, career Career, upp UPP) MusteringOu
 
 	dm := scholarRankTier(career.Terms, startTier) + len(career.Terms)
 
-	for range scoutMusterOutRollCount(career) {
+	for range musterOutRollCount(career, scholarSegmentFame(upp, career.Terms)) {
 		row := musterOutRow(r.D6()+dm, len(scholarMusterOutMoney))
 
 		if r.Uniform(2) == 1 {

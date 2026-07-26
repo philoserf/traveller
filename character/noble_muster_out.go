@@ -64,7 +64,7 @@ func rollNobleMusterOutPower(r *dice.Roller, row int) string {
 // already establish). One roll per term served (p.68's own "One Per
 // Term" rule), no Dead/Disabled wrinkle — Return & Intrigue has neither
 // concept, matching Citizen's own simpler precedent over Scout's more
-// involved scoutMusterOutRollCount.
+// involved musterOutRollCount.
 //
 // Each roll shares one row (musterOutRow, dm = len(career.Terms), p.85's
 // own "DM +Total Terms") across all three columns, then independently

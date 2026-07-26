@@ -128,7 +128,7 @@ func TestBuildScholarCharacterDiedMidCareer(t *testing.T) {
 	}
 
 	if c.Cash != 0 {
-		t.Errorf("Cash = %d, want 0 (Dead zeroes Mustering Out, per scoutMusterOutRollCount)", c.Cash)
+		t.Errorf("Cash = %d, want 0 (Dead zeroes Mustering Out, per musterOutRollCount)", c.Cash)
 	}
 }
 

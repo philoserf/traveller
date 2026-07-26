@@ -1,6 +1,10 @@
 package character
 
-import "github.com/philoserf/traveller/dice"
+import (
+	"strings"
+
+	"github.com/philoserf/traveller/dice"
+)
 
 // scoutMusterOutMoney is Book 1 p.79's Scout "D MUSTER OUT" table, Money
 // column (1D-indexed, row 1 at index 0). Names are Book 1's own spelled-out
@@ -52,27 +56,61 @@ func rollScoutMusterOutRow(r *dice.Roller, dm int) int {
 	return scoutMusterOutRow(r.D6() + dm)
 }
 
-// scoutMusterOutRollCount is Book 1 p.68's "One Per Term" rule (one
-// Mustering Out roll per Term served), applied to a Career, dice-free so
-// it's directly testable against a fixed fixture. Returns 0 for a career
-// that never qualified (nil Terms) and, per p.69's "Dying During Character
-// Generation" ("all efforts in this particular character creation process
-// are lost"), for a career whose last Term ended in Death — a dead
-// character does not reach Mustering Out at all, not merely "with no
-// benefits." Otherwise returns len(career.Terms), doubled if the last Term
-// left the character Disabled (p.69's Disability Muster Out: "Muster Out at
-// Term End with Double Benefits... twice the count of Benefits" — the roll
-// *count* doubles, not each individual benefit).
+// musterOutCommendations counts Commendations awarded across a career's
+// terms. Agent is the only career that grants them (its Reward result is
+// formatted "<Undercover Career> Commendation-N", agent_generate.go), so
+// this reports 0 for every other career without needing to know that.
+func musterOutCommendations(career Career) int {
+	n := 0
+
+	for _, t := range career.Terms {
+		if strings.Contains(t.RewardResult, "Commendation") {
+			n++
+		}
+	}
+
+	return n
+}
+
+// musterOutExtraRollMedals counts the medals that earn an extra Mustering
+// Out roll. Book 1 p.68 names exactly two — "one additional roll per
+// Commendation, MCG, or SEH" — and deliberately not XS or MCUF, which the
+// Armed Forces careers award far more freely: every surviving Risk roll
+// grants an XS. Counting those would roughly double the rolls of any
+// long Armed Forces career.
+func musterOutExtraRollMedals(career Career) int {
+	n := 0
+
+	for _, t := range career.Terms {
+		for _, medal := range t.Medals {
+			if medal == "MCG" || medal == "SEH" {
+				n++
+			}
+		}
+	}
+
+	return n
+}
+
+// musterOutRollCount is Book 1 p.68's own roll budget: "A character is
+// allowed one Mustering Out roll for each term served in Career
+// Resolution. He is allowed one additional roll per Commendation, MCG, or
+// SEH. He is allowed one additional roll if Fame 19+."
 //
-// Commendation/MCG/SEH and Fame-19+ extra-roll sources (p.68) are omitted:
-// nothing in this codebase ever populates Character.Commendations, so
-// that half is permanently empty and can never fire. Fame is now
-// genuinely accumulated within a single Mustering Out resolution (see
-// ResolveScoutMusterOut's own doc comment), but reaching 19 within one
-// career would need roughly ten separate "Fame +2" rolls — implausible
-// enough in practice that the Fame-19+ extra-roll bonus stays deferred
-// too, not silently dropped.
-func scoutMusterOutRollCount(career Career) int {
+// Dice-free so the budget is directly testable against a fixed fixture.
+// Returns 0 for a career that never qualified (nil Terms) and, per p.69's
+// "Dying During Character Generation" ("all efforts in this particular
+// character creation process are lost"), for one whose last Term ended in
+// Death — a dead character does not reach Mustering Out at all, not
+// merely "with no benefits."
+//
+// The Disability doubling (p.69: "Muster Out at Term End with Double
+// Benefits... twice the count of Benefits") applies to the finished
+// total, not to the per-term part alone: it doubles the count of
+// Benefits, and by then the extra rolls are part of that count.
+//
+// fame is the character's Fame as known when this career musters out.
+func musterOutRollCount(career Career, fame int) int {
 	if len(career.Terms) == 0 {
 		return 0
 	}
@@ -82,13 +120,20 @@ func scoutMusterOutRollCount(career Career) int {
 		return 0
 	}
 
-	terms := len(career.Terms)
-	if last.RiskResult == Disabled {
-		return terms * 2
+	rolls := len(career.Terms) + musterOutCommendations(career) + musterOutExtraRollMedals(career)
+	if fame >= fameExtraRollThreshold {
+		rolls++
 	}
 
-	return terms
+	if last.RiskResult == Disabled {
+		return rolls * 2
+	}
+
+	return rolls
 }
+
+// fameExtraRollThreshold is p.68's own "one additional roll if Fame 19+".
+const fameExtraRollThreshold = 19
 
 // resolveRankMusterOut is Marine's/Soldier's/Spacer's own shared Mustering
 // Out body (Book 1 p.86/p.82/p.81, step E, p.57) — confirmed byte-identical
@@ -114,7 +159,12 @@ func resolveRankMusterOut(
 		dm += tier
 	}
 
-	for range scoutMusterOutRollCount(career) {
+	// Armed Forces Fame is Medals + Wound Badges + Officer Rank
+	// (rankBasedCareerFame) — the same value the career itself reports,
+	// computed here so p.68's Fame-19+ roll can be tested against it.
+	fame := rankBasedCareerFame(career, enlistedRankCount, officerRankCount)
+
+	for range musterOutRollCount(career, fame) {
 		row := musterOutRow(r.D6()+dm, len(money))
 
 		if r.Uniform(2) == 1 {
@@ -133,7 +183,7 @@ func resolveRankMusterOut(
 // ResolveScoutCareer). Not called from ResolveScoutCareer; a caller invokes
 // this explicitly once a Career is final.
 //
-// Loops scoutMusterOutRollCount(career) times. Each roll independently
+// Loops musterOutRollCount(career) times. Each roll independently
 // picks the Money or Benefits column via a uniform random pick (p.68:
 // "Character may select either the Money column or Benefits column for
 // each roll" — a genuine open player choice with no book-given mechanic and
@@ -167,7 +217,7 @@ func resolveRankMusterOut(
 // Knighthood on 55% of Benefits rolls before, 66% after, across 3,660
 // generated Scouts). The saturation is the book's own clamp rule
 // operating on the book's own DM, not an artifact of this change. DM is unaffected by
-// scoutMusterOutRollCount's own Double-Benefits doubling — p.69 doubles
+// musterOutRollCount's own Double-Benefits doubling — p.69 doubles
 // the roll count, not the per-roll DM.
 //
 // Deliberately not implemented, each for a specific documented reason —
@@ -186,7 +236,11 @@ func ResolveScoutMusterOut(r *dice.Roller, career Career) MusteringOut {
 	terms := len(career.Terms)
 	fame := scoutDiscoveryFame(career)
 
-	for range scoutMusterOutRollCount(career) {
+	// The same Discovery Fame that seeds the DM also decides p.68's
+	// Fame-19+ extra roll. Evaluated once, before the loop: a "Fame +2"
+	// landing mid-sequence raises the DM for later rolls (below) but
+	// cannot retroactively grant another roll.
+	for range musterOutRollCount(career, fame) {
 		row := rollScoutMusterOutRow(r, terms+fame/2)
 
 		if r.Uniform(2) == 1 {

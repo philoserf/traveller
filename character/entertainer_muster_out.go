@@ -20,7 +20,7 @@ var entertainerMusterOutBenefits = [13]string{
 // two-argument MusterOut function) because its own DM is "+Fame/3
 // +Terms" — Fame isn't derivable from Career.Terms alone the way a rank
 // tier is, so it's threaded in directly from ResolveEntertainerCareer's
-// own second return value. Reuses scoutMusterOutRollCount
+// own second return value. Reuses musterOutRollCount
 // (career_muster_out.go) directly for the Double-on-Disabled/
 // Dead-zeroing roll count — already career-agnostic.
 func ResolveEntertainerMusterOut(r *dice.Roller, career Career, fame int) MusteringOut {
@@ -28,7 +28,7 @@ func ResolveEntertainerMusterOut(r *dice.Roller, career Career, fame int) Muster
 
 	dm := fame/3 + len(career.Terms)
 
-	for range scoutMusterOutRollCount(career) {
+	for range musterOutRollCount(career, fame) {
 		row := musterOutRow(r.D6()+dm, len(entertainerMusterOutMoney))
 
 		if r.Uniform(2) == 1 {
