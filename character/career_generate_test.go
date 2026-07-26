@@ -226,25 +226,39 @@ func TestBeginScoutRetryImprovesOdds(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{2, 2, 2, 2, 12, 2}}
-	r := dice.New(rand.NewPCG(3, 3))
 
 	const trials = 2000
 
-	successes := 0
+	// The two attempts are separate calls so a year can be charged
+	// between them (see BeginScout's own doc comment), so the odds they
+	// combine to are measured by composing them the way the career loop
+	// does rather than by one call reporting both.
+	beganAlone, beganOrRetried := 0, 0
+	r := dice.New(rand.NewPCG(3, 3))
 
 	for range trials {
 		if _, ok := BeginScout(r, upp); ok {
-			successes++
+			beganAlone++
+			beganOrRetried++
+
+			continue
+		}
+
+		if RetryScout(r, upp) {
+			beganOrRetried++
 		}
 	}
 
-	// 2D<=2 alone succeeds ~2.8% of the time; with the C5=12 retry on
-	// failure (2D<=12 always succeeds), the combined rate should be
-	// close to 100%, not close to 2.8%.
-	gotPct := 100 * float64(successes) / trials
-	if gotPct < 95 {
-		t.Errorf("BeginScout success rate = %.1f%% over %d trials, want >95%% (retry against C5=12 should dominate)",
-			gotPct, trials)
+	// 2D<=2 alone succeeds ~2.8% of the time.
+	if alone := 100 * float64(beganAlone) / trials; alone > 15 {
+		t.Errorf("BeginScout alone succeeded %.1f%% of the time, want ~3%% against C1=2", alone)
+	}
+
+	// With the C5=12 retry on failure (2D<=12 always succeeds), the
+	// combined rate should be close to 100%, not close to 2.8%.
+	if combined := 100 * float64(beganOrRetried) / trials; combined < 95 {
+		t.Errorf("Begin-then-Retry succeeded %.1f%% over %d trials, want >95%% (retry against C5=12 dominates)",
+			combined, trials)
 	}
 }
 

@@ -155,13 +155,24 @@ func grantStartingRankAutoSkillToFirstTerm(
 // nextScoutCC's job (rotate through C1/C2/C3 per Book 1 p.64) only
 // coincides with BeginScout's job (pick the best of C1/C2/C3 to
 // attempt Begin against) on the very first term.
+// The two attempts are separate calls rather than one function rolling
+// both back to back, because a year passes between them (Book 1 p.65,
+// "each failed Begin or Retry attempt takes one year") and that year can
+// cross an Aging checkpoint. Rolling them together would let the Retry
+// be taken against a UPP the intervening year should already have aged,
+// and — since a checkpoint can be fatal — by a character who is no
+// longer alive to take it.
 func BeginScout(r *dice.Roller, upp UPP) (Position, bool) {
 	ccPos := highestOf(upp, C1, C2, C3)
-	if rollAgainstTarget(r, int(upp.Characteristics[ccPos]), 0) {
-		return ccPos, true
-	}
 
-	return ccPos, rollAgainstTarget(r, int(upp.Characteristics[C5]), 0)
+	return ccPos, rollAgainstTarget(r, int(upp.Characteristics[ccPos]), 0)
+}
+
+// RetryScout is Book 1 p.79's own "Retry R&R: C5" — the second and final
+// entry attempt, against Education, taken only after BeginScout failed
+// and the year that failure cost has been charged.
+func RetryScout(r *dice.Roller, upp UPP) bool {
+	return rollAgainstTarget(r, int(upp.Characteristics[C5]), 0)
 }
 
 // ScoutDuty is which of Book 1 p.79's two Scout duty assignments a term

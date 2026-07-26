@@ -29,6 +29,11 @@ func resolveScholarCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging
 
 	ok, tier := BeginScholar(r, edu)
 	if !ok {
+		// Reaching here means Edu was below 8 and the roll was taken and
+		// lost — Book 1 p.65's own one-year cost. An Edu 8+ Scholar
+		// enters automatically without rolling, so never pays it.
+		upp = aging.chargeFailedAttempt(r, upp)
+
 		return career, upp
 	}
 
