@@ -35,20 +35,22 @@ func continueRogue(r *dice.Roller, cc, mod int) bool {
 // no death/disability concept at all, so this is the correct behavior,
 // not a coincidental side effect.
 func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
-	return resolveRogueCareerWithBudget(r, upp, maxCareerTerms)
+	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+
+	return career
 }
 
 // resolveRogueCareerWithBudget is ResolveRogueCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveRogueCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career {
+func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: RogueCareerName}
 
 	ccPos := rollRogueCC(r)
 	cc := int(upp.Characteristics[ccPos])
 
 	if !BeginRogue(r, cc) {
-		return career
+		return career, upp
 	}
 
 	// termCount tracks "+Terms" via local closure state, not
@@ -59,7 +61,7 @@ func resolveRogueCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career 
 	// own priorTerms locally instead of reading back through Career.
 	termCount := 0
 
-	terms, _ := resolveCareerLoop(r, upp, []Position{ccPos},
+	terms, finalUPP := resolveCareerLoop(r, upp, []Position{ccPos},
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
 			term := ResolveRogueTerm(r, int(upp.Characteristics[ccPos]), termCount) // "+Terms"
 			term.ControllingCharacteristic = ccPos
@@ -67,12 +69,12 @@ func resolveRogueCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career 
 
 			return term, upp // Rogue never modifies its own CC
 		},
-		func(r *dice.Roller, _ UPP) bool {
-			return continueRogue(r, cc, termCount)
+		func(r *dice.Roller, currentUPP UPP) bool {
+			return continueRogue(r, int(currentUPP.Characteristics[ccPos]), termCount)
 		},
 		maxTerms,
 	)
 	career.Terms = terms
 
-	return career
+	return career, finalUPP
 }

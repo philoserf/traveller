@@ -55,16 +55,14 @@ func citizenLifeSuccessCount(terms []Term) int {
 // Each term: pick this term's Controlling Characteristic (nextCC,
 // rotating through citizenLifePositions per p.65), resolve the term,
 // append it, then stop if Continue fails; otherwise loop, capped
-// defensively at maxCareerTerms. No UPP is threaded or returned: Citizen
-// Life never reduces a characteristic (no wound mechanic at all, unlike
-// Scout's Risk & Reward), and Table C's own Personal-column boosts are
-// recorded only as SkillLevel entries, never mechanically applied to
-// UPP.Characteristics — the same treatment Scout's identical Personal
-// grants already get, not a new gap. upp therefore never changes across
-// a Citizen career; ResolveCitizenCareer only reads it, for nextCC's own
-// highestOf tie-breaking.
+// defensively at maxCareerTerms. Citizen Life has no injury reduction,
+// but its Personal-column improvements are applied between terms by the
+// internal UPP-returning resolver. The public compatibility wrapper
+// returns only Career.
 func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
-	return resolveCitizenCareerWithBudget(r, upp, maxCareerTerms)
+	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+
+	return career
 }
 
 // resolveCitizenCareerWithBudget is ResolveCitizenCareer's own body,
@@ -75,10 +73,16 @@ func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
 // loop needs the same -age-target treatment even though it doesn't
 // itself call resolveCareerLoop.
 func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career {
+	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms)
+
+	return career
+}
+
+func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: CitizenCareerName}
 
 	if !BeginCitizen() {
-		return career
+		return career, upp
 	}
 
 	usedThisCycle := make(map[Position]bool, len(citizenLifePositions))
@@ -88,6 +92,7 @@ func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Caree
 
 		term, jobSkill, hobbySkill := ResolveCitizenTerm(
 			r, upp, ccPos, citizenLifeSuccessCount(career.Terms), career.JobSkill, career.HobbySkill)
+		upp = applyPersonalAwards(upp, term.SkillsAwarded)
 		career.Terms = append(career.Terms, term)
 		career.JobSkill, career.HobbySkill = jobSkill, hobbySkill
 
@@ -96,5 +101,5 @@ func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Caree
 		}
 	}
 
-	return career
+	return career, upp
 }

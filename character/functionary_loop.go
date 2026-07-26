@@ -8,10 +8,8 @@ import "github.com/philoserf/traveller/dice"
 // ResolveFunctionaryTerm's own doc comment) — its own continueCareer
 // callback always returns true, since the Disabled reuse already
 // unconditionally stops resolveCareerLoop whenever Office Politics'
-// Risk fails. Office Politics never modifies a characteristic either
-// (no Mods, no reduction), so upp passes through the term resolver
-// unchanged — the same shape Rogue's own "Rogue never modifies its own
-// CC" already establishes.
+// Risk fails. Office Politics has no injury reduction, but the shared
+// loop still applies Personal characteristic awards between terms.
 //
 // Unlike every chainable career reachable as a first entry, this one
 // takes ctx directly (not threaded through a shared helper like

@@ -60,11 +60,12 @@ func TestResolveCraftsmanCareerWithBudgetThreadsGrowingHeldSkills(t *testing.T) 
 		t.Error("HasRank = true, want false (Craftsman has no rank, Book 1 p.65)")
 	}
 
-	if finalUPP != uppCraftsman12 {
-		t.Errorf(
-			"finalUPP = %+v, want unchanged %+v (Craftsman never modifies a characteristic)",
-			finalUPP,
-			uppCraftsman12,
-		)
+	wantUPP := uppCraftsman12
+	for _, term := range career.Terms {
+		wantUPP = applyPersonalAwards(wantUPP, term.SkillsAwarded)
+	}
+
+	if finalUPP != wantUPP {
+		t.Errorf("finalUPP = %+v, want Personal awards applied as %+v", finalUPP, wantUPP)
 	}
 }

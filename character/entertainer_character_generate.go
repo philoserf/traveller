@@ -29,10 +29,10 @@ func buildEntertainerCharacter(
 	homeworld string,
 	homeworldSkills []SkillLevel,
 ) (Character, bool) {
-	career, fame := ResolveEntertainerCareer(r, upp)
+	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms)
 	career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 

@@ -256,9 +256,8 @@ func resolveReward(r *dice.Roller, cc ehex.Value, mod int) (bool, int) {
 // — rollScoutSkill records these as a SkillLevel using the
 // characteristic's own short name (Str/Dex/End/Int/Edu/Soc, matching
 // characteristic.go's own abbreviations) and Kind: Personal, Level: 1
-// meaning "+1," not a proficiency level — this project's data model has
-// no separate "characteristic boost" record type, and Personal is
-// otherwise unused, so this is the closest honest fit.
+// meaning "+1," not a proficiency level. Career loops apply these
+// awards to the live UPP while retaining the record in Term history.
 var scoutSkillTable = [7][6]string{
 	{"Str", "Dex", "End", "Int", "Edu", "Soc"},
 	{"Major", "Major", "Minor", "Minor", "One Trade", "One Trade"},

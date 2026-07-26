@@ -33,10 +33,10 @@ func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
 // at its zero value — correct for Noble, not a gap: Return & Intrigue
 // has no wound mechanic to count.
 func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career := ResolveNobleCareer(r, upp)
+	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms)
 	career.MusteringOut = ResolveNobleMusterOut(r, career)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 

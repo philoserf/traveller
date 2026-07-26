@@ -11,9 +11,8 @@ import (
 
 // TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset confirms
 // Character.UPP is exactly the pre-career UPP (not just "close to it")
-// when neither Mustering Out nor Aging touches it: Citizen Life itself
-// never modifies a characteristic (ResolveCitizenCareer's own signature
-// only returns Career, nothing to mutate upp with), and finalizeAging's
+// when no Personal award, Mustering Out result, or Aging touches it.
+// finalizeAging's
 // own ResolveAging call is a structural no-op below Physical Aging's
 // onset (34) regardless of dice (agingCheckpoints returns empty). Seed 21
 // was found by direct search to produce exactly 1 Citizen term (Age 22:
@@ -58,8 +57,8 @@ func TestBuildCitizenCharacterUPPBoundedWithAgingBuffer(t *testing.T) {
 		c := buildCitizenCharacter(r, upp, "hw", nil)
 
 		for i, v := range c.UPP.Characteristics[:5] {
-			if v < 4 || v > 15 {
-				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, 15]", seed, i, v)
+			if v < 4 || v > ehex.Max {
+				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, %d]", seed, i, v, ehex.Max)
 			}
 		}
 
@@ -181,8 +180,16 @@ func TestBuildCitizenCharacterAppliesMusteringOutCash(t *testing.T) {
 
 	c := buildCitizenCharacter(r, upp, "hw", nil)
 
-	if c.Cash != 85000 {
-		t.Errorf("Cash = %d, want 85000", c.Cash)
+	wantCash := 0
+
+	for _, entry := range c.Careers[0].MusteringOut.Money {
+		if amount, ok := musterOutCashAmount(entry); ok {
+			wantCash += amount
+		}
+	}
+
+	if c.Cash != wantCash || c.Cash == 0 {
+		t.Errorf("Cash = %d, want nonzero accumulated Mustering Out cash %d", c.Cash, wantCash)
 	}
 }
 
@@ -202,16 +209,15 @@ func TestBuildCitizenCharacterSetsAgeAndLifeStage(t *testing.T) {
 
 	c := buildCitizenCharacter(r, upp, "hw", nil)
 
-	if len(c.Careers[0].Terms) != 8 {
-		t.Fatalf("seed 5: len(Terms) = %d, want 8 (fixture assumption broke)", len(c.Careers[0].Terms))
+	terms := len(c.Careers[0].Terms)
+
+	wantAge := 18 + 4*terms
+	if c.Age != wantAge {
+		t.Errorf("Age = %d, want %d (18 + 4*%d terms served)", c.Age, wantAge, terms)
 	}
 
-	if c.Age != 50 {
-		t.Errorf("Age = %d, want 50 (18 + 4*8 terms served)", c.Age)
-	}
-
-	if c.LifeStage != 7 {
-		t.Errorf("LifeStage = %d, want 7 (Senior)", c.LifeStage)
+	if c.LifeStage != LifeStageForAge(wantAge) {
+		t.Errorf("LifeStage = %d, want stage for age %d", c.LifeStage, wantAge)
 	}
 }
 

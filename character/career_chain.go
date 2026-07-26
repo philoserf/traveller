@@ -146,15 +146,14 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext
 
 // resolveRogueSegment mirrors buildRogueCharacter's own body
 // (rogue_character_generate.go), stopping short of finalizeAging. Rogue
-// never modifies a characteristic at all (rogue_loop.go's own doc
-// comment: "Rogue never modifies its own CC"), so upp passes through
-// unchanged; there is no death mechanic, so Survived is always true.
+// has no Risk-driven characteristic reduction; Personal awards can
+// still improve UPP. There is no death mechanic, so Survived is always true.
 // Fame/Cash share rogueTermsFameCash with buildRogueCharacter.
 func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career := resolveRogueCareerWithBudget(r, upp, maxTerms)
+	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveRogueMusterOut(r, career)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	ok := len(career.Terms) > 0
 
@@ -199,15 +198,15 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentConte
 // resolveEntertainerSegment mirrors buildEntertainerCharacter's own body
 // (entertainer_character_generate.go), stopping short of finalizeAging.
 // Entertainer's Risk/Reward never touches UPP.Characteristics (Fame/
-// Talent are separate scalars), so upp passes through unchanged; its
+// Talent are separate scalars), though Personal awards improve UPP; its
 // "Dead" means Talent exhausted, not physical death, so Survived is
 // always true and WoundBadges is always 0 (a Talent setback, not a
 // physical wound).
 func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, fame := resolveEntertainerCareerWithBudget(r, upp, maxTerms)
+	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	ok := len(career.Terms) > 0
 
@@ -249,10 +248,10 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentCont
 // Citizen Life can't fail Career Resolution at all, so Survived is
 // always true.
 func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career := resolveCitizenCareerWithBudget(r, upp, maxTerms)
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveCitizenMusterOut(r, career)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
@@ -313,10 +312,10 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 }
 
 func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career := resolveNobleCareerWithBudget(r, upp, maxTerms)
+	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms)
 	career.MusteringOut = ResolveNobleMusterOut(r, career)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 	ok := len(career.Terms) > 0
 
 	fame := bonuses.Fame

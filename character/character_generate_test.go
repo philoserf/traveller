@@ -442,8 +442,8 @@ func TestBuildScoutCharacterAgingBufferNeverTriggersIllness(t *testing.T) {
 		}
 
 		for i, v := range c.UPP.Characteristics[:5] {
-			if v < 4 || v > 15 {
-				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, 15]", seed, i, v)
+			if v < 4 || v > ehex.Max {
+				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, %d]", seed, i, v, ehex.Max)
 			}
 		}
 	}

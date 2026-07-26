@@ -32,11 +32,17 @@ func scoutWoundBadges(career Career) int {
 	return n
 }
 
-// allSkillsFromTerms flattens every term's SkillsAwarded, in term order.
+// allSkillsFromTerms flattens genuine skills from every term, in term
+// order. Personal awards are characteristic improvements, not skills.
 func allSkillsFromTerms(terms []Term) []SkillLevel {
 	var skills []SkillLevel
+
 	for _, t := range terms {
-		skills = append(skills, t.SkillsAwarded...)
+		for _, skill := range t.SkillsAwarded {
+			if skill.Kind != Personal {
+				skills = append(skills, skill)
+			}
+		}
 	}
 
 	return skills

@@ -38,16 +38,13 @@ func GenerateCitizenCharacter(r *dice.Roller) Character {
 // own split for testability (fixed upp fixtures instead of seed-hunting
 // rare GenerateUPP outcomes). WoundBadges is left at its zero value —
 // correct for Citizen, not a gap: Citizen Life has no wound mechanic to
-// count. Character.UPP comes from finalizeAging, not upp directly —
-// ResolveCitizenCareer itself never modifies a characteristic (it only
-// returns Career), but ApplyMusteringOut's characteristic boosts and
-// Aging's own reductions, over the character's approximated remaining
-// lifetime, both still can.
+// count. Character.UPP comes from finalizeAging after career Personal
+// awards, Mustering Out characteristic boosts, and Aging reductions.
 func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) Character {
-	career := ResolveCitizenCareer(r, upp)
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms)
 	career.MusteringOut = ResolveCitizenMusterOut(r, career)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
