@@ -1,6 +1,10 @@
 package character
 
-import "github.com/philoserf/traveller/dice"
+import (
+	"strings"
+
+	"github.com/philoserf/traveller/dice"
+)
 
 // RogueCareerName is Rogue's own Career.Name value — exported and
 // shared, matching every other career's own CareerName rationale.
@@ -117,19 +121,100 @@ func BeginRogue(r *dice.Roller, cc int) bool {
 // ranges roughly -5..+5 (dice.Roller's own Flux, a D6-D6 difference) but
 // the table only defines -6..+6 rows; clamped defensively even though
 // -6/+6 themselves are already at the edge of Flux's own natural range.
-func rollRogueScheme(r *dice.Roller) (string, string) {
-	flux := r.Flux()
+func rollRogueScheme(r *dice.Roller, priorCareers []string) (string, string) {
+	flux := clampRogueSchemeFlux(r.Flux())
+	flux = adjustRogueSchemeFlux(flux)
 
-	switch {
-	case flux < -6:
-		flux = -6
-	case flux > 6:
-		flux = 6
+	name, value := rogueSchemeCareerNames[flux+rogueSchemeFluxOffset], rogueSchemeValues[flux+rogueSchemeFluxOffset]
+
+	// p.84: "A Rogue may select for his Scheme (rather than roll) any
+	// previous career." Taken whenever a career already served offers a
+	// better-paying Scheme than the roll produced — the option exists to
+	// be used, and a Rogue with the choice has no reason to take less.
+	if selected, selectedValue, ok := bestPriorCareerScheme(priorCareers); ok &&
+		schemeIsBetter(selectedValue, value) {
+		return selected, selectedValue
 	}
 
-	i := flux + 6
+	return name, value
+}
 
-	return rogueSchemeCareerNames[i], rogueSchemeValues[i]
+// rogueSchemeFluxOffset converts a Flux result (-6..+6) into its row in
+// the Schemes table.
+const rogueSchemeFluxOffset = 6
+
+func clampRogueSchemeFlux(flux int) int {
+	return min(rogueSchemeFluxOffset, max(-rogueSchemeFluxOffset, flux))
+}
+
+// adjustRogueSchemeFlux applies Book 1 p.84's own "Flux may be modified
+// (after roll) plus or minus 1".
+//
+// Unlike Entertainer's optional Flux, this is not a gamble: the roll is
+// already known and the table is in front of the player, so the ±1 is a
+// straight choice between three named Schemes with printed values. It is
+// therefore taken to the best of the three, the same reasoning
+// BeginScout gives for picking the highest characteristic rather than a
+// random one. A Rogue offered Cr50,000 or, one row over, Cr500,000, does
+// not flip a coin.
+func adjustRogueSchemeFlux(flux int) int {
+	best := flux
+
+	for _, candidate := range []int{flux - 1, flux + 1} {
+		if candidate < -rogueSchemeFluxOffset || candidate > rogueSchemeFluxOffset {
+			continue
+		}
+
+		if schemeIsBetter(rogueSchemeValues[candidate+rogueSchemeFluxOffset],
+			rogueSchemeValues[best+rogueSchemeFluxOffset]) {
+			best = candidate
+		}
+	}
+
+	return best
+}
+
+// bestPriorCareerScheme finds the highest-value Scheme among careers the
+// character has already served, for p.84's own selection option. Reports
+// false when none of them appears on the Schemes table — or when there
+// are no prior careers at all, which is every single-career Rogue.
+func bestPriorCareerScheme(priorCareers []string) (string, string, bool) {
+	bestName, bestValue, found := "", "", false
+
+	for _, career := range priorCareers {
+		for i, schemeName := range rogueSchemeCareerNames {
+			if !strings.EqualFold(schemeName, career) {
+				continue
+			}
+
+			if !found || schemeIsBetter(rogueSchemeValues[i], bestValue) {
+				bestName, bestValue, found = schemeName, rogueSchemeValues[i], true
+			}
+		}
+	}
+
+	return bestName, bestValue, found
+}
+
+// schemeIsBetter reports whether candidate is unambiguously worth more
+// than current, for the two choices p.84 gives a Rogue.
+//
+// Most Schemes pay cash and compare directly. Two pay "one Ship Share",
+// which has no Cr figure anywhere — p.90 prices ships in shares rather
+// than pricing shares in credits — so a share and a cash sum are left
+// incomparable and the choice is simply not taken. Ranking a share
+// against cash either way would decide something the book doesn't: score
+// it low and a Rogue would always trade a share away, score it high and
+// they would always chase one.
+func schemeIsBetter(candidate, current string) bool {
+	candidateCash, candidateIsCash := musterOutCashAmount(candidate)
+	currentCash, currentIsCash := musterOutCashAmount(current)
+
+	if !candidateIsCash || !currentIsCash {
+		return false
+	}
+
+	return candidateCash > currentCash
 }
 
 // ResolveRogueTerm resolves one 4-year Rogue term (Book 1 p.84). cc is
@@ -151,8 +236,8 @@ func rollRogueScheme(r *dice.Roller) (string, string) {
 // previous one's failed Scheme. Book 1 p.84 imposes prison "at the start
 // of the next Term", so a Rogue serves the consequences of one term's
 // failure during the term after it, not the one that earned them.
-func ResolveRogueTerm(r *dice.Roller, cc, mod, servingPrison int) Term {
-	schemeName, schemeValue := rollRogueScheme(r)
+func ResolveRogueTerm(r *dice.Roller, cc, mod, servingPrison int, priorCareers []string) Term {
+	schemeName, schemeValue := rollRogueScheme(r, priorCareers)
 
 	term := Term{
 		Length:      4,

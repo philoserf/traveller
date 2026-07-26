@@ -39,7 +39,9 @@ func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
 func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	var aging agingSimulation
 
-	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	career, careerUPP := // A standalone Rogue has served nothing else, so p.84's
+		// select-a-previous-career option never applies.
+		resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging, nil)
 	if aging.alive() {
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
 	}

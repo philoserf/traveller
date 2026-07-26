@@ -138,23 +138,35 @@ func TestBeginRogue(t *testing.T) {
 // documented range, one D6 minus another) index correctly into the
 // 13-row table (index 1 = Scholar, index 11 = Marine). The table's own
 // index 0 (Craftsman, "Flux -6") and index 12 (Functionary, "Flux +6")
-// are unreachable via real dice — rollRogueScheme's own defensive clamp
-// exists for exactly that reason, but real dice can never exercise it.
+// are unreachable by a raw roll — clampRogueSchemeFlux's own defensive
+// clamp exists for that reason — though p.84's own "+/-1 after roll"
+// does put them within a Rogue's reach.
 func TestRollRogueSchemeReachableExtremes(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(59, 59)) // first Flux() = -5
-
-	name, value := rollRogueScheme(r)
-	if name != "Scholar" || value != "Cr100,000" {
-		t.Errorf("rollRogueScheme at Flux -5 = (%q, %q), want (%q, %q)", name, value, "Scholar", "Cr100,000")
+	// Flux -5 lands on Scholar (Cr100,000), but p.84's own "+/-1 after
+	// roll" reaches Entertainer (Cr300,000) one row over, which a Rogue
+	// takes. Likewise Flux +5 sits on Marine (Cr50,000) beside Noble
+	// (Cr500,000), the richest Scheme on the table.
+	name, value := rollRogueScheme(dice.New(rand.NewPCG(59, 59)), nil) // first Flux() = -5
+	if name != "Entertainer" || value != "Cr300,000" {
+		t.Errorf("rollRogueScheme at Flux -5 = (%q, %q), want (%q, %q) after the +/-1 adjustment",
+			name, value, "Entertainer", "Cr300,000")
 	}
 
-	r = dice.New(rand.NewPCG(1, 1)) // first Flux() = +5
+	name, value = rollRogueScheme(dice.New(rand.NewPCG(1, 1)), nil) // first Flux() = +5
+	if name != "Noble" || value != "Cr500,000" {
+		t.Errorf("rollRogueScheme at Flux +5 = (%q, %q), want (%q, %q) after the +/-1 adjustment",
+			name, value, "Noble", "Cr500,000")
+	}
 
-	name, value = rollRogueScheme(r)
-	if name != "Marine" || value != "Cr50,000" {
-		t.Errorf("rollRogueScheme at Flux +5 = (%q, %q), want (%q, %q)", name, value, "Marine", "Cr50,000")
+	// The clamp itself still guards the table's own unreachable ends.
+	if got := clampRogueSchemeFlux(-9); got != -rogueSchemeFluxOffset {
+		t.Errorf("clampRogueSchemeFlux(-9) = %d, want %d", got, -rogueSchemeFluxOffset)
+	}
+
+	if got := clampRogueSchemeFlux(9); got != rogueSchemeFluxOffset {
+		t.Errorf("clampRogueSchemeFlux(9) = %d, want %d", got, rogueSchemeFluxOffset)
 	}
 }
 
@@ -171,7 +183,7 @@ func TestResolveRogueTermRiskSuccessRewardSuccessGrantsScaledPayoff(t *testing.T
 
 	r := dice.New(rand.NewPCG(2, 2))
 
-	term := ResolveRogueTerm(r, 8, 0, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0, nil)
 
 	if term.Imprisoned {
 		t.Error("Imprisoned = true, want false (Risk succeeded)")
@@ -201,7 +213,7 @@ func TestResolveRogueTermRiskSuccessRewardFailureGrantsNoPayoff(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(6, 6))
 
-	term := ResolveRogueTerm(r, 8, 0, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0, nil)
 
 	if term.Imprisoned {
 		t.Error("Imprisoned = true, want false (Risk succeeded)")
@@ -221,9 +233,10 @@ func TestResolveRogueTermRiskSuccessRewardFailureGrantsNoPayoff(t *testing.T) {
 }
 
 // TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills
-// covers Risk failure (Imprisoned): Scheme "Soldier" (Cr50,000), Reward
-// roll 4, unhalved Payoff = 50,000 x (1+8-4+0) = 250,000, halved to
-// 125,000 for Imprisoned. Skills come from the Prison-columns-only roll
+// covers Risk failure (Imprisoned): Scheme "Spacer" (Cr100,000) — the
+// roll's own Soldier row is Cr50,000, and p.84's "+/-1 after roll"
+// reaches Spacer beside it — Reward roll 4, unhalved Payoff = 100,000 x
+// (1+8-4+0) = 500,000, halved to 250,000 for Imprisoned. Skills come from the Prison-columns-only roll
 // (rogueSkillTable columns 1-2 only), confirmed by checking every
 // awarded skill name appears in one of those two columns.
 func TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills(t *testing.T) {
@@ -231,22 +244,22 @@ func TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills(t *testin
 
 	r := dice.New(rand.NewPCG(18, 18))
 
-	term := ResolveRogueTerm(r, 8, 0, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0, nil)
 
 	if !term.Imprisoned {
 		t.Fatal("Imprisoned = false, want true (Risk failed)")
 	}
 
-	if term.Scheme != "Soldier" {
-		t.Errorf("Scheme = %q, want %q", term.Scheme, "Soldier")
+	if term.Scheme != "Spacer" {
+		t.Errorf("Scheme = %q, want %q", term.Scheme, "Spacer")
 	}
 
 	if !term.RewardSucceeded {
 		t.Error("RewardSucceeded = false, want true")
 	}
 
-	if term.SchemePayoff != 125000 {
-		t.Errorf("SchemePayoff = %d, want 125000 (250000 halved for Imprisoned)", term.SchemePayoff)
+	if term.SchemePayoff != 250000 {
+		t.Errorf("SchemePayoff = %d, want 250000 (500000 halved for Imprisoned)", term.SchemePayoff)
 	}
 
 	// Skills come from the full table, not the Prison columns: Book 1
@@ -265,7 +278,7 @@ func TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills(t *testin
 func TestResolveRogueTermServedInPrisonUsesPrisonSkills(t *testing.T) {
 	t.Parallel()
 
-	term := ResolveRogueTerm(dice.New(rand.NewPCG(18, 18)), 8, 0, 3)
+	term := ResolveRogueTerm(dice.New(rand.NewPCG(18, 18)), 8, 0, 3, nil)
 
 	if term.ServedYears != 3 {
 		t.Fatalf("ServedYears = %d, want 3 (carried in from last term's failure)", term.ServedYears)
@@ -322,7 +335,7 @@ func TestResolveRogueTermShipShareSchemeGrantsNoScaledPayoff(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3, 3))
 
-	term := ResolveRogueTerm(r, 8, 0, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0, nil)
 
 	if term.Imprisoned {
 		t.Error("Imprisoned = true, want false (Risk succeeded)")
@@ -423,5 +436,91 @@ func TestRogueTermSkillsFollowEligibilityBox(t *testing.T) {
 				t.Errorf("eligibility = %d skills, want %d", got, c.want)
 			}
 		})
+	}
+}
+
+// TestAdjustRogueSchemeFluxTakesTheBestAdjacentScheme pins Book 1 p.84's
+// "Flux may be modified (after roll) plus or minus 1".
+//
+// Unlike Entertainer's optional Flux this is not a gamble — the roll is
+// already known and the values are printed — so the adjustment is taken
+// to the best of the three reachable Schemes.
+func TestAdjustRogueSchemeFluxTakesTheBestAdjacentScheme(t *testing.T) {
+	t.Parallel()
+
+	valueAt := func(flux int) string { return rogueSchemeValues[flux+rogueSchemeFluxOffset] }
+
+	// +3 Rogue is Cr100,000; +4 Noble alongside it is Cr500,000, the
+	// richest Scheme on the table.
+	if got := adjustRogueSchemeFlux(3); got != 4 {
+		t.Errorf("Flux +3 adjusted to %+d (%s), want +4 (%s)", got, valueAt(got), valueAt(4))
+	}
+
+	// +5 Marine is Cr50,000, and +4 Noble is reachable downward.
+	if got := adjustRogueSchemeFlux(5); got != 4 {
+		t.Errorf("Flux +5 adjusted to %+d (%s), want +4 (%s)", got, valueAt(got), valueAt(4))
+	}
+
+	// Never worse than where it started, at any roll.
+	for flux := -rogueSchemeFluxOffset; flux <= rogueSchemeFluxOffset; flux++ {
+		got := adjustRogueSchemeFlux(flux)
+		if got < -rogueSchemeFluxOffset || got > rogueSchemeFluxOffset {
+			t.Fatalf("Flux %+d adjusted off the table to %+d", flux, got)
+		}
+
+		if got != flux && got != flux-1 && got != flux+1 {
+			t.Errorf("Flux %+d adjusted to %+d, want a move of at most one row", flux, got)
+		}
+
+		if got != flux && !schemeIsBetter(valueAt(got), valueAt(flux)) {
+			t.Errorf("Flux %+d adjusted to %s from %s without improving it", flux, valueAt(got), valueAt(flux))
+		}
+	}
+}
+
+// TestBestPriorCareerScheme pins p.84's "A Rogue may select for his
+// Scheme (rather than roll) any previous career" — any, not merely the
+// most recent, and only careers that appear on the Schemes table.
+func TestBestPriorCareerScheme(t *testing.T) {
+	t.Parallel()
+
+	if _, _, ok := bestPriorCareerScheme(nil); ok {
+		t.Error("a Rogue with no prior careers reported a selectable Scheme")
+	}
+
+	// Noble pays Cr500,000 against Soldier's Cr50,000, and is not the
+	// most recent — the rule says any previous career.
+	name, value, ok := bestPriorCareerScheme([]string{"Noble", "Soldier"})
+	if !ok || name != "Noble" || value != "Cr500,000" {
+		t.Errorf("bestPriorCareerScheme = (%q, %q, %v), want Noble at Cr500,000", name, value, ok)
+	}
+
+	if _, _, ok := bestPriorCareerScheme([]string{"Craftsman"}); !ok {
+		t.Error("Craftsman is on the Schemes table but was not selectable")
+	}
+}
+
+// TestSchemeIsBetterLeavesShipSharesIncomparable records the one
+// comparison p.84 leaves open: two Schemes pay "one Ship Share" rather
+// than a Cr figure, and nothing prices a share in credits. Neither
+// direction is taken, so a Rogue neither trades a share away for cash
+// nor chases one — the adjustment simply isn't made.
+func TestSchemeIsBetterLeavesShipSharesIncomparable(t *testing.T) {
+	t.Parallel()
+
+	if schemeIsBetter("one Ship Share", "Cr50,000") {
+		t.Error("a Ship Share was ranked above cash")
+	}
+
+	if schemeIsBetter("Cr500,000", "one Ship Share") {
+		t.Error("cash was ranked above a Ship Share")
+	}
+
+	if !schemeIsBetter("Cr500,000", "Cr50,000") {
+		t.Error("Cr500,000 should outrank Cr50,000")
+	}
+
+	if schemeIsBetter("Cr50,000", "Cr500,000") {
+		t.Error("Cr50,000 should not outrank Cr500,000")
 	}
 }
