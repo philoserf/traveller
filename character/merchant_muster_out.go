@@ -45,13 +45,7 @@ func ResolveMerchantMusterOut(r *dice.Roller, career Career, isOfficerAtEnd bool
 	}
 
 	for range musterOutRollCount(career, merchantCareerFame(tierAtEnd)) {
-		row := musterOutRow(r.D6()+dm, len(merchantMusterOutMoney))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, merchantMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, merchantMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, merchantMusterOutMoney[:], merchantMusterOutBenefits[:])
 	}
 
 	return out

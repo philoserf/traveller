@@ -29,13 +29,7 @@ func ResolveEntertainerMusterOut(r *dice.Roller, career Career, fame int) Muster
 	dm := fame/3 + len(career.Terms)
 
 	for range musterOutRollCount(career, fame) {
-		row := musterOutRow(r.D6()+dm, len(entertainerMusterOutMoney))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, entertainerMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, entertainerMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, entertainerMusterOutMoney[:], entertainerMusterOutBenefits[:])
 	}
 
 	return out
