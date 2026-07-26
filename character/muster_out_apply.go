@@ -3,8 +3,6 @@ package character
 import (
 	"strconv"
 	"strings"
-
-	"github.com/philoserf/traveller/ehex"
 )
 
 // musterOutCharacteristicNames maps every characteristic-boost token this
@@ -88,9 +86,11 @@ type MusterOutBonuses struct {
 
 // ApplyMusteringOut applies m's mechanical effects onto upp: Fame and
 // Cash accumulate from every Money/Benefits entry that carries one, and
-// characteristic boosts add directly to the relevant Position (clamped
-// at ehex.Max, defensively — no realistic roll count gets remotely
-// close). Everything else in m — Passages, StarPass, Ship Share,
+// characteristic boosts add directly to the relevant Position, clamped
+// at HumanCharacteristicMax (Book 1 p.70: an award that would take a
+// Human characteristic past 15 is lost). This used to clamp at ehex.Max,
+// which is a digit-encoding limit rather than a species one and let
+// repeated awards carry a characteristic to 17 in practice. Everything else in m — Passages, StarPass, Ship Share,
 // Forbidden Knowledge, Wafer Jack, Life Insurance, TAS Fellow
 // Membership, Knighthood — has no structured Character field to apply to
 // yet; it stays recorded only in MusteringOut's own []string fields, the
@@ -113,10 +113,7 @@ func ApplyMusteringOut(m MusteringOut, upp UPP) (UPP, MusterOutBonuses) {
 		}
 
 		if p, amount, ok := musterOutCharacteristicBoost(entry); ok {
-			boosted := min(int(upp.Characteristics[p])+amount, int(ehex.Max))
-
-			//nolint:gosec // bounded by the min(...) clamp above, gosec can't see that
-			upp.Characteristics[p] = ehex.Value(boosted)
+			upp.Characteristics[p] = awardCharacteristic(upp.Characteristics[p], amount)
 		}
 	}
 
