@@ -28,6 +28,16 @@ type careerSegment struct {
 	Equipment   []string // Craftsman only: Masterpieces created this segment
 }
 
+func segmentEndsCareerResolution(seg careerSegment) bool {
+	if len(seg.Career.Terms) == 0 {
+		return false
+	}
+
+	last := seg.Career.Terms[len(seg.Career.Terms)-1]
+
+	return !last.RiskResult.Survived() || last.RiskResult == Disabled
+}
+
 // segmentContext carries the things a handful of adapters need that
 // most ignore: the running terms-served total and the immediately-
 // preceding chain entry's own career name (Functionary's own Begin
@@ -47,9 +57,7 @@ type segmentContext struct {
 type careerSegmentResolver func(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment
 
 // careerChainRegistry is every career resolvable as a link in a
-// multi-career chain — all 12 implemented T5 careers except Noble
-// (deliberately absent: its Begin is Soc-gated with no
-// Continue/retry-a-different-career shape).
+// multi-career chain.
 var careerChainRegistry = map[string]careerSegmentResolver{
 	"scout":       resolveScoutSegment,
 	"marine":      resolveMarineSegment,
@@ -63,6 +71,7 @@ var careerChainRegistry = map[string]careerSegmentResolver{
 	"citizen":     resolveCitizenSegment,
 	"functionary": resolveFunctionarySegment,
 	"craftsman":   resolveCraftsmanSegment,
+	"noble":       resolveNobleSegment,
 }
 
 // resolveRiskCareerSegment mirrors buildRiskCareerCharacter's own body
@@ -303,6 +312,23 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 	}
 }
 
+func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
+	career := resolveNobleCareerWithBudget(r, upp, maxTerms)
+	career.MusteringOut = ResolveNobleMusterOut(r, career)
+
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	ok := len(career.Terms) > 0
+	fame := bonuses.Fame
+	if ok {
+		fame += nobleBaseFame(upp.Characteristics[C6]) + nobleExileFame(career.Terms)
+	}
+
+	return careerSegment{
+		Career: career, UPP: boostedUPP, Survived: ok,
+		Fame: fame, Cash: bonuses.Cash, Skills: allSkillsFromTerms(career.Terms),
+	}
+}
+
 // validateCareerChain checks careerNames (already lowercased/trimmed by
 // the caller) against the rules this slice's own plan-file Context
 // derives from Book 1 pp.63-66: every name must be a known, chainable
@@ -310,9 +336,9 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 // transfer to Citizen"); "functionary" and "craftsman" may never be the
 // first entry (p.63: both "unavailable as initial careers" — stated
 // explicitly rather than relying solely on each one's own emergent
-// Begin-failure at 0 prior terms/skills); "noble" is recognized but
-// rejected with a clearer message than "unknown career" (Noble's Begin
-// doesn't fit this shape); and no two adjacent entries may repeat the
+// Begin-failure at 0 prior terms/skills); Functionary and Noble must be
+// terminal because a character may not transfer out of either; and no
+// two adjacent entries may repeat the
 // same career ("selecting a different career" — re-entering the very
 // career just left is meaningless when Continue already offers that for
 // free).
@@ -322,10 +348,6 @@ func validateCareerChain(careerNames []string) error {
 	}
 
 	for i, name := range careerNames {
-		if name == "noble" {
-			return fmt.Errorf("%q may only be used alone (-career noble), not in a multi-career chain", name)
-		}
-
 		if _, ok := careerChainRegistry[name]; !ok {
 			return fmt.Errorf("unknown career %q; valid careers are %v", name, sortedCareerChainNames())
 		}
@@ -339,6 +361,10 @@ func validateCareerChain(careerNames []string) error {
 
 		if (name == "functionary" || name == "craftsman") && i == 0 {
 			return fmt.Errorf("%q may not be the first career in a chain (never a first career, Book 1 p.63)", name)
+		}
+
+		if (name == "functionary" || name == "noble") && i != len(careerNames)-1 {
+			return fmt.Errorf("%q must be the final career in a chain (a character may not transfer from it)", name)
 		}
 
 		if i > 0 && careerNames[i-1] == name {
@@ -431,11 +457,12 @@ func segmentBudget(ageTarget, maxAllowedTotalTerms, termsServed int) (int, bool)
 
 // GenerateCareerChainCharacter generates a full Human Character across
 // an ordered sequence of careerNames (already lowercased/trimmed),
-// implementing Book 1's own "Changing Careers" (pp.65-66): each career
-// runs to its own natural end (Continue failure, Disabled, Dead, or the
-// existing maxCareerTerms safety cap) before the next listed career is
-// attempted, in order. A career whose Begin fails contributes a
-// zero-term Career entry (matching every existing single-career
+// implementing Book 1's own "Changing Careers" (pp.65-66). An ordered
+// list means a voluntary transfer after one completed term in each
+// non-final career; that choice is made instead of rolling Continue.
+// The final career follows its normal Continue rolls, so a failed
+// Continue always ends Career Resolution. A career whose Begin fails
+// contributes a zero-term Career entry (matching every existing single-career
 // "never qualified" precedent) and the chain moves on to the next name
 // without consuming anything. If every listed career fails to Begin,
 // Citizen is the guaranteed fallback (p.64: "Begin Citizen Life is
@@ -472,10 +499,13 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	everSucceeded, survived := false, true
 	precedingCareer := ""
 
-	for _, name := range careerNames {
+	for i, name := range careerNames {
 		maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed)
 		if !attemptAllowed {
 			break
+		}
+		if i < len(careerNames)-1 {
+			maxTerms = min(maxTerms, 1)
 		}
 
 		ctx := segmentContext{
@@ -498,6 +528,10 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		if !seg.Survived {
 			survived = false
 
+			break
+		}
+
+		if segmentEndsCareerResolution(seg) {
 			break
 		}
 	}
