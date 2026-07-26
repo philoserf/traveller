@@ -132,6 +132,18 @@ linters:
       - path: character/(marine|soldier)_generate\.go
         linters:
           - dupl
+      # career_chain_test.go's own TestCareerChainNobleAgeTargetCutsOffMidCareer
+      # (#49) deliberately mirrors TestCareerChainAgeTargetCutsOffMidCareer's
+      # Scout-based shape almost verbatim, the same "second instance of an
+      # established test shape, seeds/exact term counts are the point, not
+      # the surrounding scaffolding" reasoning as every other exclusion in
+      # this file — proving the shared age-budget machinery (segmentBudget,
+      # maxAllowedCareerTerms) that already had Scout coverage also wires
+      # correctly for Noble specifically, since Noble's own Begin/Continue
+      # shape is otherwise nothing like Scout's.
+      - path: character/career_chain_test\.go
+        linters:
+          - dupl
 
 formatters:
   enable:

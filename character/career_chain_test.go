@@ -400,6 +400,133 @@ func TestCareerChainAgeTargetSoLargeItNeverBindsMatchesUnbounded(t *testing.T) {
 	}
 }
 
+// TestCareerChainNobleAgeTargetCutsOffMidCareer is #49's regression: a
+// standalone Noble career must honor an -age budget exactly like every
+// other career, even though cmd/chargen used to reject -age for Noble
+// outright. Seed 43 (found by direct search) runs Noble to 5 terms
+// (age 38) unbounded; capping at age 30 (18+4*3, an exact term
+// boundary) must truncate to the first 3 of those same terms, not
+// generate a divergent career.
+func TestCareerChainNobleAgeTargetCutsOffMidCareer(t *testing.T) {
+	t.Parallel()
+
+	const seed = 43
+
+	uncapped, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"noble"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok || len(uncapped.Careers) != 1 || len(uncapped.Careers[0].Terms) != 5 {
+		t.Fatalf("uncapped = %+v, want a single 5-term Noble career (fixture assumption broken)", uncapped.Careers)
+	}
+
+	capped, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"noble"}, 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(capped.Careers) != 1 || len(capped.Careers[0].Terms) != 3 {
+		t.Fatalf("capped.Careers = %+v, want a single 3-term Noble career", capped.Careers)
+	}
+
+	if capped.Age != 30 {
+		t.Errorf("Age = %d, want 30", capped.Age)
+	}
+
+	if !reflect.DeepEqual(capped.Careers[0].Terms, uncapped.Careers[0].Terms[:3]) {
+		t.Fatalf("capped terms diverge from the first 3 terms of the uncapped run")
+	}
+}
+
+// TestCareerChainNobleAgeTargetAtOrBelow18ProducesNoCareers mirrors
+// TestCareerChainAgeTargetAtOrBelow18ProducesNoCareers for Noble
+// specifically: a target that allows zero terms degrades cleanly
+// regardless of Noble's own Begin odds for this seed.
+func TestCareerChainNobleAgeTargetAtOrBelow18ProducesNoCareers(t *testing.T) {
+	t.Parallel()
+
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(1, 1)), []string{"noble"}, 18)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 0 {
+		t.Fatalf("Careers = %+v, want none", got.Careers)
+	}
+
+	if got.Age != 18 {
+		t.Errorf("Age = %d, want 18", got.Age)
+	}
+}
+
+// TestCareerChainNobleAgeTargetSoLargeItNeverBindsMatchesUnbounded
+// mirrors TestCareerChainAgeTargetSoLargeItNeverBindsMatchesUnbounded
+// for Noble: an -age value with enough headroom to never actually bind
+// must produce identical results to no target at all, the same
+// unbounded-parity property every other career already has.
+func TestCareerChainNobleAgeTargetSoLargeItNeverBindsMatchesUnbounded(t *testing.T) {
+	t.Parallel()
+
+	const seed = 43 // confirmed above: a real, multi-term, successfully-begun Noble career
+
+	unbounded, ok1, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"noble"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	generous, ok2, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"noble"}, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ok1 != ok2 || !reflect.DeepEqual(unbounded, generous) {
+		t.Fatalf("ageTarget=1000 diverged from ageTarget=0:\nunbounded=%+v ok=%v\ngenerous=%+v ok=%v",
+			unbounded, ok1, generous, ok2)
+	}
+}
+
+// TestCareerChainNobleFailedBeginStillHonorsAgeBudget confirms a failed
+// Noble Begin (Soc < B) combines correctly with an -age target: the
+// zero-term Noble entry still counts as "nothing succeeded" for the
+// Citizen-fallback rule, and Citizen itself still respects the same
+// budget rather than running unbounded once substituted in. Seed 1
+// (found by direct search) fails Noble's own Begin (Soc < 11) and falls
+// back to Citizen, which then runs to fill the remaining age-42 budget.
+func TestCareerChainNobleFailedBeginStillHonorsAgeBudget(t *testing.T) {
+	t.Parallel()
+
+	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(1, 1)), []string{"noble"}, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(got.Careers) != 2 || got.Careers[0].Name != NobleCareerName || len(got.Careers[0].Terms) != 0 {
+		t.Fatalf("Careers[0] = %+v, want a zero-term Noble entry (fixture assumption broke: Begin succeeded?)",
+			got.Careers)
+	}
+
+	if got.Careers[1].Name != CitizenCareerName {
+		t.Fatalf("Careers[1].Name = %q, want %q (Citizen fallback)", got.Careers[1].Name, CitizenCareerName)
+	}
+
+	if got.Age != 42 {
+		t.Errorf("Age = %d, want 42 (Citizen fallback still respects the same budget)", got.Age)
+	}
+}
+
 // TestChainRankPersistsAfterALaterRanklessCareer confirms Book 1 p.66's
 // Reserves rule: a character's displayed Rank reflects the last
 // Armed-Forces rank ever held, even after a later career with no rank

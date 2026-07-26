@@ -84,13 +84,6 @@ func main() {
 
 	names := splitCareerNames(*careerName)
 
-	if len(names) == 1 && names[0] == "noble" && *ageTarget != 0 {
-		fmt.Fprintln(os.Stderr,
-			"chargen: -age is not supported for noble (its Begin doesn't fit the age-budget chain shape); "+
-				"use -career noble without -age")
-		os.Exit(1)
-	}
-
 	var c character.Character
 
 	var ok bool
