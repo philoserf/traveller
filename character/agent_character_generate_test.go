@@ -39,13 +39,9 @@ func TestAgentCareerFame(t *testing.T) {
 	}
 }
 
-// TestGenerateAgentCharacterQualified pins seed 2: one term, Risk fails
-// Disabled (RiskResult 2), Reward fails (RewardResult "None", so
-// agentCareerFame's own Commendation count is 0) — confirmed by direct
-// inspection (character/zzdebug_test.go trace, not kept in the repo):
-// a Disabled last term doubles scoutMusterOutRollCount to 2 rolls for a
-// single term, landing one Money entry ("Cr25,000", Cash 25000) and one
-// Benefits entry ("C3 +1").
+// TestGenerateAgentCharacterQualified pins seed 2: one term whose
+// Reward succeeds against the term-start CC after Risk reduces it.
+// The resulting commendation contributes one Fame.
 func TestGenerateAgentCharacterQualified(t *testing.T) {
 	t.Parallel()
 
@@ -73,12 +69,12 @@ func TestGenerateAgentCharacterQualified(t *testing.T) {
 		t.Fatalf("len(Careers[0].Terms) = %d, want 1", len(c.Careers[0].Terms))
 	}
 
-	if c.Fame != 0 {
-		t.Errorf("Fame = %d, want 0", c.Fame)
+	if c.Fame != 1 {
+		t.Errorf("Fame = %d, want 1", c.Fame)
 	}
 
-	if c.Cash != 25000 {
-		t.Errorf("Cash = %d, want 25000", c.Cash)
+	if c.Cash != 0 {
+		t.Errorf("Cash = %d, want 0", c.Cash)
 	}
 
 	assertBirthdateFormat(t, c.Birthdate, c.Age)

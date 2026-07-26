@@ -150,10 +150,10 @@ func ResolveScholarTerm(r *dice.Roller, upp UPP, ccPos Position, edu, tier int, 
 	upp.Characteristics[ccPos] = reducedCC
 
 	if riskResult == Unharmed {
-		succeeded, roll := resolveReward(r, reducedCC, 0)
+		succeeded, roll := resolveReward(r, cc, 0)
 		term.PublicationSucceeded = succeeded
 
-		if succeeded && roll <= int(reducedCC)-4 {
+		if succeeded && roll <= int(cc)-4 {
 			term.AwardWinning = true
 		}
 	}

@@ -113,12 +113,10 @@ func ResolveAgentTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
 		return term, upp
 	}
 
-	// Commendation is Book 1 p.91's own "N = C-R": the Reward roll's own
-	// target is the Risk-reduced characteristic (resolveReward's own doc
-	// comment — the same reducedCC every sibling career passes), but the
-	// "C" in the N = C-R subtraction is still the *unmodified*, pre-Risk
-	// CC, per p.91's own "ignore any Mods" wording.
-	if rewardOK, rewardRoll := resolveReward(r, reducedCC, 0); rewardOK {
+	// Commendation is Book 1 p.91's own "N = C-R". Both the Reward target
+	// and C use the term-start, pre-Risk CC; the reduced value persists
+	// only for later terms.
+	if rewardOK, rewardRoll := resolveReward(r, cc, 0); rewardOK {
 		n := int(cc) - rewardRoll
 		term.RewardResult = fmt.Sprintf("%s Commendation-%d", term.UndercoverCareer, n)
 	} else {

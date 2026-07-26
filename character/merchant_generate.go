@@ -129,7 +129,7 @@ func ResolveMerchantTerm(
 	upp.Characteristics[ccPos] = reducedCC
 
 	if riskResult != Dead {
-		if rewardOK, _ := resolveReward(r, reducedCC, 0); rewardOK {
+		if rewardOK, _ := resolveReward(r, cc, 0); rewardOK {
 			shares := merchantRewardCount(priorTerms) + 1
 			term.RewardResult = fmt.Sprintf("%d Ship Share", shares)
 

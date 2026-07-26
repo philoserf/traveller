@@ -362,11 +362,9 @@ func rollScoutSkills(r *dice.Roller, count int) []SkillLevel {
 // rolls Risk then, unless Dead, Reward too (Book 1's own worked
 // example, Eneri Dinsha, rolls Reward even after failing Risk — a
 // Wounded or Disabled Scout still gets a Reward chance and skills; only
-// Dead stops everything) and grants 8. The Reward roll uses the
-// Risk-reduced characteristic value, not the original — a Wounded or
-// Disabled Scout's Reward odds reflect their now-lower characteristic,
-// same as the book's own "Roll for Reward against CC+..." wording
-// implies (CC having just been reduced by the preceding Risk roll).
+// Dead stops everything) and grants 8. Reward uses the term-start CC,
+// as in that worked example; the Risk-reduced value persists in upp for
+// later terms and the final character.
 // Term.RewardResult is "Discovery" or "None" (Term.RewardResult is a
 // string field; there's no separate bool for this).
 //
@@ -400,7 +398,7 @@ func ResolveScoutTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP, bool)
 			return term, upp, false
 		}
 
-		if ok, _ := resolveReward(r, reducedCC, 0); ok {
+		if ok, _ := resolveReward(r, cc, 0); ok {
 			term.RewardResult = "Discovery"
 		}
 	}

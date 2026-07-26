@@ -281,3 +281,27 @@ func TestResolveMerchantTermRiskFailurePersistsReduction(t *testing.T) {
 			updatedUPP.Characteristics[C1], upp88.Characteristics[C1])
 	}
 }
+
+// TestResolveMerchantTermRewardUsesTermStartCC is the regression for
+// #50, mirroring TestResolveMarineTermRewardUsesTermStartCC. Unlike
+// Marine/Soldier/Spacer, Merchant has no flat Risk-success grant to
+// isolate Reward with, so this asserts on RewardResult directly. Seed
+// 47 (found by direct search) reduces C1 from 8 to 6 during Risk, then
+// rolls a 7 for Reward — a success against the term-start CC (7<=8)
+// that would fail against the reduced value (7<=6 is false).
+func TestResolveMerchantTermRewardUsesTermStartCC(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(47, 47))
+
+	//nolint:dogsled // only RewardResult matters here; updatedUPP/isOfficer/tier are exercised by other tests
+	term, _, _, _ := ResolveMerchantTerm(r, upp88, C1, false, 1, nil)
+
+	if term.RiskResult != Wounded {
+		t.Fatalf("RiskResult = %v, want Wounded (fixture assumption broke)", term.RiskResult)
+	}
+
+	if term.RewardResult != "1 Ship Share" {
+		t.Errorf("RewardResult = %q, want %q (Reward must use the term-start CC)", term.RewardResult, "1 Ship Share")
+	}
+}
