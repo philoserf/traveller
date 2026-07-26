@@ -32,7 +32,9 @@ func buildEntertainerCharacter(
 	var aging agingSimulation
 
 	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
-	career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
+	if aging.alive() {
+		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 

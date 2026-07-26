@@ -42,7 +42,9 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	var aging agingSimulation
 
 	career, careerUPP, isOfficer, tier := resolveMerchantCareerWithBudget(r, upp, maxCareerTerms, &aging)
-	career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
+	if aging.alive() {
+		career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
+	}
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
 	// characteristic from a survived Wounded/Disabled term. A code-review

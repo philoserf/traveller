@@ -358,3 +358,74 @@ func TestResolveAgingReportsReachedAge(t *testing.T) {
 		}
 	})
 }
+
+// TestAgingDeathStopsServiceAndMusterOut is the regression for PR #69's
+// second review round: a character Aging has already killed must not
+// serve another term, and must not muster out. Both were reachable
+// because a career's own "did this kill them?" state is separate from
+// the chain-wide Aging simulation — the loops checked Aging only after
+// resolving a term, so the next career in a chain got one free term,
+// and Mustering Out ran unconditionally afterward. Book 1 p.69's rule
+// that a dead character never reaches Mustering Out was already encoded
+// for career death (scoutMusterOutRollCount); this extends it to p.89.
+func TestAgingDeathStopsServiceAndMusterOut(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{12, 12, 12, 12, 12, 12}}
+
+	// A simulation already killed by an earlier career in the same chain.
+	dead := func() *agingSimulation {
+		return &agingSimulation{
+			termsServed: 5,
+			diedAtAge:   38,
+			notes:       []string{"Age 38: died of natural causes (3 characteristics reduced to 0 for a second time)"},
+		}
+	}
+
+	loops := map[string]func(*agingSimulation) int{
+		"shared resolveCareerLoop (Scout)": func(a *agingSimulation) int {
+			c, _ := resolveScoutCareerWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+
+			return len(c.Terms)
+		},
+		"hand-rolled Citizen": func(a *agingSimulation) int {
+			c, _ := resolveCitizenCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+
+			return len(c.Terms)
+		},
+		"hand-rolled Noble": func(a *agingSimulation) int {
+			c, _ := resolveNobleCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+
+			return len(c.Terms)
+		},
+		"hand-rolled Entertainer": func(a *agingSimulation) int {
+			c, _, _ := resolveEntertainerCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+
+			return len(c.Terms)
+		},
+	}
+
+	for name, serve := range loops {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := serve(dead()); got != 0 {
+				t.Errorf("terms served = %d, want 0 (the character was already dead on entry)", got)
+			}
+		})
+	}
+
+	t.Run("segment grants no Mustering Out", func(t *testing.T) {
+		t.Parallel()
+
+		seg := resolveScoutSegment(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, segmentContext{Aging: dead()})
+
+		if n := len(seg.Career.MusteringOut.Benefits) + len(seg.Career.MusteringOut.Money); n != 0 {
+			t.Errorf("Mustering Out entries = %d, want 0 (the dead don't muster out)", n)
+		}
+
+		if seg.Cash != 0 {
+			t.Errorf("Cash = %d, want 0", seg.Cash)
+		}
+	})
+}

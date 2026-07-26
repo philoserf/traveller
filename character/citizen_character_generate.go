@@ -42,7 +42,9 @@ func buildCitizenCharacter(
 	var aging agingSimulation
 
 	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
-	career.MusteringOut = ResolveCitizenMusterOut(r, career)
+	if aging.alive() {
+		career.MusteringOut = ResolveCitizenMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 

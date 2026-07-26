@@ -40,7 +40,9 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	var aging agingSimulation
 
 	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
-	career.MusteringOut = ResolveRogueMusterOut(r, career)
+	if aging.alive() {
+		career.MusteringOut = ResolveRogueMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 

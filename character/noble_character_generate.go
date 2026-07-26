@@ -36,7 +36,9 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	var aging agingSimulation
 
 	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
-	career.MusteringOut = ResolveNobleMusterOut(r, career)
+	if aging.alive() {
+		career.MusteringOut = ResolveNobleMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 

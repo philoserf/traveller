@@ -50,6 +50,10 @@ func resolveEntertainerCareerAndUPPWithBudget(
 	var terms []Term
 
 	for range maxTerms {
+		if !aging.alive() {
+			break
+		}
+
 		var term Term
 
 		term, fame, talent = ResolveEntertainerTerm(r, fame, talent)

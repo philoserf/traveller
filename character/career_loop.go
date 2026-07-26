@@ -133,6 +133,15 @@ func resolveCareerLoop(
 	usedThisCycle := make(map[Position]bool, len(positions))
 
 	for range maxTerms {
+		// Already dead — from an Aging checkpoint in an earlier career of
+		// the same chain, since one simulation spans them all. Checked
+		// before resolving anything, not after: the post-term check below
+		// only stops the career that did the killing, and would still let
+		// the next one in the chain serve a full term first.
+		if !aging.alive() {
+			break
+		}
+
 		ccPos := nextCC(upp, positions, usedThisCycle)
 
 		term, updatedUPP := resolveTerm(r, upp, ccPos)

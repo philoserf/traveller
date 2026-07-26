@@ -47,6 +47,10 @@ func resolveNobleCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, a
 	usedThisCycle := make(map[Position]bool, len(nobleReturnIntriguePositions))
 
 	for range maxTerms {
+		if !aging.alive() {
+			break
+		}
+
 		ccPos := nextCC(upp, nobleReturnIntriguePositions, usedThisCycle)
 
 		term := ResolveNobleTerm(r, upp, ccPos, career.Terms)

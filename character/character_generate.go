@@ -203,7 +203,9 @@ func buildRiskCareerCharacter(
 	var aging agingSimulation
 
 	career, updatedUPP := resolveCareer(r, upp, &aging)
-	career.MusteringOut = resolveMusterOut(r, career)
+	if aging.alive() {
+		career.MusteringOut = resolveMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, updatedUPP)
 

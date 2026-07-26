@@ -88,6 +88,10 @@ func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int,
 	usedThisCycle := make(map[Position]bool, len(citizenLifePositions))
 
 	for range maxTerms {
+		if !aging.alive() {
+			break
+		}
+
 		ccPos := nextCC(upp, citizenLifePositions, usedThisCycle)
 
 		term, jobSkill, hobbySkill := ResolveCitizenTerm(

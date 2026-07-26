@@ -27,7 +27,9 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	var aging agingSimulation
 
 	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &aging)
-	career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+	if aging.alive() {
+		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+	}
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
 	// characteristic from a survived Wounded/Disabled term (mirroring
