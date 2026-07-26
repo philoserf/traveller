@@ -10,7 +10,12 @@ alone — several issues paraphrase the rules inaccurately.
 
 ---
 
-## Phase 1 — Mustering Out cluster
+## Phase 1 — Mustering Out cluster — DONE
+
+All four merged: #55 (PR #77), #57 (#78), #45 (#81), #56 (#80).
+
+<details>
+<summary>Original plan detail</summary>
 
 These four all live in `career_muster_out.go` / `muster_out_apply.go`.
 Doing them adjacently avoids four rounds of churn through the same code.
@@ -79,9 +84,17 @@ Note the Life-Stage-9 start is a real gate — most generated characters never
 reach 66. Render annual amounts as income, not cash.
 _Size: medium._
 
+</details>
+
 ---
 
-## Phase 2 — per-career mechanics
+## Phase 2 — per-career mechanics — DONE
+
+#43 (PR #83), #39 (verified correct, closed without change), #42 (#84),
+#40 (#85), #59 (#86). #44 remains — see below.
+
+<details>
+<summary>Original plan detail</summary>
 
 Self-contained; each touches one career's own file. Order within the phase
 is by confidence in the rule text, highest first.
@@ -108,6 +121,8 @@ combinations.
 ### 10. #44 — Agent Undercover Assignment table and A/B/C mechanic
 
 Largest of this phase: a full table plus a three-die mechanic.
+
+</details>
 
 ---
 
@@ -153,6 +168,24 @@ types and constants only — one function today. Scope into its own sequence
 of PRs rather than treating it as one issue.
 
 ---
+
+## Found along the way
+
+### #82 — Fame Stacks cap (new)
+
+> p.91: "A character's Fame is the sum of all Fame points received to 20;
+> beyond 20, only the highest Fame applies."
+
+Fame is summed without limit today (p99 of 16, maximum 40 across 12,000
+characters). Filed rather than fixed because the wording admits two
+readings, one of which lets a *second* Fame award *lower* a character's
+Fame. Needs a decision before implementing, and it interacts with the
+Fame 19+ Mustering Out roll shipped in #55.
+
+### Still open from Phase 2
+
+**#44 — Agent Undercover Assignment table and A/B/C mechanic.** The
+largest of that phase; left for its own pass.
 
 ## Standing checks for every PR
 
