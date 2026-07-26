@@ -782,3 +782,53 @@ func TestCareerChainAgingDeathIsNotASuccessfulAttempt(t *testing.T) {
 		})
 	}
 }
+
+// TestCareerChainAgingDeathGrantsNoMusterOut is the regression for PR
+// #69's third review round: resolveRiskCareerSegment — the shared body
+// behind Scout, Marine, Soldier, Spacer and Agent as chain segments —
+// called its resolveMusterOut callback unconditionally, so those five
+// still collected benefits through the chain path after Aging had
+// killed them, even once every other site was guarded.
+//
+// This exercises the case a dead-on-entry simulation cannot: Aging kills
+// *during* the segment, so the career has real terms behind it and
+// Mustering Out would genuinely roll against them. A simulation already
+// dead when the loop starts returns zero terms, which makes the roll
+// count zero anyway and would pass with the guard still missing.
+//
+// Seed 4972 is deterministic and shared with
+// TestBuildScoutCharacterAgingDeathKeepsCareerFame: an -age target high
+// enough never to bind routes the same character through the chain path
+// instead of the single-career one, so the two must agree.
+func TestCareerChainAgingDeathGrantsNoMusterOut(t *testing.T) {
+	t.Parallel()
+
+	got, ok, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(4972, 4972)), []string{"scout"}, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got.Notes, "died of natural causes") {
+		t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", got.Notes)
+	}
+
+	if ok {
+		t.Error("ok = true, want false")
+	}
+
+	career := got.Careers[0]
+	if len(career.Terms) == 0 {
+		t.Fatal("career has no terms — this fixture must die partway through a real career, " +
+			"not before it starts, or it cannot exercise the guard at all")
+	}
+
+	mo := career.MusteringOut
+	if n := len(mo.Benefits) + len(mo.Money) + len(mo.Automatics) + len(mo.Entitlements); n != 0 {
+		t.Errorf("Mustering Out entries = %d, want 0 (a dead character never reaches Mustering Out): %+v", n, mo)
+	}
+
+	if got.Cash != 0 {
+		t.Errorf("Cash = %d, want 0", got.Cash)
+	}
+}

@@ -112,7 +112,10 @@ func resolveRiskCareerSegment(
 	aging := ctx.aging()
 
 	career, careerUPP := resolveCareer(r, upp, maxTerms, aging)
-	career.MusteringOut = resolveMusterOut(r, career)
+
+	if aging.alive() {
+		career.MusteringOut = resolveMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
