@@ -35,7 +35,7 @@ func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
 func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	var aging agingSimulation
 
-	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	career, careerUPP, landGrants := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
 	if aging.alive() {
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}
@@ -83,5 +83,6 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
+		LandGrants:     landGrants,
 	}, ok
 }

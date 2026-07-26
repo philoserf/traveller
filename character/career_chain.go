@@ -30,6 +30,11 @@ type careerSegment struct {
 	Skills      []SkillLevel
 	Medals      []string
 	Equipment   []string // Craftsman only: Masterpieces created this segment
+	// LandGrants are Book 1 p.88's own awards of territory earned in this
+	// segment — Noble fiefs and Scout Discovery grants. Carried through
+	// the chain because p.68 retains them at Mustering Out, so a later
+	// career never takes them away.
+	LandGrants []LandGrant
 }
 
 func segmentEndsCareerResolution(seg careerSegment) bool {
@@ -137,8 +142,16 @@ func resolveRiskCareerSegment(
 
 	fame := sumInts(fameAwards)
 
+	// Same gate and same nil-for-non-Scout behavior as the single-career
+	// builder (character_generate.go), so a chain segment and a standalone
+	// career produce the identical character from the identical seed.
+	var landGrants []LandGrant
+	if ok {
+		landGrants = scoutDiscoveryLandGrants(r, career)
+	}
+
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok,
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: landGrants,
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
@@ -244,8 +257,16 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 
 	fame := sumInts(fameAwards)
 
+	// Same gate and same nil-for-non-Scout behavior as the single-career
+	// builder (character_generate.go), so a chain segment and a standalone
+	// career produce the identical character from the identical seed.
+	var landGrants []LandGrant
+	if ok {
+		landGrants = scoutDiscoveryLandGrants(r, career)
+	}
+
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok,
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: landGrants,
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
@@ -302,8 +323,16 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 
 	fame := sumInts(fameAwards)
 
+	// Same gate and same nil-for-non-Scout behavior as the single-career
+	// builder (character_generate.go), so a chain segment and a standalone
+	// career produce the identical character from the identical seed.
+	var landGrants []LandGrant
+	if ok {
+		landGrants = scoutDiscoveryLandGrants(r, career)
+	}
+
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok,
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: landGrants,
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
@@ -393,7 +422,7 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	career, careerUPP, landGrants := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms, aging)
 	if aging.alive() {
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}
@@ -403,7 +432,13 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 
 	fameAwards := bonuses.FameAwards
 	if ok {
-		fameAwards = append(fameAwards, nobleBaseFame(upp.Characteristics[C6])+nobleExileFame(career.Terms))
+		// Two separate p.91 awards, appended individually rather than
+		// pre-summed, so the Fame Stacks cap sees them as the book counts
+		// them (fame.go's own resolveFameStacks).
+		fameAwards = append(fameAwards, nobleBaseFame(upp.Characteristics[C6]))
+		if exile := nobleExileFame(career.Terms); exile > 0 {
+			fameAwards = append(fameAwards, exile)
+		}
 	}
 
 	fame := sumInts(fameAwards)
@@ -416,6 +451,7 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		FameAwards: fameAwards,
 		Cash:       bonuses.Cash,
 		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		LandGrants: landGrants,
 	}
 }
 
@@ -540,6 +576,10 @@ type careerChainAccumulator struct {
 	// fameAwards are every Fame award from every career, kept separate
 	// for Book 1 p.91's Fame Stacks rule (resolveFameStacks).
 	fameAwards []int
+	// landGrants accumulate across careers rather than being replaced,
+	// per p.68 ("retains it at Mustering Out") and p.88 ("Land Grants Are
+	// Cumulative").
+	landGrants []LandGrant
 }
 
 // addSegment folds seg into the accumulator. A zero-term seg (Begin
@@ -558,6 +598,7 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 	acc.medals = append(acc.medals, seg.Medals...)
 	acc.equipment = append(acc.equipment, seg.Equipment...)
 	acc.fameAwards = append(acc.fameAwards, seg.FameAwards...)
+	acc.landGrants = append(acc.landGrants, seg.LandGrants...)
 	acc.cash += seg.Cash
 	acc.woundBadges += seg.WoundBadges
 }
@@ -756,5 +797,6 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		Skills:         aggregateSkills(acc.skills),
 		Medals:         acc.medals,
 		Equipment:      acc.equipment,
+		LandGrants:     acc.landGrants,
 	}, survived, nil
 }

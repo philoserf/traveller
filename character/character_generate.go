@@ -250,6 +250,18 @@ func buildRiskCareerCharacter(
 
 	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
+	// Gated on survivedCareer for the same reason careerFameAwards is: a
+	// character who died during generation (p.69) doesn't muster out, and
+	// p.68's "retains it at Mustering Out" is what makes a grant stick.
+	// Returns nil for every career but Scout — no other Reward table in
+	// this codebase produces a Discovery — and draws no dice when there
+	// are none, so the other four careers sharing this builder keep their
+	// dice streams unchanged.
+	var landGrants []LandGrant
+	if survivedCareer {
+		landGrants = scoutDiscoveryLandGrants(r, career)
+	}
+
 	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
@@ -286,5 +298,6 @@ func buildRiskCareerCharacter(
 		Skills:         aggregateSkills(skills),
 		Medals:         allMedalsFromTerms(career.Terms),
 		WoundBadges:    scoutWoundBadges(career),
+		LandGrants:     landGrants,
 	}, ok
 }

@@ -23,4 +23,29 @@ type Character struct {
 	Cash           int
 	Equipment      []string
 	Notes          string
+	// LandGrants are p.88's own awards of territory, retained at
+	// Mustering Out per p.68. Cumulative: a Noble holds one per Soc
+	// increase, a Scout one per Discovery.
+	LandGrants []LandGrant
+}
+
+// NobleTitle is Book 1 p.88's own Soc-to-title mapping — "Gentleman" at
+// Soc A through "Archduke" at G — and empty below Soc A, which is no
+// noble rank at all.
+//
+// Derived from Soc rather than stored, so it cannot disagree with the
+// characteristic it comes from, and so it applies to every career
+// without each builder having to remember: p.68's Knighthood raises Soc
+// to B from any career's Mustering Out, and that is a Knight whether or
+// not the character ever entered the Noble career.
+func (c Character) NobleTitle() string {
+	return NobleTitleForSoc(c.UPP.Characteristics[C6])
+}
+
+// LandGrantIncome is the total annual profit, in Credits, of every Land
+// Grant this character holds — Book 1 p.88's own "LAND GRANT VALUE".
+// A separate accessor rather than a stored field because it is derived:
+// storing it would let it drift from the grants it summarizes.
+func (c Character) LandGrantIncome() int {
+	return totalLandGrantIncome(c.LandGrants)
 }
