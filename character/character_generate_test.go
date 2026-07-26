@@ -198,11 +198,13 @@ func TestBuildScoutCharacterUPPCarriesForwardReduction(t *testing.T) {
 
 	r1 := dice.New(rand.NewPCG(23, 29))
 
-	wantCareer, updatedUPP := ResolveScoutCareer(r1, upp)
+	var wantAging agingSimulation
+
+	wantCareer, updatedUPP := resolveScoutCareerWithBudget(r1, upp, maxCareerTerms, &wantAging)
 	wantCareer.MusteringOut = ResolveScoutMusterOut(r1, wantCareer)
-	boostedUPP, _ := ApplyMusteringOut(wantCareer.MusteringOut, updatedUPP)
+	wantUPP, _ := ApplyMusteringOut(wantCareer.MusteringOut, updatedUPP)
 	wantOK := len(wantCareer.Terms) > 0 && wantCareer.Terms[len(wantCareer.Terms)-1].RiskResult != Dead
-	wantUPP, wantAge, wantLifeStage, wantNotes, _ := finalizeAging(r1, boostedUPP, len(wantCareer.Terms), wantOK)
+	wantAge, wantLifeStage, wantNotes, _ := finalizeAging(&wantAging, wantOK)
 
 	r2 := dice.New(rand.NewPCG(23, 29))
 	c, _ := buildScoutCharacter(r2, upp, "hw", nil)
@@ -387,7 +389,7 @@ func TestBuildRiskCareerCharacterGatesCareerFameOnOK(t *testing.T) {
 		},
 	}
 
-	resolveCareer := func(_ *dice.Roller, upp UPP) (Career, UPP) { return deadCareer, upp }
+	resolveCareer := func(_ *dice.Roller, upp UPP, _ *agingSimulation) (Career, UPP) { return deadCareer, upp }
 	resolveMusterOut := func(_ *dice.Roller, _ Career) MusteringOut { return MusteringOut{} }
 
 	r := dice.New(rand.NewPCG(1, 1))
@@ -404,29 +406,30 @@ func TestBuildRiskCareerCharacterGatesCareerFameOnOK(t *testing.T) {
 }
 
 // TestBuildScoutCharacterAppliesMusteringOutFameAndCash confirms
-// ApplyMusteringOut is actually wired into buildScoutCharacter — seed 5
-// with this fixture was found by direct search to produce both a "Fame
-// +2" Mustering Out roll and Cash-bearing ones. This seed's own career
-// also produces exactly one Discovery (scoutDiscoveryFame's own +4), so
-// the total is 6, not Mustering Out's own 2 alone — the regression test
-// for careerFame actually being summed in, not just bonuses.Fame.
+// ApplyMusteringOut is actually wired into buildScoutCharacter — seed 86
+// with this fixture was found by direct search to produce both
+// Fame-bearing and Cash-bearing Mustering Out rolls. This seed's own
+// career also produces two Discoveries (scoutDiscoveryFame's own +4
+// each), so the total is 12, not Mustering Out's own 4 alone — the
+// regression test for careerFame actually being summed in, not just
+// bonuses.Fame.
 func TestBuildScoutCharacterAppliesMusteringOutFameAndCash(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
-	r := dice.New(rand.NewPCG(5, 5))
+	r := dice.New(rand.NewPCG(86, 86))
 
 	c, ok := buildScoutCharacter(r, upp, "hw", nil)
 	if !ok {
-		t.Fatalf("seed 5: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
+		t.Fatalf("seed 86: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
 	}
 
-	if c.Fame != 6 {
-		t.Errorf("Fame = %d, want 6 (4 from one Discovery + 2 from Mustering Out)", c.Fame)
+	if c.Fame != 12 {
+		t.Errorf("Fame = %d, want 12 (8 from two Discoveries + 4 from Mustering Out)", c.Fame)
 	}
 
-	if c.Cash != 180000 {
-		t.Errorf("Cash = %d, want 180000", c.Cash)
+	if c.Cash != 140000 {
+		t.Errorf("Cash = %d, want 140000", c.Cash)
 	}
 }
 
@@ -522,5 +525,45 @@ func TestGenerateScoutCharacterManySeedsInvariants(t *testing.T) {
 		if c.WoundBadges > len(terms) {
 			t.Fatalf("seed %d: WoundBadges = %d, want <= %d", seed, c.WoundBadges, len(terms))
 		}
+	}
+}
+
+// TestBuildScoutCharacterAgingDeathKeepsCareerFame is the regression for
+// PR #69's own review finding: Fame earned by completing a career must
+// survive a later Aging death. The two answer different questions —
+// Fame asks "did Career Resolution succeed?" (Book 1 p.69, whose rule
+// voids a mid-career death's own rewards), while ok additionally asks
+// "is the character alive at the end of generation?" (p.89 Aging).
+// Collapsing both onto one variable silently zeroed this character's
+// Fame, and disagreed with the chain generator, which accumulates each
+// segment's Fame before Aging is ever simulated.
+//
+// Seed 4972 also pins the Age/career-timeline coherence the same review
+// asked for: 13 terms served, Age 70, and 18+4*13 == 70 exactly.
+func TestBuildScoutCharacterAgingDeathKeepsCareerFame(t *testing.T) {
+	t.Parallel()
+
+	c, ok := GenerateScoutCharacter(dice.New(rand.NewPCG(4972, 4972)))
+
+	if !strings.Contains(c.Notes, "died of natural causes") {
+		t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", c.Notes)
+	}
+
+	if ok {
+		t.Error("ok = true, want false (an Aging death is not a surviving character)")
+	}
+
+	terms := c.Careers[0].Terms
+	if terms[len(terms)-1].RiskResult == Dead {
+		t.Fatal("last term is Dead, want a completed career (fixture assumption broke)")
+	}
+
+	if c.Fame == 0 {
+		t.Error("Fame = 0, want the completed career's own Fame retained despite the later Aging death")
+	}
+
+	if want := AgeFromTermsServed(len(terms)); c.Age != want {
+		t.Errorf("Age = %d, want %d — Age and the career timeline must agree, since Aging now runs "+
+			"between terms and simply stops the career when it kills someone", c.Age, want)
 	}
 }

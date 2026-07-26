@@ -25,13 +25,18 @@ func continueMerchant(r *dice.Roller, str int) bool {
 // variable starting state isn't a fit for that shared function (see
 // this slice's own plan-file Context).
 func ResolveMerchantCareer(r *dice.Roller, upp UPP) (Career, UPP, bool, int) {
-	return resolveMerchantCareerWithBudget(r, upp, maxCareerTerms)
+	return resolveMerchantCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
 }
 
 // resolveMerchantCareerWithBudget is ResolveMerchantCareer's own body,
 // with the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveMerchantCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP, bool, int) {
+func resolveMerchantCareerWithBudget(
+	r *dice.Roller,
+	upp UPP,
+	maxTerms int,
+	aging *agingSimulation,
+) (Career, UPP, bool, int) {
 	career := Career{Name: MerchantCareerName, HasRank: true}
 
 	isOfficer, tier := BeginMerchant(r, upp)
@@ -54,6 +59,7 @@ func resolveMerchantCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Car
 			return continueMerchant(r, int(upp.Characteristics[C1]))
 		},
 		maxTerms,
+		aging,
 	)
 	career.Terms = terms
 

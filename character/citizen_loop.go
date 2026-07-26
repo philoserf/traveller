@@ -60,7 +60,7 @@ func citizenLifeSuccessCount(terms []Term) int {
 // internal UPP-returning resolver. The public compatibility wrapper
 // returns only Career.
 func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
-	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
 
 	return career
 }
@@ -72,13 +72,13 @@ func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
 // multi-career chain (character/career_chain.go), so its own hand-rolled
 // loop needs the same -age-target treatment even though it doesn't
 // itself call resolveCareerLoop.
-func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career {
-	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms)
+func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) Career {
+	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms, aging)
 
 	return career
 }
 
-func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
+func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
 	career := Career{Name: CitizenCareerName}
 
 	if !BeginCitizen() {
@@ -95,6 +95,11 @@ func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int)
 		upp = applyPersonalAwards(upp, term.SkillsAwarded)
 		career.Terms = append(career.Terms, term)
 		career.JobSkill, career.HobbySkill = jobSkill, hobbySkill
+
+		upp = aging.advanceTerm(r, upp)
+		if !aging.alive() {
+			break
+		}
 
 		if !continueCitizen(r) {
 			break

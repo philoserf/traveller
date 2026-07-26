@@ -41,13 +41,13 @@ func continueMarine(r *dice.Roller, upp UPP) bool {
 // list — and Term.Rank is now genuinely populated every term
 // (marineRankName), not a deferred gap.
 func ResolveMarineCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveMarineCareerWithBudget(r, upp, maxCareerTerms)
+	return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
 }
 
 // resolveMarineCareerWithBudget is ResolveMarineCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
+func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
 	career := Career{Name: MarineCareerName, HasRank: true}
 
 	if !BeginMarine(r, int(upp.Characteristics[C1])) {
@@ -67,6 +67,7 @@ func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Caree
 		},
 		continueMarine,
 		maxTerms,
+		aging,
 	)
 	career.Terms = terms
 

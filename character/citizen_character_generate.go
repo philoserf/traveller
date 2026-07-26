@@ -39,7 +39,9 @@ func GenerateCitizenCharacter(r *dice.Roller) (Character, bool) {
 func buildCitizenCharacter(
 	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel,
 ) (Character, bool) {
-	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+	var aging agingSimulation
+
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
 	career.MusteringOut = ResolveCitizenMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
@@ -49,13 +51,13 @@ func buildCitizenCharacter(
 	// survivedCareer is always true: Citizen Life has no death mechanic,
 	// so there's always "the rest of their life" for finalizeAging to
 	// simulate. The returned ok can still be false — Aging death.
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), true)
+	age, lifeStage, notes, ok := finalizeAging(&aging, true)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

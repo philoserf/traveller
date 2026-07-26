@@ -161,95 +161,170 @@ func agingExtremeIllnessIsFatal(priorExtremeCount int) bool {
 // is for a character who survives the illness, which a dead one, by
 // definition, does not.
 func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string, int) {
-	var notes []string
-
-	extremeCount := 0
+	var sim agingSimulation
 
 	for _, age := range agingCheckpoints(finalAge) {
-		lifeStage := LifeStageForAge(age)
+		upp = sim.checkpoint(r, upp, age)
+		if !sim.alive() {
+			return upp, false, sim.notes, sim.diedAtAge
+		}
+	}
 
-		var zeroed []Position
+	return upp, true, sim.notes, finalAge
+}
 
-		for _, p := range agingPositionsAt(age) {
-			if upp.Characteristics[p] == 0 || !rollAgingCheck(r, lifeStage) {
-				continue
-			}
+// agingSimulation carries Aging state across the checkpoints of one
+// character's life, so they can be applied chronologically — interleaved
+// between career terms by resolveCareerLoop (career_loop.go) — rather
+// than in a single pass after Career Resolution has already finished.
+//
+// Ordering is the whole point, not an implementation detail. Aging
+// checkpoints fall every agingInterval years from physicalAgingOnset,
+// and career terms are the same length starting at 18, so every
+// checkpoint lands exactly on a term boundary (age 34 is the end of term
+// 4). Running them in place means a characteristic Aging reduced is
+// already reduced for the next term's own Risk/Reward/Continue rolls,
+// and a character killed at a checkpoint simply serves no further terms
+// — instead of a sheet that records fourteen terms of service by someone
+// who died partway through them.
+// termsServed lives here, rather than being derived per career, because
+// Aging spans a whole life: in a multi-career chain (career_chain.go)
+// the same simulation is threaded through every segment in turn, so the
+// checkpoint after a Merchant's first term depends on however many Scout
+// terms preceded it. A per-career count would restart the clock at each
+// transfer and never reach a checkpoint at all.
+type agingSimulation struct {
+	termsServed  int
+	extremeCount int
+	notes        []string
+	diedAtAge    int // 0 while alive; the fatal checkpoint's own age once not
+}
 
-			upp.Characteristics[p]--
+// alive reports whether no checkpoint has killed the character yet.
+func (s *agingSimulation) alive() bool {
+	return s.diedAtAge == 0
+}
 
-			if upp.Characteristics[p] == 0 {
-				zeroed = append(zeroed, p)
-			}
+// age is the character's age given every term recorded so far, or the
+// age they died at if a checkpoint killed them.
+func (s *agingSimulation) age() int {
+	if !s.alive() {
+		return s.diedAtAge
+	}
+
+	return AgeFromTermsServed(s.termsServed)
+}
+
+// advanceTerm records one completed four-year term and runs whatever
+// Aging checkpoint falls at its end — the single call a career loop
+// makes per term. Returns the resulting UPP so the next term's own rolls
+// see any reduction this checkpoint just applied.
+func (s *agingSimulation) advanceTerm(r *dice.Roller, upp UPP) UPP {
+	s.termsServed++
+
+	return s.checkpoint(r, upp, AgeFromTermsServed(s.termsServed))
+}
+
+// recordFatalTerm counts a term the character died during (Book 1 p.69,
+// a Risk roll to zero) without running an Aging checkpoint for it. The
+// term still counts toward Age — they served it, right up until it
+// killed them — but the dead don't then also grow four years older.
+// Skipping the count entirely would report an Age four years short of
+// the career the sheet actually lists.
+func (s *agingSimulation) recordFatalTerm() {
+	s.termsServed++
+}
+
+// checkpointDueAt reports whether an Aging checkpoint falls exactly at
+// age — from physicalAgingOnset onward, every agingInterval years.
+func checkpointDueAt(age int) bool {
+	return age >= physicalAgingOnset && (age-physicalAgingOnset)%agingInterval == 0
+}
+
+// checkpoint runs the single Aging checkpoint due at age against upp,
+// recording any illness or death, and returns the resulting UPP. A no-op
+// (upp returned unchanged) when no checkpoint is due at age or the
+// character is already dead, so callers can call it after every term
+// without first working out whether this particular term ends on one.
+func (s *agingSimulation) checkpoint(r *dice.Roller, upp UPP, age int) UPP {
+	if !s.alive() || !checkpointDueAt(age) {
+		return upp
+	}
+
+	lifeStage := LifeStageForAge(age)
+
+	var zeroed []Position
+
+	for _, p := range agingPositionsAt(age) {
+		if upp.Characteristics[p] == 0 || !rollAgingCheck(r, lifeStage) {
+			continue
 		}
 
-		switch classifyAgingBatch(len(zeroed)) {
-		case agingSeverityMajor:
-			notes = append(notes, fmt.Sprintf(
-				"Age %d: major illness (two characteristics reduced to 0) — four weeks recuperation", age))
-		case agingSeverityExtreme:
-			if agingExtremeIllnessIsFatal(extremeCount) {
-				notes = append(notes, fmt.Sprintf(
-					"Age %d: died of natural causes (%d characteristics reduced to 0 for a second time)",
-					age,
-					len(zeroed),
-				))
+		upp.Characteristics[p]--
 
-				return upp, false, notes, age
-			}
+		if upp.Characteristics[p] == 0 {
+			zeroed = append(zeroed, p)
+		}
+	}
 
-			extremeCount++
-
-			notes = append(notes, fmt.Sprintf(
-				"Age %d: extremely major illness (%d characteristics reduced to 0) — four months recuperation",
+	switch classifyAgingBatch(len(zeroed)) {
+	case agingSeverityMajor:
+		s.notes = append(s.notes, fmt.Sprintf(
+			"Age %d: major illness (two characteristics reduced to 0) — four weeks recuperation", age))
+	case agingSeverityExtreme:
+		if agingExtremeIllnessIsFatal(s.extremeCount) {
+			s.notes = append(s.notes, fmt.Sprintf(
+				"Age %d: died of natural causes (%d characteristics reduced to 0 for a second time)",
 				age,
 				len(zeroed),
 			))
-		case agingSeverityNone:
-			// No reduction reached 0 this checkpoint — nothing to record.
+			s.diedAtAge = age
+
+			// The fatal checkpoint's own zeroed characteristics stay at 0
+			// rather than resetting to 1 — that reset is for surviving an
+			// illness, which a dead character by definition did not.
+			return upp
 		}
 
-		for _, p := range zeroed {
-			upp.Characteristics[p] = 1
-		}
+		s.extremeCount++
+
+		s.notes = append(s.notes, fmt.Sprintf(
+			"Age %d: extremely major illness (%d characteristics reduced to 0) — four months recuperation",
+			age,
+			len(zeroed),
+		))
+	case agingSeverityNone:
+		// No reduction reached 0 this checkpoint — nothing to record.
 	}
 
-	return upp, true, notes, finalAge
+	for _, p := range zeroed {
+		upp.Characteristics[p] = 1
+	}
+
+	return upp
 }
 
-// finalizeAging computes a character's approximate final Age (via
-// AgeFromTermsServed) and, if survivedCareer, runs ResolveAging against upp
-// for the rest of their life. Returns the resulting UPP (upp unchanged if
-// !survivedCareer), Age, LifeStage, a semicolon-joined summary of any
-// illness/death Aging produced (empty if none, or if !survivedCareer),
-// and whether the character is alive at the end of generation.
+// finalizeAging reports the Age, LifeStage, Notes and overall survival
+// of a character whose Aging has *already* been simulated, checkpoint by
+// checkpoint, by the career loops (career_loop.go's own resolveCareerLoop
+// and the three hand-rolled equivalents). It rolls no dice of its own.
 //
-// survivedCareer should be false only for a character who died during
-// Career Resolution itself (Book 1 p.69's "Dying During Character
-// Generation," e.g. buildScoutCharacter's own ok) — a categorically
-// different, narrower rule than Aging's own general death (p.89).
+// It used to: an earlier version ran the entire Aging simulation here,
+// in one pass after Career Resolution had already finished. That could
+// only ever produce an inconsistent character, because the two passes
+// described the same span of years independently — a Scholar might serve
+// fourteen terms to age 74 in one pass and die at 70 in the other, and
+// the sheet had to pick which to believe. Simulating Aging inside the
+// term loop removes the contradiction at its source: a character who
+// dies at a checkpoint simply serves no further terms, so Age, the death
+// note, and the career history can't disagree.
 //
-// The returned bool is the conjunction of both: false for a p.69 career
-// death and false for a p.89 Aging death. An earlier version of this
-// package treated the latter as a Notes-only outcome, reasoning that
-// p.89 death is "a normal outcome, not a voided attempt" — the story of
-// someone dying "of old age decades after a successful career." That
-// framing doesn't match what this function actually simulates: Aging
-// runs only through the career-end age, the very span Career Resolution
-// just covered, never decades past it. So a p.89 death here is not a
-// peaceful retirement, it's the character dying partway through the
-// lifetime that generation just built — leaving a sheet whose Age could
-// exceed the age in its own death note. Both halves are fixed together:
-// Age/LifeStage are capped at the fatal checkpoint (via ResolveAging's
-// own reachedAge), and the death is signaled through the return value
-// rather than only in prose a caller has to parse.
-func finalizeAging(r *dice.Roller, upp UPP, termsServed int, survivedCareer bool) (UPP, int, int, string, bool) {
-	age := AgeFromTermsServed(termsServed)
+// survivedCareer is false for a character who died during Career
+// Resolution itself (Book 1 p.69's "Dying During Character Generation");
+// aging.alive() is false for one killed by an Aging checkpoint (p.89).
+// The returned bool is the conjunction — either kills.
+func finalizeAging(aging *agingSimulation, survivedCareer bool) (int, int, string, bool) {
+	age := aging.age()
 
-	if !survivedCareer {
-		return upp, age, LifeStageForAge(age), "", false
-	}
-
-	agedUPP, survivedAging, notes, reachedAge := ResolveAging(r, upp, age)
-
-	return agedUPP, reachedAge, LifeStageForAge(reachedAge), strings.Join(notes, "; "), survivedAging
+	return age, LifeStageForAge(age), strings.Join(aging.notes, "; "), survivedCareer && aging.alive()
 }

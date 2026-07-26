@@ -27,7 +27,9 @@ func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 // nothing Scout-specific in either body).
 func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	return buildRiskCareerCharacter(
-		r, upp, homeworld, homeworldSkills, ResolveMarineCareer, ResolveMarineMusterOut, marineCareerFame)
+		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
+			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging)
+		}, ResolveMarineMusterOut, marineCareerFame)
 }
 
 // marineCareerFame is Book 1 p.91's own Armed Forces Fame bracket

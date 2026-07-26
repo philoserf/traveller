@@ -163,7 +163,7 @@ func TestResolveScoutMusterOutEntriesAreFromTables(t *testing.T) {
 // TestResolveScoutMusterOutAccumulatesFameIntoDM is the regression test
 // for Book 1 p.79's own "DM +Terms +Fame/2": seed 49 with this fixture
 // was found by direct search to grant "Fame +2" twice within the same
-// Mustering Out sequence (first at Benefits index 2, again at index 4),
+// Mustering Out sequence (first at Benefits index 1, again at index 5),
 // so every roll after each one must use an elevated dm
 // (terms+fame/2, not a static terms) — a full pin of the exact resulting
 // sequence, not just "it doesn't crash," so a regression that reverts to
@@ -173,24 +173,24 @@ func TestResolveScoutMusterOutAccumulatesFameIntoDM(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{9, 9, 9, 12, 12, 0}}
-	r := dice.New(rand.NewPCG(49, 49))
+	r := dice.New(rand.NewPCG(151, 151))
 
 	career, _ := ResolveScoutCareer(r, upp)
 	if len(career.Terms) != 5 {
-		t.Fatalf("seed 49: len(Terms) = %d, want 5 (fixture assumption broke)", len(career.Terms))
+		t.Fatalf("seed 151: len(Terms) = %d, want 5 (fixture assumption broke)", len(career.Terms))
 	}
 
 	out := ResolveScoutMusterOut(r, career)
 
 	wantBenefits := []string{
-		"Life Insurance", "TAS Fellow Membership", "Fame +2",
 		"TAS Fellow Membership", "Fame +2", "TAS Fellow Membership",
+		"Ship Share", "Ship Share", "Fame +2",
 	}
 	if !slices.Equal(out.Benefits, wantBenefits) {
 		t.Fatalf("Benefits = %v, want %v", out.Benefits, wantBenefits)
 	}
 
-	wantMoney := []string{"Cr40,000", "Cr40,000", "Cr60,000", "Cr60,000"}
+	wantMoney := []string{"Cr60,000", "Cr60,000", "Cr60,000", "Cr60,000"}
 	if !slices.Equal(out.Money, wantMoney) {
 		t.Fatalf("Money = %v, want %v", out.Money, wantMoney)
 	}

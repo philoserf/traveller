@@ -151,7 +151,9 @@ func GenerateScoutCharacter(r *dice.Roller) (Character, bool) {
 // doc comment for why.
 func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	return buildRiskCareerCharacter(
-		r, upp, homeworld, homeworldSkills, ResolveScoutCareer, ResolveScoutMusterOut, scoutDiscoveryFame)
+		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
+			return resolveScoutCareerWithBudget(r, upp, maxCareerTerms, aging)
+		}, ResolveScoutMusterOut, scoutDiscoveryFame)
 }
 
 // scoutDiscoveryFame is Book 1 p.91's own "Scout: Discoveries x4" —
@@ -194,11 +196,13 @@ func buildRiskCareerCharacter(
 	upp UPP,
 	homeworld string,
 	homeworldSkills []SkillLevel,
-	resolveCareer func(r *dice.Roller, upp UPP) (Career, UPP),
+	resolveCareer func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
 	careerFame func(career Career) int,
 ) (Character, bool) {
-	career, updatedUPP := resolveCareer(r, upp)
+	var aging agingSimulation
+
+	career, updatedUPP := resolveCareer(r, upp, &aging)
 	career.MusteringOut = resolveMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, updatedUPP)
@@ -212,7 +216,7 @@ func buildRiskCareerCharacter(
 
 	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// careerFame is gated on ok, matching buildNobleCharacter's own
@@ -229,7 +233,7 @@ func buildRiskCareerCharacter(
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld, // same world; see GenerateHomeworldSkills' own doc comment
 		Birthdate:      birthdate,

@@ -24,12 +24,17 @@ func continueEntertainer(r *dice.Roller, fame int) bool {
 // !RiskResult.Survived() || Disabled || !continueCareer stop condition)
 // minus the CC-rotation this career doesn't have.
 func ResolveEntertainerCareer(r *dice.Roller, upp UPP) (Career, int) {
-	career, fame, _ := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+	career, fame, _ := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
 
 	return career, fame
 }
 
-func resolveEntertainerCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, int, UPP) {
+func resolveEntertainerCareerAndUPPWithBudget(
+	r *dice.Roller,
+	upp UPP,
+	maxTerms int,
+	aging *agingSimulation,
+) (Career, int, UPP) {
 	career := Career{Name: EntertainerCareerName}
 
 	fame := rollEntertainerFameTalent(r)
@@ -50,6 +55,13 @@ func resolveEntertainerCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms 
 		term, fame, talent = ResolveEntertainerTerm(r, fame, talent)
 		upp = applyPersonalAwards(upp, term.SkillsAwarded)
 		terms = append(terms, term)
+
+		// Entertainer's own "Dead" is Talent exhausted, not physical
+		// death (see resolveEntertainerSegment), so it still ages.
+		upp = aging.advanceTerm(r, upp)
+		if !aging.alive() {
+			break
+		}
 
 		if !term.RiskResult.Survived() || term.RiskResult == Disabled || !continueEntertainer(r, fame) {
 			break

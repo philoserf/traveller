@@ -24,7 +24,9 @@ func GenerateScholarCharacter(r *dice.Roller) (Character, bool) {
 // buildRiskCareerCharacter's shared resolveMusterOut signature has no
 // room for (see this slice's own plan-file Context).
 func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career, careerUPP := ResolveScholarCareer(r, upp)
+	var aging agingSimulation
+
+	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &aging)
 	career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
@@ -38,7 +40,7 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 
 	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	fame := bonuses.Fame
@@ -50,7 +52,7 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

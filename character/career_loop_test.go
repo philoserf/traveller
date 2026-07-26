@@ -136,7 +136,7 @@ func TestResolveScoutCareerWithBudgetTruncatesAnImmortalCareer(t *testing.T) {
 
 	const budget = 5
 
-	career, _ := resolveScoutCareerWithBudget(dice.New(rand.NewPCG(1, 1)), upp, budget)
+	career, _ := resolveScoutCareerWithBudget(dice.New(rand.NewPCG(1, 1)), upp, budget, &agingSimulation{})
 	if len(career.Terms) != budget {
 		t.Errorf("len(career.Terms) = %d, want %d", len(career.Terms), budget)
 	}
@@ -159,6 +159,7 @@ func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
 			return false
 		},
 		1,
+		&agingSimulation{},
 	)
 
 	if len(terms) != 1 {

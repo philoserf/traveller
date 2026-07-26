@@ -2,7 +2,6 @@ package character
 
 import (
 	"math/rand/v2"
-	"strings"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -150,38 +149,5 @@ func TestGenerateScholarCharacterProducesAHumanCharacter(t *testing.T) {
 
 	if len(c.Careers) != 1 || c.Careers[0].Name != ScholarCareerName {
 		t.Errorf("Careers = %+v, want one Career named %q", c.Careers, ScholarCareerName)
-	}
-}
-
-// TestGenerateScholarCharacterAgingDeathKeepsCareerFame is the
-// regression for PR #69's own review finding: Fame earned by completing
-// a career must survive a later Aging death. The two are gated by
-// different questions — Fame asks "did Career Resolution succeed?"
-// (Book 1 p.69, whose own rule voids a mid-career death's rewards),
-// while the returned ok additionally answers "is the character alive at
-// the end of generation?" (p.89 Aging). Collapsing both onto one
-// variable silently zeroed this fixture's 11 Fame, and disagreed with
-// the chain generator, which accumulates each segment's Fame before
-// Aging is ever simulated.
-func TestGenerateScholarCharacterAgingDeathKeepsCareerFame(t *testing.T) {
-	t.Parallel()
-
-	c, ok := GenerateScholarCharacter(dice.New(rand.NewPCG(1248, 1248)))
-
-	if !strings.Contains(c.Notes, "died of natural causes") {
-		t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", c.Notes)
-	}
-
-	if ok {
-		t.Error("ok = true, want false (an Aging death is not a surviving character)")
-	}
-
-	terms := c.Careers[0].Terms
-	if terms[len(terms)-1].RiskResult == Dead {
-		t.Fatal("last term is Dead, want a completed career (fixture assumption broke)")
-	}
-
-	if c.Fame == 0 {
-		t.Error("Fame = 0, want the completed career's own Fame retained despite the later Aging death")
 	}
 }

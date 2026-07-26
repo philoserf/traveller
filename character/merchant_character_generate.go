@@ -39,7 +39,9 @@ func GenerateMerchantCharacter(r *dice.Roller) (Character, bool) {
 // buildRiskCareerCharacter's shared signature has no room for (the same
 // Scholar-shaped mismatch from last slice).
 func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career, careerUPP, isOfficer, tier := ResolveMerchantCareer(r, upp)
+	var aging agingSimulation
+
+	career, careerUPP, isOfficer, tier := resolveMerchantCareerWithBudget(r, upp, maxCareerTerms, &aging)
 	career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
@@ -55,7 +57,7 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	// fails) — ok collapses to "didn't die on the last term."
 	survivedCareer := career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	fame := bonuses.Fame
@@ -66,7 +68,7 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

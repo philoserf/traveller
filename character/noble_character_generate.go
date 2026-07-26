@@ -33,7 +33,9 @@ func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
 // at its zero value — correct for Noble, not a gap: Return & Intrigue
 // has no wound mechanic to count.
 func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+	var aging agingSimulation
+
+	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
 	career.MusteringOut = ResolveNobleMusterOut(r, career)
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
@@ -42,7 +44,7 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	survivedCareer := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), survivedCareer)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// Base Fame (p.85's "Base Fame equal to 1.5 times Soc") and Exile Fame
@@ -59,7 +61,7 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

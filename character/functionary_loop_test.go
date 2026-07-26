@@ -25,6 +25,7 @@ func TestResolveFunctionaryCareerWithBudgetNeverQualifiesWithNoPriorTerms(t *tes
 			upp,
 			maxCareerTerms,
 			segmentContext{TermsServedSoFar: 0},
+			&agingSimulation{},
 		)
 		if len(career.Terms) != 0 {
 			t.Fatalf("seed=%d: len(career.Terms) = %d, want 0", seed, len(career.Terms))
@@ -51,7 +52,7 @@ func TestResolveFunctionaryCareerWithBudgetGrantsF0AutoSkillOnce(t *testing.T) {
 	for seed := uint64(1); seed <= 100; seed++ {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		c, _, _ := resolveFunctionaryCareerWithBudget(r, upp, maxCareerTerms, ctx)
+		c, _, _ := resolveFunctionaryCareerWithBudget(r, upp, maxCareerTerms, ctx, &agingSimulation{})
 		if len(c.Terms) >= 2 {
 			career = c
 
@@ -99,7 +100,7 @@ func TestResolveFunctionaryCareerWithBudgetRespectsATighterBudget(t *testing.T) 
 	for seed := uint64(1); seed <= 50; seed++ {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		career, _, _ := resolveFunctionaryCareerWithBudget(r, upp, budget, ctx)
+		career, _, _ := resolveFunctionaryCareerWithBudget(r, upp, budget, ctx, &agingSimulation{})
 		if len(career.Terms) > budget {
 			t.Fatalf("seed=%d: len(career.Terms) = %d, want <= %d", seed, len(career.Terms), budget)
 		}
