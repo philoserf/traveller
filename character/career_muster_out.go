@@ -46,8 +46,8 @@ func scoutMusterOutRow(roll int) int {
 }
 
 // rollScoutMusterOutRow rolls 1D and applies dm, per Book 1 p.79's "DM
-// +Terms +Fame/2" (Fame/2 omitted — see ResolveScoutMusterOut's own doc
-// comment).
+// +Terms +Fame/2" — see ResolveScoutMusterOut's own doc comment for
+// where that Fame comes from.
 func rollScoutMusterOutRow(r *dice.Roller, dm int) int {
 	return scoutMusterOutRow(r.D6() + dm)
 }
@@ -139,15 +139,34 @@ func resolveRankMusterOut(
 // each roll" — a genuine open player choice with no book-given mechanic and
 // no objectively-better column, resolved the same way rollScoutDuty
 // resolves Courier-vs-Explorer Duty), then rolls rollScoutMusterOutRow with
-// dm = len(career.Terms) + fame/2, per p.79's own "DM +Terms +Fame/2" —
-// fame is a running local accumulator, not Character.Fame (which doesn't
-// exist yet at this point in the pipeline; ApplyMusteringOut derives it
-// from this function's own returned MusteringOut afterward). Every time a
-// landed Benefits entry itself grants Fame ("Fame +2"), it's added to
-// that accumulator immediately (via musterOutFameBonus,
+// dm = len(career.Terms) + fame/2, per p.79's own "DM +Terms +Fame/2".
+//
+// fame is a running local accumulator seeded from the Fame this career
+// already earned before Mustering Out began — scoutDiscoveryFame's own
+// "Discoveries x4" (p.91). It used to start at zero, on the reasoning
+// that Character.Fame doesn't exist yet at this point in the pipeline
+// (ApplyMusteringOut derives it from this function's own returned
+// MusteringOut afterward). True, but beside the point: Discovery Fame is
+// a pure function of the finished Career sitting right here, and a
+// Scout who made discoveries is famous for them whether or not the
+// Character value has been assembled yet. Starting at zero applied
+// "+Fame/2" to a Fame the character demonstrably did not have.
+//
+// Every time a landed Benefits entry itself grants Fame ("Fame +2"),
+// it's added to that accumulator immediately (via musterOutFameBonus,
 // character/muster_out_apply.go) so a later roll in the same Mustering
 // Out sequence sees the correct, already-elevated DM — not the DM of a
-// stale, separately-computed final Fame value. DM is unaffected by
+// stale, separately-computed final Fame value.
+//
+// One consequence worth naming: Scout's own table has 12 rows and this
+// DM is uncapped, so a long or discovery-rich career saturates it —
+// every roll clamps to row 12 via p.68's own "if the roll is greater
+// than the maximum value on the table, use the maximum value instead."
+// That was already true from +Terms alone for a 12-term Scout; seeding
+// Discovery Fame widens the band of characters it applies to (measured:
+// Knighthood on 55% of Benefits rolls before, 66% after, across 3,660
+// generated Scouts). The saturation is the book's own clamp rule
+// operating on the book's own DM, not an artifact of this change. DM is unaffected by
 // scoutMusterOutRollCount's own Double-Benefits doubling — p.69 doubles
 // the roll count, not the per-roll DM.
 //
@@ -165,7 +184,7 @@ func ResolveScoutMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
 	terms := len(career.Terms)
-	fame := 0
+	fame := scoutDiscoveryFame(career)
 
 	for range scoutMusterOutRollCount(career) {
 		row := rollScoutMusterOutRow(r, terms+fame/2)
