@@ -37,12 +37,7 @@ func ResolveCraftsmanMusterOut(r *dice.Roller, career Career) MusteringOut {
 	dm := len(career.Terms)
 
 	for range musterOutRollCount(career, craftsmanCareerFame(career.Terms)) {
-		row := musterOutRow(r.D6()+dm, len(craftsmanMusterOutMoney))
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, craftsmanMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, craftsmanMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, craftsmanMusterOutMoney[:], craftsmanMusterOutBenefits[:])
 	}
 
 	return out

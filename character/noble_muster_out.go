@@ -89,7 +89,11 @@ func ResolveNobleMusterOut(r *dice.Roller, career Career) MusteringOut {
 		case 1:
 			out.Money = append(out.Money, nobleMusterOutMoney[row])
 		case 2:
-			out.Benefits = append(out.Benefits, nobleMusterOutBenefits[row])
+			// Rerolled inline rather than via appendMusterOutRoll: Noble
+			// splits three ways (p.85 adds an Entitlements column), so it
+			// can't share the two-column helper.
+			out.Benefits = append(out.Benefits, rerollDuplicateBenefit(
+				r, out.Benefits, dm, nobleMusterOutBenefits[:], nobleMusterOutBenefits[row]))
 		default:
 			out.Entitlements = append(out.Entitlements, rollNobleMusterOutPower(r, row))
 		}

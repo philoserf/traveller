@@ -30,13 +30,7 @@ func ResolveRogueMusterOut(r *dice.Roller, career Career) MusteringOut {
 	dm := len(career.Terms)
 
 	for range len(career.Terms) {
-		row := musterOutRow(r.D6()+dm, len(rogueMusterOutMoney))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, rogueMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, rogueMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, rogueMusterOutMoney[:], rogueMusterOutBenefits[:])
 	}
 
 	return out

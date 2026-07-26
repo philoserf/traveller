@@ -354,3 +354,84 @@ func TestResolveScoutMusterOutSeedsFameDMFromDiscoveries(t *testing.T) {
 			terms, rich.Benefits, rich.Money)
 	}
 }
+
+// TestRerollDuplicateBenefit pins Book 1 p.69's duplicate rule:
+//
+//	"A result that duplicates a previous (unwanted or unusable) benefit
+//	may be rerolled until a different benefit is received, for example:
+//	Wafer Jack, TAS Member, Knighthood."
+func TestRerollDuplicateBenefit(t *testing.T) {
+	t.Parallel()
+
+	// A table with one unique benefit and one that stacks, so a reroll
+	// always has somewhere to land.
+	table := []string{"Knighthood", "Ship Share"}
+
+	t.Run("a first Knighthood is kept", func(t *testing.T) {
+		t.Parallel()
+
+		got := rerollDuplicateBenefit(dice.New(rand.NewPCG(1, 1)), nil, 0, table, "Knighthood")
+		if got != "Knighthood" {
+			t.Errorf("got %q, want it kept — nothing duplicates it yet", got)
+		}
+	})
+
+	t.Run("a second Knighthood is rerolled away", func(t *testing.T) {
+		t.Parallel()
+
+		got := rerollDuplicateBenefit(
+			dice.New(rand.NewPCG(1, 1)), []string{"Knighthood"}, 0, table, "Knighthood")
+		if got == "Knighthood" {
+			t.Error("got Knighthood again, want it rerolled to a different benefit")
+		}
+	})
+
+	t.Run("benefits that stack are never rerolled", func(t *testing.T) {
+		t.Parallel()
+
+		// Ship Shares accumulate toward ownership, so a repeat is wanted.
+		got := rerollDuplicateBenefit(
+			dice.New(rand.NewPCG(1, 1)), []string{"Ship Share", "Ship Share"}, 0, table, "Ship Share")
+		if got != "Ship Share" {
+			t.Errorf("got %q, want Ship Share kept — repeats of it are useful", got)
+		}
+	})
+
+	t.Run("an unreachable alternative terminates instead of looping", func(t *testing.T) {
+		t.Parallel()
+
+		// The whole table is one unique benefit, which is what a
+		// saturating DM effectively produces: p.68 clamps any roll past
+		// the last row to that row. "Until a different benefit" can never
+		// be satisfied, so the duplicate is kept rather than hanging.
+		only := []string{"Knighthood"}
+
+		got := rerollDuplicateBenefit(
+			dice.New(rand.NewPCG(1, 1)), []string{"Knighthood"}, 0, only, "Knighthood")
+		if got != "Knighthood" {
+			t.Errorf("got %q, want the duplicate kept once no alternative exists", got)
+		}
+	})
+}
+
+// TestUniqueMusterOutBenefitsMatchTheBooksExamples guards the set itself.
+// p.69 names exactly three, and the distinction is load-bearing: marking
+// a stacking benefit unique would silently reroll away Ship Shares and
+// characteristic awards a character is entitled to keep.
+func TestUniqueMusterOutBenefitsMatchTheBooksExamples(t *testing.T) {
+	t.Parallel()
+
+	for _, unique := range []string{"Wafer Jack", "TAS Fellow Membership", "Knighthood"} {
+		if !uniqueMusterOutBenefits[unique] {
+			t.Errorf("%q is one of p.69's own examples but is not treated as unique", unique)
+		}
+	}
+
+	for _, stacks := range []string{
+		"Ship Share", "Fame +2", "Str +1", "C2 +1", "Forbidden Knowledge", "Life Insurance",
+	} {
+		if uniqueMusterOutBenefits[stacks] {
+			t.Errorf("%q is treated as unique, but repeats of it are useful and p.69 does not name it", stacks)
+		}
+	}
+}
