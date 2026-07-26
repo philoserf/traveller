@@ -57,6 +57,60 @@ func rollEntertainerSpecialty(r *dice.Roller) string {
 // BeginEntertainer's own roll later succeeds — see this slice's own
 // plan-file Context for why Character.Fame is still set even on a
 // never-qualified attempt).
+// entertainerOptionalFluxRolls is the count of "F*" entries on Book 1
+// p.77's own Fame progression — "Fame +F +F* +F*", footnoted "F= Flux.
+// F*= Optional Flux" — so two per term beyond the mandatory one.
+const entertainerOptionalFluxRolls = 2
+
+// twoD6Expectation is the mean of 2D6 — the Fame a Comeback resets to,
+// in expectation.
+const twoD6Expectation = 7
+
+// entertainerTakesComeback decides whether a fading Entertainer stages
+// Book 1 p.77's own Comeback: "Reset Fame to 2D; Talent is unchanged.
+// Comeback is possible any number of times."
+//
+// The book gives no criterion, but unlike the optional Flux there is an
+// unambiguously better answer here, so this picks it rather than
+// flipping a coin — the same reasoning BeginScout's own doc comment
+// gives for choosing the highest characteristic. A reset trades current
+// Fame for 2D, worth taking exactly when Fame has fallen below what 2D
+// pays on average. Talent, which drives Risk and Reward, is untouched
+// either way, so there is nothing to lose by resetting a low Fame.
+//
+// It also matters more than it looks: continueEntertainer rolls against
+// Fame, so a collapsed Fame ends the career. Comeback is how the rules
+// let a washed-up performer keep working.
+func entertainerTakesComeback(fame int) bool {
+	return fame < twoD6Expectation
+}
+
+// rollEntertainerFameChange resolves one term's Fame movement — the
+// mandatory Flux plus however many of the two optional ones this
+// character takes.
+//
+// Whether to take an optional Flux is a player decision the book states
+// without giving any criterion for, so each is resolved as an
+// independent coin flip. That follows this package's established
+// treatment of an open choice with no book-given mechanic (rollScoutDuty
+// and the Art/Trade picks) rather than BeginScout's, which picks the
+// best option — here there isn't an unambiguously best one. Flux
+// averages zero, so an extra roll doesn't raise expected Fame; it widens
+// the spread, which helps a character whose mandatory Flux went badly
+// and hurts one whose went well. Choosing on that basis would be this
+// codebase inventing a strategy the book leaves to the table.
+func rollEntertainerFameChange(r *dice.Roller) int {
+	delta := r.Flux()
+
+	for range entertainerOptionalFluxRolls {
+		if r.Uniform(2) == 1 {
+			delta += r.Flux()
+		}
+	}
+
+	return delta
+}
+
 func rollEntertainerFameTalent(r *dice.Roller) int {
 	return r.TwoD6()
 }
@@ -91,7 +145,7 @@ func BeginEntertainer(r *dice.Roller, upp UPP, specialty string) bool {
 func ResolveEntertainerTerm(r *dice.Roller, fame, talent int) (Term, int, int) {
 	term := Term{Length: 4}
 
-	fameDelta := r.Flux()
+	fameDelta := rollEntertainerFameChange(r)
 	fame += fameDelta
 	term.FameIncreased = fameDelta > 0
 

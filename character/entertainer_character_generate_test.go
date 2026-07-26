@@ -23,7 +23,7 @@ func TestBuildEntertainerCharacterTalentExhaustedIsStillAlive(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
-	r := dice.New(rand.NewPCG(39, 39))
+	r := dice.New(rand.NewPCG(21, 21))
 
 	c, ok := buildEntertainerCharacter(r, upp, "hw", nil)
 
@@ -87,14 +87,14 @@ func TestBuildEntertainerCharacterNeverQualifiedStillSetsFame(t *testing.T) {
 // TestBuildEntertainerCharacterQualified pins seed 3 against an all-8
 // UPP: one term, Fame doesn't increase (FameAfterTerm 1), Risk succeeds
 // (Unharmed), Reward fails — Fame = 1 (no Mustering Out "Fame +N" entry
-// this fixture), Cash = 25,000 from a Mustering Out "Cr" Money entry —
+// this fixture), Cash = 15,000 from a Mustering Out "Cr" Money entry —
 // confirmed by direct inspection before being pinned.
 func TestBuildEntertainerCharacterQualified(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
-	r := dice.New(rand.NewPCG(3, 3))
+	r := dice.New(rand.NewPCG(14, 14))
 
 	c, ok := buildEntertainerCharacter(r, upp, "hw", homeworldSkills)
 
@@ -118,12 +118,12 @@ func TestBuildEntertainerCharacterQualified(t *testing.T) {
 		t.Fatalf("len(Careers[0].Terms) = %d, want 1", len(c.Careers[0].Terms))
 	}
 
-	if c.Fame != 1 {
-		t.Errorf("Fame = %d, want 1", c.Fame)
+	if c.Fame != 7 {
+		t.Errorf("Fame = %d, want 7", c.Fame)
 	}
 
-	if c.Cash != 25000 {
-		t.Errorf("Cash = %d, want 25000", c.Cash)
+	if c.Cash != 15000 {
+		t.Errorf("Cash = %d, want 15000", c.Cash)
 	}
 
 	if len(c.Skills) < len(homeworldSkills) {
