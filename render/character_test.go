@@ -59,15 +59,13 @@ func TestCharacterContainsAllFields(t *testing.T) {
 	out := render.Character(scoutSheet)
 
 	want := []string{
-		"Human",
-		"SDEIES",
 		scoutSheet.UPP.String(),
 		"A788899-C",
 		"**Wound Badges:** 1",
 		"**Fame:** 2",
 		"**Cash:** Cr30,000",
 		"### Scout",
-		"Term 1 (Str): Unharmed",
+		"Term 1 (Str)",
 		"Term 2 (Dex): Wounded, Reward: Discovery",
 		"Vacc Suit-1",
 		"Zero-G",
@@ -202,11 +200,42 @@ func TestCharacterShowsNeverQualifiedCareer(t *testing.T) {
 		t.Errorf("render.Character with an empty career should say so, got:\n%s", out)
 	}
 
-	if !strings.Contains(out, "- Automatics: None") {
-		t.Errorf(
-			"render.Character's Mustering Out section should still render (all None) for a never-qualified career, got:\n%s",
-			out,
-		)
+	// The Mustering Out heading is omitted entirely when nothing was
+	// granted. It used to render with four "None" rows for uniformity;
+	// for a career that never began, those rows said only that the
+	// section existed. The "Never qualified" line above already carries
+	// the information.
+	if strings.Contains(out, "Mustering Out") {
+		t.Errorf("render.Character should omit the Mustering Out section for a never-qualified career, got:\n%s", out)
+	}
+}
+
+// TestCharacterOmitsEmptyMusteringOutCategories confirms a partially
+// populated Mustering Out shows only the categories that have entries,
+// rather than padding the rest with "None".
+func TestCharacterOmitsEmptyMusteringOutCategories(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{{
+			Name:  "Scout",
+			Terms: []character.Term{{}},
+			MusteringOut: character.MusteringOut{
+				Benefits: []string{"Ship Share"},
+			},
+		}},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "- Benefits: Ship Share") {
+		t.Errorf("render.Character should show the populated category, got:\n%s", out)
+	}
+
+	for _, empty := range []string{"Automatics", "Money", "Entitlements"} {
+		if strings.Contains(out, "- "+empty+":") {
+			t.Errorf("render.Character should omit the empty %s category, got:\n%s", empty, out)
+		}
 	}
 }
 
@@ -550,11 +579,11 @@ func TestCharacterRendersAllPositionsAndRiskResults(t *testing.T) {
 	out := render.Character(c)
 
 	want := []string{
-		"Term 1 (Str): Unharmed",
+		"Term 1 (Str)",
 		"Term 2 (Dex): Wounded",
 		"Term 3 (End): Disabled",
 		"Term 4 (Int): Dead",
-		"Term 5 (Edu): Unharmed",
+		"Term 5 (Edu)",
 		"Term 6 (Soc): Wounded",
 	}
 
@@ -791,8 +820,8 @@ func TestCharacterRendersMerchantTermOutcome(t *testing.T) {
 	out := render.Character(c)
 
 	for _, want := range []string{
-		"Term 1 (Str): Unharmed, Reward: 1 Ship Share",
-		"Term 2 (Int): Unharmed, Reward: 2 Ship Shares",
+		"Term 1 (Str): Reward: 1 Ship Share",
+		"Term 2 (Int): Reward: 2 Ship Shares",
 		"Term 3 (Dex): Wounded",
 	} {
 		if !strings.Contains(out, want) {
@@ -838,12 +867,99 @@ func TestCharacterRendersAgentTermOutcome(t *testing.T) {
 	out := render.Character(c)
 
 	for _, want := range []string{
-		"Term 1 (Str): Unharmed, Reward: Noble Commendation-0",
-		"Term 2 (End): Unharmed",
+		"Term 1 (Str): Reward: Noble Commendation-0",
+		"Term 2 (End)",
 		"Term 3 (Str): Wounded, Reward: Soldier Commendation-6",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("render.Character missing %q in output:\n%s", want, out)
 		}
+	}
+}
+
+// TestCharacterShowsSpeciesAndProfileOnlyWhenNotDefault covers #47's
+// "suppress values that merely restate generator defaults": every
+// character this codebase produces is Human/SDEIES, so printing those
+// says only that the generator ran. A deviation must still be visible —
+// the field carries information exactly when it isn't the default.
+func TestCharacterShowsSpeciesAndProfileOnlyWhenNotDefault(t *testing.T) {
+	t.Parallel()
+
+	def := render.Character(character.Character{
+		Species:        character.HumanSpecies,
+		GeneticProfile: character.HumanGeneticProfile,
+	})
+
+	for _, hidden := range []string{"**Species:**", "**Genetic Profile:**"} {
+		if strings.Contains(def, hidden) {
+			t.Errorf("render.Character should omit %s at its default, got:\n%s", hidden, def)
+		}
+	}
+
+	alien := render.Character(character.Character{Species: "Aslan", GeneticProfile: "SDEIEC"})
+
+	for _, shown := range []string{"**Species:** Aslan", "**Genetic Profile:** SDEIEC"} {
+		if !strings.Contains(alien, shown) {
+			t.Errorf("render.Character should show %q when it differs from the default, got:\n%s", shown, alien)
+		}
+	}
+}
+
+// TestCharacterShowsUPPFieldOnlyWhenNameTakesTheTitle covers #47's
+// "suppress values that duplicate another visible value": the UPP is the
+// heading when no Name exists, so repeating it as a field says nothing.
+// A named character's heading is the name, so the UPP must reappear.
+func TestCharacterShowsUPPFieldOnlyWhenNameTakesTheTitle(t *testing.T) {
+	t.Parallel()
+
+	unnamed := render.Character(scoutSheet)
+	if strings.Contains(unnamed, "**UPP:**") {
+		t.Errorf("render.Character should omit the UPP field when the UPP is already the title, got:\n%s", unnamed)
+	}
+
+	named := scoutSheet
+	named.Name = "Eneri Dinsha"
+
+	out := render.Character(named)
+	if !strings.Contains(out, "**UPP:** "+scoutSheet.UPP.String()) {
+		t.Errorf("render.Character should show the UPP field when a Name took the title, got:\n%s", out)
+	}
+}
+
+// TestCharacterRendersMetadataAsOneCompactBlock covers #47's layout
+// half: consecutive metadata fields are one block of hard-broken lines,
+// not one paragraph each. Checked structurally — no blank line may fall
+// between two metadata lines — rather than by pinning the whole block,
+// which would break on any field becoming conditional.
+func TestCharacterRendersMetadataAsOneCompactBlock(t *testing.T) {
+	t.Parallel()
+
+	lines := strings.Split(render.Character(scoutSheet), "\n")
+
+	metadata := func(s string) bool { return strings.HasPrefix(s, "**") }
+
+	for i := range len(lines) - 2 {
+		if metadata(lines[i]) && lines[i+1] == "" && metadata(lines[i+2]) {
+			t.Fatalf("blank line between metadata fields %q and %q — the block must be contiguous",
+				lines[i], lines[i+2])
+		}
+	}
+
+	// Every metadata line but the last in the block ends with Markdown's
+	// two-space hard break, so the block renders as separate lines.
+	var sawHardBreak bool
+
+	for i, l := range lines {
+		if metadata(l) && i+1 < len(lines) && metadata(lines[i+1]) {
+			if !strings.HasSuffix(l, "  ") {
+				t.Errorf("metadata line %q is followed by another but has no hard line break", l)
+			}
+
+			sawHardBreak = true
+		}
+	}
+
+	if !sawHardBreak {
+		t.Error("no consecutive metadata lines found — fixture can't verify the compact block")
 	}
 }

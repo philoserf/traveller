@@ -37,43 +37,8 @@ func Character(c character.Character) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "# %s\n\n", characterTitle(c))
-	fmt.Fprintf(&b, "**Species:** %s\n\n", c.Species)
-	fmt.Fprintf(&b, "**Genetic Profile:** %s\n\n", c.GeneticProfile)
-	fmt.Fprintf(&b, "**UPP:** %s\n\n", c.UPP)
-	fmt.Fprintf(&b, "**Age:** %d\n\n", c.Age)
-	fmt.Fprintf(&b, "**Life Stage:** %s\n\n", lifeStageLabel(c.LifeStage))
-	fmt.Fprintf(&b, "**Birthdate:** %s\n\n", c.Birthdate)
-	fmt.Fprintf(&b, "**Homeworld:** %s\n\n", c.Homeworld)
 
-	if c.Birthworld != "" && c.Birthworld != c.Homeworld {
-		fmt.Fprintf(&b, "**Birthworld:** %s\n\n", c.Birthworld)
-	}
-
-	if c.Rank != "" {
-		fmt.Fprintf(&b, "**Rank:** %s\n\n", c.Rank)
-	}
-
-	fmt.Fprintf(&b, "**Wound Badges:** %d\n\n", c.WoundBadges)
-
-	if len(c.Medals) > 0 {
-		fmt.Fprintf(&b, "**Medals:** %s\n\n", strings.Join(c.Medals, ", "))
-	}
-
-	if c.Fame != 0 {
-		fmt.Fprintf(&b, "**Fame:** %d\n\n", c.Fame)
-	}
-
-	if c.Cash != 0 {
-		fmt.Fprintf(&b, "**Cash:** %s\n\n", formatCr(c.Cash))
-	}
-
-	if c.Notes != "" {
-		fmt.Fprintf(&b, "**Notes:** %s\n\n", c.Notes)
-	}
-
-	if len(c.Equipment) > 0 {
-		fmt.Fprintf(&b, "**Equipment:** %s\n\n", strings.Join(c.Equipment, ", "))
-	}
+	writeMetadata(&b, c)
 
 	fmt.Fprint(&b, "## Skills\n\n")
 	writeSkills(&b, c.Skills)
@@ -85,6 +50,87 @@ func Character(c character.Character) string {
 	}
 
 	return strings.TrimRight(b.String(), "\n") + "\n"
+}
+
+// writeMetadata renders the character's own header fields as one
+// compact block: consecutive lines joined by Markdown's two-space hard
+// break, with a single blank line after the block rather than after
+// every field. Each field previously became its own paragraph, which
+// spent a screen of vertical space announcing mostly-constant values.
+//
+// A field appears only when it carries information the reader doesn't
+// already have. Species and Genetic Profile are omitted at their Human
+// defaults (nothing in this codebase generates anything else yet, so
+// printing them says only "this generator ran"); UPP is omitted when
+// characterTitle already used it as the heading, but kept when a Name
+// took that slot; Wound Badges is omitted at zero, matching the
+// existing treatment of Fame, Cash, Rank, Notes and Medals; Birthworld
+// keeps its existing "only when it differs from Homeworld" rule.
+//
+// Age, Life Stage, Birthdate and Homeworld always print: every
+// generation path computes them, and none has a value that means
+// "absent". Life Stage is derived from Age but kept — it names the
+// rules bracket (Book 1 p.89) rather than restating the number.
+func writeMetadata(b *strings.Builder, c character.Character) {
+	var lines []string
+
+	add := func(format string, args ...any) {
+		lines = append(lines, fmt.Sprintf(format, args...))
+	}
+
+	if c.Species != "" && c.Species != character.HumanSpecies {
+		add("**Species:** %s", c.Species)
+	}
+
+	if c.GeneticProfile != "" && c.GeneticProfile != character.HumanGeneticProfile {
+		add("**Genetic Profile:** %s", c.GeneticProfile)
+	}
+
+	// Redundant with the heading unless a Name displaced it there.
+	if c.Name != "" {
+		add("**UPP:** %s", c.UPP)
+	}
+
+	add("**Age:** %d", c.Age)
+	add("**Life Stage:** %s", lifeStageLabel(c.LifeStage))
+	add("**Birthdate:** %s", c.Birthdate)
+	add("**Homeworld:** %s", c.Homeworld)
+
+	if c.Birthworld != "" && c.Birthworld != c.Homeworld {
+		add("**Birthworld:** %s", c.Birthworld)
+	}
+
+	if c.Rank != "" {
+		add("**Rank:** %s", c.Rank)
+	}
+
+	if c.WoundBadges != 0 {
+		add("**Wound Badges:** %d", c.WoundBadges)
+	}
+
+	if len(c.Medals) > 0 {
+		add("**Medals:** %s", strings.Join(c.Medals, ", "))
+	}
+
+	if c.Fame != 0 {
+		add("**Fame:** %d", c.Fame)
+	}
+
+	if c.Cash != 0 {
+		add("**Cash:** %s", formatCr(c.Cash))
+	}
+
+	if c.Notes != "" {
+		add("**Notes:** %s", c.Notes)
+	}
+
+	if len(c.Equipment) > 0 {
+		add("**Equipment:** %s", strings.Join(c.Equipment, ", "))
+	}
+
+	// Two trailing spaces are Markdown's hard line break: the block reads
+	// as one paragraph of labelled lines rather than as many paragraphs.
+	fmt.Fprintf(b, "%s\n\n", strings.Join(lines, "  \n"))
 }
 
 // characterTitle falls back to the UPP code when Name is empty — nothing
@@ -200,12 +246,25 @@ func termOutcomeLine(c character.Career, i int, t character.Term) string {
 		return prefix + ": " + functionaryTermLabel(t)
 	}
 
-	line := prefix + ": " + riskResultLabel(t.RiskResult)
-	if t.RewardResult != "" && t.RewardResult != "None" {
-		line += ", Reward: " + t.RewardResult
+	// Unharmed is the ordinary outcome of a Risk roll, so naming it on
+	// every routine term buries the Wounded/Disabled/Dead ones that
+	// actually matter. A term with nothing to report renders as the bare
+	// "Term N (CC)"; a Reward still prints on its own.
+	var parts []string
+
+	if t.RiskResult != character.Unharmed {
+		parts = append(parts, riskResultLabel(t.RiskResult))
 	}
 
-	return line
+	if t.RewardResult != "" && t.RewardResult != "None" {
+		parts = append(parts, "Reward: "+t.RewardResult)
+	}
+
+	if len(parts) == 0 {
+		return prefix
+	}
+
+	return prefix + ": " + strings.Join(parts, ", ")
 }
 
 // nobleTermLabel renders "Return: Success", "Intrigue: Failure", or
@@ -375,21 +434,36 @@ func citizenLifeLabel(succeeded bool) string {
 // DM from Terms served pushes Money rolls toward a table's cash rows;
 // see this repo's own PR discussion for #46.)
 func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
-	fmt.Fprint(b, "**Mustering Out**\n\n")
-	fmt.Fprintf(b, "- Automatics: %s\n", joinPhrasesOrNone(m.Automatics))
-	fmt.Fprintf(b, "- Benefits: %s\n", joinPhrasesOrNone(m.Benefits))
-	fmt.Fprintf(b, "- Money: %s\n", joinPhrasesOrNone(m.Money))
-	fmt.Fprintf(b, "- Entitlements: %s\n", joinPhrasesOrNone(m.Entitlements))
+	var lines []string
+
+	add := func(label string, items []string) {
+		if len(items) > 0 {
+			lines = append(lines, fmt.Sprintf("- %s: %s", label, strings.Join(items, ", ")))
+		}
+	}
+
+	add("Automatics", m.Automatics)
+	add("Benefits", m.Benefits)
+	add("Money", m.Money)
+	add("Entitlements", m.Entitlements)
 
 	if m.Pension != 0 {
-		fmt.Fprintf(b, "- Pension: Cr%d/year\n", m.Pension)
+		lines = append(lines, fmt.Sprintf("- Pension: Cr%d/year", m.Pension))
 	}
 
 	if m.RetirementPay != 0 {
-		fmt.Fprintf(b, "- Retirement Pay: Cr%d/year\n", m.RetirementPay)
+		lines = append(lines, fmt.Sprintf("- Retirement Pay: Cr%d/year", m.RetirementPay))
 	}
 
-	fmt.Fprint(b, "\n")
+	// Nothing was granted — a never-qualified career, or one whose
+	// character died before reaching Mustering Out. Four "None" lines
+	// under a heading say exactly as much as no heading at all.
+	if len(lines) == 0 {
+		return
+	}
+
+	fmt.Fprint(b, "**Mustering Out**\n\n")
+	fmt.Fprintf(b, "%s\n\n", strings.Join(lines, "\n"))
 }
 
 // formatCr renders amount as Book 1's own "CrN,NNN" thousands-grouped
@@ -473,18 +547,6 @@ func lifeStageLabel(stage int) string {
 	default:
 		return "?"
 	}
-}
-
-// joinPhrasesOrNone joins multi-word phrases with a comma separator (not
-// world.JoinOrNone's plain space join, which is only unambiguous for
-// short fixed tokens like trade codes) — "None" for an empty list,
-// matching world.JoinOrNone's own empty-list convention.
-func joinPhrasesOrNone(items []string) string {
-	if len(items) == 0 {
-		return "None"
-	}
-
-	return strings.Join(items, ", ")
 }
 
 func riskResultLabel(r character.RiskResult) string {
