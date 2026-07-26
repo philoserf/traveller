@@ -362,19 +362,23 @@ func citizenLifeLabel(succeeded bool) string {
 // bases) — a plain space join would run two or more such phrases
 // together with no way to tell where one ends and the next begins.
 //
-// Money omits every entry MusterOutCashAmount recognizes as cash
-// ("CrN,NNN"): Character.Cash (rendered once, near the top of the
-// sheet) already accumulates these across every career, so repeating
-// each raw roll here is pure duplication, not additional information.
-// Non-cash Money-column awards (Low/Middle/High Passage, StarPass) have
-// no accumulated character-wide field of their own, so they still print
-// here — joinPhrasesOrNone's own "None" falls out naturally if that
-// leaves nothing to show.
+// Money prints every raw roll, cash included, even though
+// Character.Cash (rendered once, near the top of the sheet) already
+// sums the same cash entries across every career. This is a per-career
+// historical record, not a staging area the character-wide total
+// supersedes: a career whose Mustering Out rolls happened to land on
+// cash every time still produced real results that term, and hiding
+// them behind "None" would misreport what actually happened, not just
+// omit a redundant number. (An earlier version of this function
+// filtered cash entries out here — reverted once that was shown to
+// blank out the Money line for most veteran characters, since a high
+// DM from Terms served pushes Money rolls toward a table's cash rows;
+// see this repo's own PR discussion for #46.)
 func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
 	fmt.Fprint(b, "**Mustering Out**\n\n")
 	fmt.Fprintf(b, "- Automatics: %s\n", joinPhrasesOrNone(m.Automatics))
 	fmt.Fprintf(b, "- Benefits: %s\n", joinPhrasesOrNone(m.Benefits))
-	fmt.Fprintf(b, "- Money: %s\n", joinPhrasesOrNone(nonCashMoney(m.Money)))
+	fmt.Fprintf(b, "- Money: %s\n", joinPhrasesOrNone(m.Money))
 	fmt.Fprintf(b, "- Entitlements: %s\n", joinPhrasesOrNone(m.Entitlements))
 
 	if m.Pension != 0 {
@@ -386,23 +390,6 @@ func writeMusteringOut(b *strings.Builder, m character.MusteringOut) {
 	}
 
 	fmt.Fprint(b, "\n")
-}
-
-// nonCashMoney filters money down to the entries MusterOutCashAmount
-// doesn't recognize as cash — every other Money-column award (Low/
-// Middle/High Passage, StarPass) — preserving order. A nil result
-// (every entry was cash) renders as "None" via joinPhrasesOrNone, not a
-// special case here.
-func nonCashMoney(money []string) []string {
-	var filtered []string
-
-	for _, entry := range money {
-		if _, ok := character.MusterOutCashAmount(entry); !ok {
-			filtered = append(filtered, entry)
-		}
-	}
-
-	return filtered
 }
 
 // formatCr renders amount as Book 1's own "CrN,NNN" thousands-grouped

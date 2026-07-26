@@ -33,14 +33,11 @@ func splitMusterOutBoost(entry string) (string, int, bool) {
 	return name, amount, true
 }
 
-// MusterOutCashAmount parses a Money-column entry for its Cr value, per
+// musterOutCashAmount parses a Money-column entry for its Cr value, per
 // Book 1's own "CrN,NNN" literal notation. Passage/StarPass entries
 // aren't cash and report false — see ApplyMusteringOut's own doc comment
-// for why they're left unapplied. Exported: render's own writeMusteringOut
-// (render/character.go) reuses this same parse to identify which Money
-// entries duplicate the character-wide accumulated Cash total, rather
-// than reimplementing "Cr" + comma-stripped parsing a second time.
-func MusterOutCashAmount(entry string) (int, bool) {
+// for why they're left unapplied.
+func musterOutCashAmount(entry string) (int, bool) {
 	if !strings.HasPrefix(entry, "Cr") {
 		return 0, false
 	}
@@ -103,7 +100,7 @@ func ApplyMusteringOut(m MusteringOut, upp UPP) (UPP, MusterOutBonuses) {
 	var bonuses MusterOutBonuses
 
 	for _, entry := range m.Money {
-		if amount, ok := MusterOutCashAmount(entry); ok {
+		if amount, ok := musterOutCashAmount(entry); ok {
 			bonuses.Cash += amount
 		}
 	}

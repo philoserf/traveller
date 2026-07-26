@@ -183,7 +183,7 @@ func TestBuildCitizenCharacterAppliesMusteringOutCash(t *testing.T) {
 	wantCash := 0
 
 	for _, entry := range c.Careers[0].MusteringOut.Money {
-		if amount, ok := MusterOutCashAmount(entry); ok {
+		if amount, ok := musterOutCashAmount(entry); ok {
 			wantCash += amount
 		}
 	}

@@ -9,7 +9,7 @@ const RogueCareerName = "Rogue"
 // rogueSchemeCareerNames/rogueSchemeValues are Book 1 p.84's own "ROGUE
 // SCHEMES" table, Flux-keyed (index 0 = Flux -6, index 12 = Flux +6).
 // Values are literal strings ("CrN,NNN" or "one Ship Share") — reuses
-// MusterOutCashAmount (character/muster_out_apply.go) to distinguish
+// musterOutCashAmount (character/muster_out_apply.go) to distinguish
 // them, since it already returns (0, false) for anything not
 // "Cr"-prefixed, exactly the right behavior for the two Ship-Share rows.
 var rogueSchemeCareerNames = [13]string{
@@ -147,7 +147,7 @@ func ResolveRogueTerm(r *dice.Roller, cc, mod int) Term {
 	term.RewardSucceeded = rewardSucceeded
 
 	if rewardSucceeded {
-		if cashValue, ok := MusterOutCashAmount(schemeValue); ok {
+		if cashValue, ok := musterOutCashAmount(schemeValue); ok {
 			payoff := cashValue * (1 + cc - rewardRoll + (-mod))
 			if term.Imprisoned {
 				payoff /= 2
