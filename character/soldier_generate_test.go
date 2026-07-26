@@ -123,7 +123,7 @@ func TestRollSoldierOperationsKeepsHighestMod(t *testing.T) {
 
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r1 := dice.New(rand.NewPCG(seed, seed))
-		_, got := rollSoldierOperations(r1, "Cavalry", 8)
+		_, _, got := rollSoldierOperations(r1, "Cavalry", 8)
 
 		r2 := dice.New(rand.NewPCG(seed, seed))
 

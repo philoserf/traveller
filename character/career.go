@@ -24,12 +24,19 @@ type Term struct {
 	Assignment                string   // Armed Forces only
 	Medals                    []string // Armed Forces only: medal codes earned this term (XS/MCUF/MCG/SEH)
 	Rank                      string   // Armed Forces only: rank held after this term (e.g. "M3 Sergeant")
-	Commissioned              bool     // Armed Forces only: Commission succeeded this term
-	RiskResult                RiskResult
-	RewardResult              string
-	SkillsAwarded             []SkillLevel
-	Promoted                  bool // Armed Forces only: Officer/Enlisted Promotion succeeded this term
-	CitizenLifeSucceeded      bool // Citizen only
+	// Operations are every assignment received this term — Book 1's own
+	// four 1D rolls per Term. Assignment above records only the
+	// highest-Mod one; all four are kept because p.65 restricts Term
+	// skills to "a column of the Skills table corresponding to an
+	// Operations result received in the Term". Spacer, Soldier and
+	// Marine only.
+	Operations           []string
+	Commissioned         bool // Armed Forces only: Commission succeeded this term
+	RiskResult           RiskResult
+	RewardResult         string
+	SkillsAwarded        []SkillLevel
+	Promoted             bool // Armed Forces only: Officer/Enlisted Promotion succeeded this term
+	CitizenLifeSucceeded bool // Citizen only
 	// CitizenLifeRoll/CitizenLifeTarget are the raw 2D6 and the
 	// characteristic it was rolled against (Book 1 p.78: "roll 2D for the
 	// Controlling Characteristic or less"). Retained so a rendered term

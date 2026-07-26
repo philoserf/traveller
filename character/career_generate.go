@@ -48,29 +48,6 @@ func operationsEduDM(edu int) int {
 	return 0
 }
 
-// rollHighestOfFour rolls 1D+dm four times against a musterOutRow-style
-// table (names/mods must be the same length) and returns the row with the
-// highest Mod — Book 1's own "Roll 4 times per Term for Operations;
-// select the highest Mod from the four," shared by every Armed Forces
-// career's own Operations roll. Originally rollMarineOperations's own
-// loop body, generalized once Soldier became a second real caller of the
-// identical shape.
-func rollHighestOfFour(r *dice.Roller, dm int, names []string, mods []int) (string, int) {
-	// bestIdx starts from the first of the 4 rolls, not a hardcoded
-	// index — seeding it with an unrolled row would bias the result
-	// toward that row whenever none of the real rolls beat its Mod.
-	bestIdx := musterOutRow(r.D6()+dm, len(names))
-
-	for range 3 {
-		row := musterOutRow(r.D6()+dm, len(names))
-		if mods[row] > mods[bestIdx] {
-			bestIdx = row
-		}
-	}
-
-	return names[bestIdx], mods[bestIdx]
-}
-
 // branchAutomaticSkill is Book 1's own Armed Forces branch-tied automatic
 // skill, verbatim identical text on both Marine's (p.86) and Soldier's
 // (p.82) own pages ("if Medical Branch=Medic-1. If Technical Branch=any

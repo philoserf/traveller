@@ -136,7 +136,7 @@ func TestRollMarineOperationsKeepsHighestMod(t *testing.T) {
 
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r1 := dice.New(rand.NewPCG(seed, seed))
-		_, got := rollMarineOperations(r1, "Commando", 8)
+		_, _, got := rollMarineOperations(r1, "Commando", 8)
 
 		r2 := dice.New(rand.NewPCG(seed, seed))
 
@@ -388,9 +388,32 @@ func TestResolveMarineTermGrantsCommission(t *testing.T) {
 		t.Errorf("Rank = %q, want %q", term.Rank, "O1 2nd Lieutenant")
 	}
 
-	if len(term.SkillsAwarded) != marineSkillsPerTerm+1 {
-		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Commission's own +1)",
-			len(term.SkillsAwarded), marineSkillsPerTerm+1)
+	// Per-term 4, plus Commission's own +1, plus O1's own automatic
+	// Leader — three separate grants. The previous form of this assertion
+	// omitted the automatic skill and passed only because one rolled
+	// skill happened to land on an unresolvable cell for this seed.
+	//
+	// An upper bound rather than an exact count, because Marine's table
+	// has unresolvable entries ("Major *", "Minor *") whose draws are
+	// lost rather than rerolled — so the rolled portion can come up
+	// short, but never long.
+	automatic, hasAutomatic := marineRankAutomaticSkill(true, 1)
+	want := marineSkillsPerTerm + 1
+
+	if hasAutomatic {
+		want++
+	}
+
+	if len(term.SkillsAwarded) > want {
+		t.Errorf("len(SkillsAwarded) = %d, want at most %d (per-term %d + Commission +1 + automatic)",
+			len(term.SkillsAwarded), want, marineSkillsPerTerm)
+	}
+
+	if hasAutomatic && !slices.ContainsFunc(term.SkillsAwarded, func(s SkillLevel) bool {
+		return s.Name == automatic.Name
+	}) {
+		t.Errorf("SkillsAwarded = %v, want it to include O1's own automatic %q",
+			term.SkillsAwarded, automatic.Name)
 	}
 }
 
