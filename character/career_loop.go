@@ -235,7 +235,10 @@ func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
 	career := Career{Name: "Scout"}
 
-	if _, began := BeginScout(r, upp); !began {
+	_, began, failed := BeginScout(r, upp)
+
+	upp = aging.chargeFailedAttempts(r, upp, failed)
+	if !began {
 		return career, upp
 	}
 

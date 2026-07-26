@@ -502,25 +502,21 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 // retroactive cut of an already-resolved term). ageTarget == 0 means no
 // cap at all — every segment gets the same maxCareerTerms budget every
 // single-career caller has always used.
-func segmentBudget(ageTarget, maxAllowedTotalTerms, termsServed int) (int, bool) {
+func segmentBudget(ageTarget, currentAge int) (int, bool) {
 	if ageTarget == 0 {
 		return maxCareerTerms, true
 	}
 
-	remaining := maxAllowedTotalTerms - termsServed
+	// Measured from the character's actual age rather than from terms
+	// alone: a failed Begin costs a year (Book 1 p.65) without serving a
+	// term, so a terms-only count would quietly hand back years the
+	// character had already spent and overshoot the target.
+	remaining := (ageTarget - currentAge) / 4
 	if remaining <= 0 {
 		return 0, false
 	}
 
 	return min(maxCareerTerms, remaining), true
-}
-
-func maxAllowedCareerTerms(ageTarget int) int {
-	if ageTarget == 0 {
-		return 0
-	}
-
-	return max(0, (ageTarget-18)/4)
 }
 
 func generateCareerChainStart(r *dice.Roller) (UPP, string, []SkillLevel) {
@@ -557,9 +553,9 @@ func applyCitizenFallback(
 	upp UPP,
 	acc *careerChainAccumulator,
 	aging *agingSimulation,
-	ageTarget, maxAllowedTotalTerms int,
+	ageTarget int,
 ) UPP {
-	maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed)
+	maxTerms, attemptAllowed := segmentBudget(ageTarget, aging.age())
 	if !attemptAllowed {
 		return upp
 	}
@@ -602,8 +598,6 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		return Character{}, false, err
 	}
 
-	maxAllowedTotalTerms := maxAllowedCareerTerms(ageTarget)
-
 	upp, homeworld, homeworldSkills := generateCareerChainStart(r)
 
 	acc := careerChainAccumulator{skills: slices.Clone(homeworldSkills)}
@@ -616,7 +610,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	precedingCareer := ""
 
 	for i, name := range careerNames {
-		maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed)
+		maxTerms, attemptAllowed := segmentBudget(ageTarget, aging.age())
 		if !attemptAllowed {
 			break
 		}
@@ -657,7 +651,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	}
 
 	if !everSucceeded {
-		upp = applyCitizenFallback(r, upp, &acc, &aging, ageTarget, maxAllowedTotalTerms)
+		upp = applyCitizenFallback(r, upp, &acc, &aging, ageTarget)
 	}
 
 	age, lifeStage, notes, survived := finalizeAging(&aging, survived)

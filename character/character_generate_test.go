@@ -345,8 +345,11 @@ func TestBuildScoutCharacterSetsAgeAndLifeStage(t *testing.T) {
 		t.Fatalf("buildScoutCharacter with zero UPP unexpectedly qualified")
 	}
 
-	if c.Age != 18 {
-		t.Errorf("Age = %d, want 18 (never qualified, 0 terms served)", c.Age)
+	// 0 terms served, but not age 18: Scout is the one career with a
+	// Retry, so a character who qualifies for neither has failed two
+	// rolls, and Book 1 p.65 charges a year for each.
+	if c.Age != 20 {
+		t.Errorf("Age = %d, want 20 (18 plus a year each for the failed Begin and Retry)", c.Age)
 	}
 
 	if c.LifeStage != 3 {

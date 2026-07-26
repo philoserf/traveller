@@ -71,8 +71,8 @@ func TestBuildEntertainerCharacterNeverQualifiedStillSetsFame(t *testing.T) {
 		t.Errorf("Careers = %+v, want one Career with zero Terms", c.Careers)
 	}
 
-	if c.Age != 18 {
-		t.Errorf("Age = %d, want 18", c.Age)
+	if c.Age != 19 {
+		t.Errorf("Age = %d, want 19 (18 plus the one year the failed Begin roll cost, Book 1 p.65)", c.Age)
 	}
 
 	if c.Fame != 7 {

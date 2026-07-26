@@ -201,7 +201,13 @@ func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string, i
 // terms preceded it. A per-career count would restart the clock at each
 // transfer and never reach a checkpoint at all.
 type agingSimulation struct {
-	termsServed  int
+	termsServed int
+	// failedYears is Book 1 p.65's "each failed Begin or Retry attempt
+	// takes one year". Tracked separately from termsServed because a
+	// term is four years and a failed attempt is one, so age is no
+	// longer a multiple of four above 18 — which is also why checkpoints
+	// are found by scanning a span rather than by testing a single age.
+	failedYears  int
 	extremeCount int
 	notes        []string
 	diedAtAge    int // 0 while alive; the fatal checkpoint's own age once not
@@ -212,14 +218,55 @@ func (s *agingSimulation) alive() bool {
 	return s.diedAtAge == 0
 }
 
-// age is the character's age given every term recorded so far, or the
+// age is the character's age given everything recorded so far, or the
 // age they died at if a checkpoint killed them.
 func (s *agingSimulation) age() int {
 	if !s.alive() {
 		return s.diedAtAge
 	}
 
-	return AgeFromTermsServed(s.termsServed)
+	return s.livingAge()
+}
+
+// livingAge is age ignoring death — the running clock the simulation
+// advances. age() can't be used for that: once dead it reports the fatal
+// checkpoint forever, which would make every later span look empty.
+func (s *agingSimulation) livingAge() int {
+	return AgeFromTermsServed(s.termsServed) + s.failedYears
+}
+
+// chargeFailedAttempts adds one year per failed Begin or Retry roll
+// (Book 1 p.65) and runs any Aging checkpoint those years cross. n is a
+// count of rolls, not of careers: Scout can fail twice in one attempt,
+// its Begin and then its Retry.
+func (s *agingSimulation) chargeFailedAttempts(r *dice.Roller, upp UPP, n int) UPP {
+	for range n {
+		if !s.alive() {
+			break
+		}
+
+		from := s.livingAge()
+		s.failedYears++
+		upp = s.checkpointsIn(r, upp, from, s.livingAge())
+	}
+
+	return upp
+}
+
+// checkpointsIn runs every Aging checkpoint falling after from and at or
+// before to. A four-year term crosses exactly one, but a failed attempt
+// advances a single year and usually crosses none, so the span has to be
+// scanned rather than assuming the endpoint is itself a checkpoint.
+func (s *agingSimulation) checkpointsIn(r *dice.Roller, upp UPP, from, to int) UPP {
+	for age := from + 1; age <= to; age++ {
+		if !s.alive() {
+			break
+		}
+
+		upp = s.checkpoint(r, upp, age)
+	}
+
+	return upp
 }
 
 // advanceTerm records one completed four-year term and runs whatever
@@ -227,9 +274,10 @@ func (s *agingSimulation) age() int {
 // makes per term. Returns the resulting UPP so the next term's own rolls
 // see any reduction this checkpoint just applied.
 func (s *agingSimulation) advanceTerm(r *dice.Roller, upp UPP) UPP {
+	from := s.livingAge()
 	s.termsServed++
 
-	return s.checkpoint(r, upp, AgeFromTermsServed(s.termsServed))
+	return s.checkpointsIn(r, upp, from, s.livingAge())
 }
 
 // recordFatalTerm counts a term the character died during (Book 1 p.69,

@@ -233,7 +233,7 @@ func TestBeginScoutRetryImprovesOdds(t *testing.T) {
 	successes := 0
 
 	for range trials {
-		if _, ok := BeginScout(r, upp); ok {
+		if _, ok, _ := BeginScout(r, upp); ok {
 			successes++
 		}
 	}

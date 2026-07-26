@@ -30,8 +30,8 @@ func TestBuildSoldierCharacterNeverQualified(t *testing.T) {
 		t.Errorf("WoundBadges = %d, want 0", c.WoundBadges)
 	}
 
-	if c.Age != 18 {
-		t.Errorf("Age = %d, want 18", c.Age)
+	if c.Age != 19 {
+		t.Errorf("Age = %d, want 19 (18 plus the one year the failed Begin roll cost, Book 1 p.65)", c.Age)
 	}
 
 	if !slices.Equal(c.Skills, homeworldSkills) {

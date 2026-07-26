@@ -44,6 +44,12 @@ func resolveEntertainerCareerAndUPPWithBudget(
 	career.Specialty = specialty
 
 	if !BeginEntertainer(r, upp, specialty) {
+		// Book 1 p.65: a failed Begin roll costs a year. Careers whose
+		// Begin is a prerequisite rather than a roll (Noble's Soc B+,
+		// Craftsman's held skills, Citizen's automatic entry) charge
+		// nothing here — there was no attempt to fail.
+		upp = aging.chargeFailedAttempts(r, upp, 1)
+
 		return career, fame, upp
 	}
 

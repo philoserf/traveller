@@ -429,3 +429,98 @@ func TestAgingDeathStopsServiceAndMusterOut(t *testing.T) {
 		}
 	})
 }
+
+// TestFailedBeginAttemptsCostAYear is #62's regression. Book 1 p.65
+// charges one year per failed Begin or Retry, which generation used to
+// discard entirely: Age was 18 + 4*terms, so every failed entry attempt
+// vanished from the chronology and, with it, from Birthdate, Life Stage,
+// Aging checkpoints and -age budgeting.
+//
+// Driven through the public generators rather than the counter directly,
+// since the counter being right matters only if it reaches Age.
+func TestFailedBeginAttemptsCostAYear(t *testing.T) {
+	t.Parallel()
+
+	// A zero UPP fails every roll-based Begin there is.
+	zero := UPP{}
+
+	t.Run("one failed roll costs one year", func(t *testing.T) {
+		t.Parallel()
+
+		c, ok := buildMarineCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil)
+		if ok || len(c.Careers[0].Terms) != 0 {
+			t.Fatal("fixture qualified, want a failed Begin")
+		}
+
+		if c.Age != 19 {
+			t.Errorf("Age = %d, want 19 (18 + one failed Begin)", c.Age)
+		}
+	})
+
+	t.Run("Scout's Retry is a second failed attempt", func(t *testing.T) {
+		t.Parallel()
+
+		c, ok := buildScoutCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil)
+		if ok || len(c.Careers[0].Terms) != 0 {
+			t.Fatal("fixture qualified, want both Begin and Retry to fail")
+		}
+
+		if c.Age != 20 {
+			t.Errorf("Age = %d, want 20 — Scout alone has a Retry, so failing to qualify costs two years",
+				c.Age)
+		}
+	})
+
+	t.Run("a prerequisite that isn't a roll costs nothing", func(t *testing.T) {
+		t.Parallel()
+
+		// Noble's Begin is Soc B+ — a threshold, not an attempt. There is
+		// no roll to fail, so p.65's per-attempt year never applies.
+		c, ok := buildNobleCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil)
+		if ok || len(c.Careers[0].Terms) != 0 {
+			t.Fatal("fixture qualified, want Soc below B")
+		}
+
+		if c.Age != 18 {
+			t.Errorf("Age = %d, want 18 — failing a prerequisite is not a failed attempt", c.Age)
+		}
+	})
+}
+
+// TestFailedBeginYearsAccumulateAcrossAChain confirms the years are
+// counted over a whole life rather than per career: each career in a
+// chain whose Begin roll fails adds its own year, and the total reaches
+// Age. A per-career counter would reset at every transfer and lose them.
+func TestFailedBeginYearsAccumulateAcrossAChain(t *testing.T) {
+	t.Parallel()
+
+	// Zero UPP: marine, spacer and soldier all fail their Begin rolls,
+	// then Citizen (automatic, no roll) provides the fallback career.
+	got, _, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(1, 1)), []string{"marine", "spacer", "soldier"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failed := 0
+
+	for _, career := range got.Careers {
+		if len(career.Terms) == 0 {
+			failed++
+		}
+	}
+
+	if failed == 0 {
+		t.Fatal("no career failed to Begin — the fixture can't exercise accumulation")
+	}
+
+	termsServed := 0
+	for _, career := range got.Careers {
+		termsServed += len(career.Terms)
+	}
+
+	if want := AgeFromTermsServed(termsServed) + failed; got.Age != want {
+		t.Errorf("Age = %d, want %d (%d terms plus %d failed Begins)",
+			got.Age, want, termsServed, failed)
+	}
+}

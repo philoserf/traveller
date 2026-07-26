@@ -155,13 +155,21 @@ func grantStartingRankAutoSkillToFirstTerm(
 // nextScoutCC's job (rotate through C1/C2/C3 per Book 1 p.64) only
 // coincides with BeginScout's job (pick the best of C1/C2/C3 to
 // attempt Begin against) on the very first term.
-func BeginScout(r *dice.Roller, upp UPP) (Position, bool) {
+func BeginScout(r *dice.Roller, upp UPP) (Position, bool, int) {
 	ccPos := highestOf(upp, C1, C2, C3)
 	if rollAgainstTarget(r, int(upp.Characteristics[ccPos]), 0) {
-		return ccPos, true
+		return ccPos, true, 0
 	}
 
-	return ccPos, rollAgainstTarget(r, int(upp.Characteristics[C5]), 0)
+	// The Retry is why this reports a count rather than just success:
+	// a Scout who needed it spent a year that a bare bool can't express
+	// (Book 1 p.65, "each failed Begin or Retry attempt takes one year"),
+	// and one who failed both spent two.
+	if rollAgainstTarget(r, int(upp.Characteristics[C5]), 0) {
+		return ccPos, true, 1
+	}
+
+	return ccPos, false, 2
 }
 
 // ScoutDuty is which of Book 1 p.79's two Scout duty assignments a term

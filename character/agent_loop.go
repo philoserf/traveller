@@ -23,6 +23,12 @@ func resolveAgentCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *
 	career := Career{Name: AgentCareerName}
 
 	if !BeginAgent(r, int(upp.Characteristics[C3])) {
+		// Book 1 p.65: a failed Begin roll costs a year. Careers whose
+		// Begin is a prerequisite rather than a roll (Noble's Soc B+,
+		// Craftsman's held skills, Citizen's automatic entry) charge
+		// nothing here — there was no attempt to fail.
+		upp = aging.chargeFailedAttempts(r, upp, 1)
+
 		return career, upp
 	}
 
