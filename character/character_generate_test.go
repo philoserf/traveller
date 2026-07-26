@@ -406,7 +406,7 @@ func TestBuildRiskCareerCharacterGatesCareerFameOnOK(t *testing.T) {
 }
 
 // TestBuildScoutCharacterAppliesMusteringOutFameAndCash confirms
-// ApplyMusteringOut is actually wired into buildScoutCharacter — seed 86
+// ApplyMusteringOut is actually wired into buildScoutCharacter — seed 46
 // with this fixture was found by direct search to produce both
 // Fame-bearing and Cash-bearing Mustering Out rolls. This seed's own
 // career also produces two Discoveries (scoutDiscoveryFame's own +4
@@ -417,11 +417,11 @@ func TestBuildScoutCharacterAppliesMusteringOutFameAndCash(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
-	r := dice.New(rand.NewPCG(86, 86))
+	r := dice.New(rand.NewPCG(46, 46))
 
 	c, ok := buildScoutCharacter(r, upp, "hw", nil)
 	if !ok {
-		t.Fatalf("seed 86: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
+		t.Fatalf("seed 46: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
 	}
 
 	if c.Fame != 12 {

@@ -162,8 +162,9 @@ func TestResolveScoutMusterOutEntriesAreFromTables(t *testing.T) {
 
 // TestResolveScoutMusterOutAccumulatesFameIntoDM is the regression test
 // for Book 1 p.79's own "DM +Terms +Fame/2": seed 49 with this fixture
-// was found by direct search to grant "Fame +2" twice within the same
-// Mustering Out sequence (first at Benefits index 1, again at index 5),
+// was found by direct search to start with an unsaturated DM (6 terms
+// + 4 Discovery Fame / 2 = 8, below the table's own 12 rows) and then
+// grant "Fame +2" twice at Benefits indices 0 and 1,
 // so every roll after each one must use an elevated dm
 // (terms+fame/2, not a static terms) — a full pin of the exact resulting
 // sequence, not just "it doesn't crash," so a regression that reverts to
@@ -173,24 +174,24 @@ func TestResolveScoutMusterOutAccumulatesFameIntoDM(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{9, 9, 9, 12, 12, 0}}
-	r := dice.New(rand.NewPCG(151, 151))
+	r := dice.New(rand.NewPCG(2579, 2579))
 
 	career, _ := ResolveScoutCareer(r, upp)
-	if len(career.Terms) != 5 {
-		t.Fatalf("seed 151: len(Terms) = %d, want 5 (fixture assumption broke)", len(career.Terms))
+	if len(career.Terms) != 6 {
+		t.Fatalf("seed 2579: len(Terms) = %d, want 6 (fixture assumption broke)", len(career.Terms))
 	}
 
 	out := ResolveScoutMusterOut(r, career)
 
 	wantBenefits := []string{
-		"TAS Fellow Membership", "Fame +2", "TAS Fellow Membership",
-		"Ship Share", "Ship Share", "Fame +2",
+		"Fame +2", "Fame +2", "Knighthood",
+		"Knighthood", "Knighthood", "Knighthood",
 	}
 	if !slices.Equal(out.Benefits, wantBenefits) {
 		t.Fatalf("Benefits = %v, want %v", out.Benefits, wantBenefits)
 	}
 
-	wantMoney := []string{"Cr60,000", "Cr60,000", "Cr60,000", "Cr60,000"}
+	wantMoney := []string{"Cr80,000", "Cr70,000", "Cr80,000", "Cr80,000", "Cr80,000", "Cr80,000"}
 	if !slices.Equal(out.Money, wantMoney) {
 		t.Fatalf("Money = %v, want %v", out.Money, wantMoney)
 	}
@@ -273,5 +274,51 @@ func TestResolveScoutMusterOutDeterminism(t *testing.T) {
 
 	if !slices.Equal(out1.Benefits, out2.Benefits) {
 		t.Fatalf("identical seeds produced different Benefits: %v vs %v", out1.Benefits, out2.Benefits)
+	}
+}
+
+// TestResolveScoutMusterOutSeedsFameDMFromDiscoveries is #58's
+// regression, stated as the rule rather than as a pinned sequence: Book
+// 1 p.79's "DM +Terms +Fame/2" counts the Fame the character already
+// earned, and for a Scout that is Discovery Fame (p.91, "Discoveries
+// x4"). It used to start at zero, so the DM ignored discoveries the
+// career had demonstrably made.
+//
+// Checked by construction rather than by seed-hunting: two careers with
+// identical term counts, one with discoveries and one without, rolled
+// from the same seed. Identical terms mean an identical +Terms DM, so
+// any divergence in the rolled rows can only come from the Fame half.
+func TestResolveScoutMusterOutSeedsFameDMFromDiscoveries(t *testing.T) {
+	t.Parallel()
+
+	const terms = 4
+
+	withDiscoveries := Career{Name: "Scout", Terms: make([]Term, terms)}
+	for i := range withDiscoveries.Terms {
+		withDiscoveries.Terms[i].RewardResult = "Discovery"
+	}
+
+	without := Career{Name: "Scout", Terms: make([]Term, terms)}
+	for i := range without.Terms {
+		without.Terms[i].RewardResult = "None"
+	}
+
+	if scoutDiscoveryFame(without) != 0 {
+		t.Fatal("control career has Discovery Fame, want none")
+	}
+
+	if got := scoutDiscoveryFame(withDiscoveries); got != terms*4 {
+		t.Fatalf("scoutDiscoveryFame = %d, want %d", got, terms*4)
+	}
+
+	rich := ResolveScoutMusterOut(dice.New(rand.NewPCG(7, 7)), withDiscoveries)
+	plain := ResolveScoutMusterOut(dice.New(rand.NewPCG(7, 7)), without)
+
+	// Same seed, same term count — only the Fame half of the DM differs,
+	// so identical output would mean discoveries never reached it.
+	if slices.Equal(rich.Benefits, plain.Benefits) && slices.Equal(rich.Money, plain.Money) {
+		t.Errorf("a Scout with %d Discoveries mustered out identically to one with none "+
+			"(benefits %v, money %v) — Discovery Fame is not reaching the DM",
+			terms, rich.Benefits, rich.Money)
 	}
 }
