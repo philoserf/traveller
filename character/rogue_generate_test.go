@@ -171,7 +171,7 @@ func TestResolveRogueTermRiskSuccessRewardSuccessGrantsScaledPayoff(t *testing.T
 
 	r := dice.New(rand.NewPCG(2, 2))
 
-	term := ResolveRogueTerm(r, 8, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0)
 
 	if term.Imprisoned {
 		t.Error("Imprisoned = true, want false (Risk succeeded)")
@@ -201,7 +201,7 @@ func TestResolveRogueTermRiskSuccessRewardFailureGrantsNoPayoff(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(6, 6))
 
-	term := ResolveRogueTerm(r, 8, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0)
 
 	if term.Imprisoned {
 		t.Error("Imprisoned = true, want false (Risk succeeded)")
@@ -231,7 +231,7 @@ func TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills(t *testin
 
 	r := dice.New(rand.NewPCG(18, 18))
 
-	term := ResolveRogueTerm(r, 8, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0)
 
 	if !term.Imprisoned {
 		t.Fatal("Imprisoned = false, want true (Risk failed)")
@@ -249,12 +249,31 @@ func TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills(t *testin
 		t.Errorf("SchemePayoff = %d, want 125000 (250000 halved for Imprisoned)", term.SchemePayoff)
 	}
 
-	if len(term.SkillsAwarded) != roguePrisonSkillsPerTerm {
-		t.Fatalf(
-			"len(SkillsAwarded) = %d, want %d (roguePrisonSkillsPerTerm)",
-			len(term.SkillsAwarded),
-			roguePrisonSkillsPerTerm,
-		)
+	// Skills come from the full table, not the Prison columns: Book 1
+	// p.84 imposes prison "at the start of the next Term", so the term
+	// that fails a Scheme is still served at liberty. Its own eligibility
+	// is the Failed Scheme line, not the In Prison one.
+	if got, want := rogueTermSkillCount(term), rogueSkillsPerTerm+rogueFailedSchemeSkillBonus; got != want {
+		t.Errorf("skill eligibility = %d, want %d (Per Term + Failed Scheme)", got, want)
+	}
+}
+
+// TestResolveRogueTermServedInPrisonUsesPrisonSkills covers the term the
+// sentence is actually served in — p.84's "In Prison: Prison Skills from
+// the Rogue Skills table column 1 or 2 only. Receives ONLY Prison Skills
+// (not Term or Scheme Skills)" — two skills, and only those.
+func TestResolveRogueTermServedInPrisonUsesPrisonSkills(t *testing.T) {
+	t.Parallel()
+
+	term := ResolveRogueTerm(dice.New(rand.NewPCG(18, 18)), 8, 0, 3)
+
+	if term.ServedYears != 3 {
+		t.Fatalf("ServedYears = %d, want 3 (carried in from last term's failure)", term.ServedYears)
+	}
+
+	if len(term.SkillsAwarded) > roguePrisonSkillsPerTerm {
+		t.Errorf("granted %d skills, want at most %d — a prison term receives ONLY Prison Skills",
+			len(term.SkillsAwarded), roguePrisonSkillsPerTerm)
 	}
 
 	for _, sk := range term.SkillsAwarded {
@@ -267,7 +286,7 @@ func TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills(t *testin
 // prisonColumnSkillNames is rogueSkillTable's own columns 1-2 (table
 // indices 0-1 — rollRogueSkillFromTable's own r.Uniform(2)-1 picks
 // index 0 or 1) flattened into a lookup set, for
-// TestResolveRogueTermRiskFailureHalvesThePayoffAndUsesPrisonSkills.
+// TestResolveRogueTermServedInPrisonUsesPrisonSkills.
 var prisonColumnSkillNames = func() map[string]bool {
 	names := make(map[string]bool)
 
@@ -303,7 +322,7 @@ func TestResolveRogueTermShipShareSchemeGrantsNoScaledPayoff(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3, 3))
 
-	term := ResolveRogueTerm(r, 8, 0)
+	term := ResolveRogueTerm(r, 8, 0, 0)
 
 	if term.Imprisoned {
 		t.Error("Imprisoned = true, want false (Risk succeeded)")
@@ -323,5 +342,86 @@ func TestResolveRogueTermShipShareSchemeGrantsNoScaledPayoff(t *testing.T) {
 
 	if term.SchemePayoff != 0 {
 		t.Errorf("SchemePayoff = %d, want 0 (Ship Share is a flat grant, not a scaled Payoff)", term.SchemePayoff)
+	}
+}
+
+// TestRogueSentenceIncludesNegativeMods pins Book 1 p.84's own sentence
+// formula: "Prison for (sum of negative Mods + Flux) years at the start
+// of the next Term (may be zero; maximum 4)."
+//
+// The Mod half was missing — only Flux was rolled — which dropped the
+// part that makes a heavily-modified Scheme more dangerous to fail.
+func TestRogueSentenceIncludesNegativeMods(t *testing.T) {
+	t.Parallel()
+
+	// Flux spans [-5,+5], so a -5 Mod can never reach the cap and a
+	// 0 Mod sometimes can. Comparing the two distributions is what shows
+	// the Mod reaching the formula at all.
+	heavy, light := 0, 0
+
+	for seed := range uint64(500) {
+		heavy += rogueSentence(dice.New(rand.NewPCG(seed+1, seed+1)), -5)
+		light += rogueSentence(dice.New(rand.NewPCG(seed+1, seed+1)), 0)
+	}
+
+	if heavy >= light {
+		t.Errorf("a -5 Mod totalled %d prison years against an unmodified %d — "+
+			"negative Mods are not reaching the sentence", heavy, light)
+	}
+
+	// Positive Mods are not "negative Mods" and must not shorten one.
+	for seed := range uint64(200) {
+		unmodified := rogueSentence(dice.New(rand.NewPCG(seed+1, seed+1)), 0)
+		if got := rogueSentence(dice.New(rand.NewPCG(seed+1, seed+1)), 3); got != unmodified {
+			t.Fatalf("a +3 Mod changed the sentence from %d to %d, want no effect", unmodified, got)
+		}
+	}
+}
+
+// TestRogueSentenceStaysInRange pins p.84's own bounds — "may be zero;
+// maximum 4" — across every Mod a term can carry.
+func TestRogueSentenceStaysInRange(t *testing.T) {
+	t.Parallel()
+
+	for mod := -6; mod <= 6; mod++ {
+		for seed := range uint64(100) {
+			got := rogueSentence(dice.New(rand.NewPCG(seed+1, seed+1)), mod)
+			if got < 0 || got > rogueMaxPrisonYears {
+				t.Fatalf("mod %d, seed %d: sentence %d outside [0,%d]", mod, seed+1, got, rogueMaxPrisonYears)
+			}
+		}
+	}
+}
+
+// TestRogueTermSkillsFollowEligibilityBox pins p.84's own "B SKILL
+// ELIGIBILITY": Per Term 2, Failed Scheme 1, Successful Scheme 4, In
+// Prison 2 — with "Receives ONLY Prison Skills (not Term or Scheme
+// Skills)" making a prison term two, not two on top of the per-Term two.
+//
+// Failing a Scheme and being in prison are independent: p.84 allows a
+// zero-year sentence, and the prison is served the term after the
+// failure, so a term can be either, both, or neither.
+func TestRogueTermSkillsFollowEligibilityBox(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		term Term
+		want int
+	}{
+		{"successful Scheme, free", Term{}, rogueSkillsPerTerm + rogueSuccessfulSchemeSkillBonus},
+		{"failed Scheme, free", Term{Imprisoned: true}, rogueSkillsPerTerm + rogueFailedSchemeSkillBonus},
+		{"in prison", Term{ServedYears: 2}, roguePrisonSkillsPerTerm},
+		{"in prison while this Scheme also failed", Term{ServedYears: 2, Imprisoned: true}, roguePrisonSkillsPerTerm},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := rogueTermSkillCount(c.term); got != c.want {
+				t.Errorf("eligibility = %d skills, want %d", got, c.want)
+			}
+		})
 	}
 }

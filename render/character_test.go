@@ -371,9 +371,9 @@ func TestCharacterRendersRogueTermOutcome(t *testing.T) {
 		"Term 1 (Soc): Scheme: Entertainer, Success (Payoff Cr600000)",
 		"Term 2 (Soc): Scheme: Merchant, Success (Ship Share)",
 		"Term 3 (Soc): Scheme: Marine, Success (No Reward)",
-		"Term 4 (Soc): Scheme: Soldier, Imprisoned 2 years",
-		"Term 5 (Soc): Scheme: Soldier, Imprisoned 3 years, Reward: Payoff Cr75000",
-		"Term 6 (Soc): Scheme: Merchant, Imprisoned 1 years, Reward: Ship Share",
+		"Term 4 (Soc): Scheme: Soldier, failed (sentenced 2 years)",
+		"Term 5 (Soc): Scheme: Soldier, failed (sentenced 3 years), Reward: Payoff Cr75000",
+		"Term 6 (Soc): Scheme: Merchant, failed (sentenced 1 years), Reward: Ship Share",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("render.Character missing %q in output:\n%s", want, out)
@@ -1038,5 +1038,38 @@ func TestCharacterCitizenLifeGrantIsDistinguishable(t *testing.T) {
 	failed := regexp.MustCompile(`Term 2 —[^\n]*`).FindString(out)
 	if strings.Contains(failed, "Job:") || strings.Contains(failed, "Hobby:") {
 		t.Errorf("a failed Citizen Life term should name no grant, got %q", failed)
+	}
+}
+
+// TestCharacterRendersRoguePrisonServedSeparately covers Book 1 p.84's
+// own timing: prison is served "at the start of the next Term", so the
+// term that fails a Scheme and the term spent in prison for it are
+// different terms — and a Rogue can be doing both at once.
+func TestCharacterRendersRoguePrisonServedSeparately(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Careers: []character.Career{{
+			Name: character.RogueCareerName,
+			Terms: []character.Term{
+				// Failed, earning a sentence served next term.
+				{ControllingCharacteristic: character.C6, Scheme: "Noble", Imprisoned: true, PrisonYears: 3},
+				// Serving it, while this term's own Scheme succeeds.
+				{
+					ControllingCharacteristic: character.C6, Scheme: "Scout", ServedYears: 3, SchemeShipShare: true,
+					RewardSucceeded: true,
+				},
+			},
+		}},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "Term 1 (Soc): Scheme: Noble, failed (sentenced 3 years)") {
+		t.Errorf("the failing term should report the sentence it earned, got:\n%s", out)
+	}
+
+	if !strings.Contains(out, "Term 2 (Soc): In prison 3 years, Scheme: Scout, Success (Ship Share)") {
+		t.Errorf("the following term should report prison served alongside its own Scheme, got:\n%s", out)
 	}
 }

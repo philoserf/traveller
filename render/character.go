@@ -306,8 +306,16 @@ func nobleTermLabel(t character.Term) string {
 func rogueTermLabel(t character.Term) string {
 	label := "Scheme: " + t.Scheme + ", "
 
+	// Two different things, both worth showing: a term served in prison
+	// for last term's failure, and this term's own Scheme failing and
+	// earning the next sentence. Book 1 p.84 imposes prison "at the
+	// start of the next Term", so a Rogue can be doing both at once.
+	if t.ServedYears > 0 {
+		label = fmt.Sprintf("In prison %d years, ", t.ServedYears) + label
+	}
+
 	if t.Imprisoned {
-		label += fmt.Sprintf("Imprisoned %d years", t.PrisonYears)
+		label += fmt.Sprintf("failed (sentenced %d years)", t.PrisonYears)
 
 		switch {
 		case t.SchemeShipShare:

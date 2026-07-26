@@ -48,8 +48,25 @@ var rogueSkillTable = [7][6]string{
 const (
 	rogueSkillsPerTerm              = 2
 	rogueSuccessfulSchemeSkillBonus = 4
+	rogueFailedSchemeSkillBonus     = 1
 	roguePrisonSkillsPerTerm        = 2
 )
+
+// rogueMaxPrisonYears is Book 1 p.84's own cap on a sentence: "Prison
+// for (sum of negative Mods + Flux) years at the start of the next Term
+// (may be zero; maximum 4)" — hence the clamp.
+const rogueMaxPrisonYears = 4
+
+// rogueSentence resolves the length of the sentence a failed Scheme
+// earns, per that same line. mod is the term's own combined Mod, so its
+// negative part is added as p.84 describes — the previous version rolled
+// Flux alone, which dropped the half of the formula that makes a
+// heavily-modified Scheme more dangerous to fail.
+func rogueSentence(r *dice.Roller, mod int) int {
+	negativeMods := min(mod, 0)
+
+	return min(rogueMaxPrisonYears, max(0, negativeMods+r.Flux()))
+}
 
 // rollRogueCC resolves "A Rogue selects one Controlling Characteristic
 // (C1 C2 C3 C4 C5 C6)" — a genuine open choice with no book-given
@@ -130,17 +147,22 @@ func rollRogueScheme(r *dice.Roller) (string, string) {
 // halved Payoff if Reward also succeeded. Skill eligibility drops to the
 // Prison-columns-only roll unconditionally on Risk failure, per this
 // slice's own documented simplification of "In Prison"/"Failed Scheme".
-func ResolveRogueTerm(r *dice.Roller, cc, mod int) Term {
+// servingPrison is the sentence, in years, carried into this term by the
+// previous one's failed Scheme. Book 1 p.84 imposes prison "at the start
+// of the next Term", so a Rogue serves the consequences of one term's
+// failure during the term after it, not the one that earned them.
+func ResolveRogueTerm(r *dice.Roller, cc, mod, servingPrison int) Term {
 	schemeName, schemeValue := rollRogueScheme(r)
 
 	term := Term{
-		Length: 4,
-		Scheme: schemeName,
+		Length:      4,
+		Scheme:      schemeName,
+		ServedYears: servingPrison,
 	}
 
 	if !rogueSucceeds(r, cc, mod) {
 		term.Imprisoned = true
-		term.PrisonYears = min(4, max(0, r.Flux()))
+		term.PrisonYears = rogueSentence(r, mod)
 	}
 
 	rewardSucceeded, rewardRoll := rogueSucceedsRaw(r, cc, -mod)
@@ -159,13 +181,50 @@ func ResolveRogueTerm(r *dice.Roller, cc, mod int) Term {
 		}
 	}
 
-	if term.Imprisoned {
-		term.SkillsAwarded = rollRogueSkillsFromTable(r, roguePrisonSkillsPerTerm)
-	} else {
-		term.SkillsAwarded = rollSkillsFromTable(r, rogueSkillTable, rogueSkillsPerTerm+rogueSuccessfulSchemeSkillBonus)
-	}
+	term.SkillsAwarded = rollRogueTermSkills(r, term)
 
 	return term
+}
+
+// rollRogueTermSkills applies Book 1 p.84's own "B SKILL ELIGIBILITY"
+// box: "Per Term 2, Failed Scheme 1, Successful Scheme 4, In Prison 2",
+// under the restriction "In Prison: Prison Skills from the Rogue Skills
+// table column 1 or 2 only. Receives ONLY Prison Skills (not Term or
+// Scheme Skills)."
+//
+// A term spent in prison therefore draws two skills from the restricted
+// columns and nothing else — not the per-Term two on top. Every other
+// term draws the per-Term two plus its Scheme bonus, four for a success
+// and one for a failure.
+//
+// The two conditions are independent, which the previous version
+// conflated: it treated failing a Scheme as being in prison that same
+// term. A Rogue can fail a Scheme while free (a zero-year sentence, which
+// p.84 explicitly allows), and can sit in prison during a term whose own
+// Scheme succeeded.
+func rollRogueTermSkills(r *dice.Roller, term Term) []SkillLevel {
+	if term.ServedYears > 0 {
+		return rollRogueSkillsFromTable(r, roguePrisonSkillsPerTerm)
+	}
+
+	return rollSkillsFromTable(r, rogueSkillTable, rogueTermSkillCount(term))
+}
+
+// rogueTermSkillCount is rollRogueTermSkills' own eligibility arithmetic,
+// split out because the roll itself can return fewer skills than it asks
+// for — rollSkillsFromTable drops cells this codebase can't resolve yet
+// ("Major", "One Science"). Counting separately keeps the rule directly
+// testable without that noise.
+func rogueTermSkillCount(term Term) int {
+	if term.ServedYears > 0 {
+		return roguePrisonSkillsPerTerm
+	}
+
+	if term.Imprisoned {
+		return rogueSkillsPerTerm + rogueFailedSchemeSkillBonus
+	}
+
+	return rogueSkillsPerTerm + rogueSuccessfulSchemeSkillBonus
 }
 
 // rollRogueSkillFromTable/rollRogueSkillsFromTable are Book 1 p.84's own

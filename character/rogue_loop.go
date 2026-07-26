@@ -67,10 +67,17 @@ func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, a
 	// own priorTerms locally instead of reading back through Career.
 	termCount := 0
 
+	// Years of prison owed at the start of the next term.
+	pendingPrison := 0
+
 	terms, finalUPP := resolveCareerLoop(r, upp, []Position{ccPos},
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
-			term := ResolveRogueTerm(r, int(upp.Characteristics[ccPos]), termCount) // "+Terms"
+			// The sentence earned last term is served at the start of this
+			// one (Book 1 p.84), so it is threaded forward rather than
+			// applied where it was incurred.
+			term := ResolveRogueTerm(r, int(upp.Characteristics[ccPos]), termCount, pendingPrison) // "+Terms"
 			term.ControllingCharacteristic = ccPos
+			pendingPrison = term.PrisonYears
 			termCount++
 
 			return term, upp // Rogue never modifies its own CC
