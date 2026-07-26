@@ -32,11 +32,10 @@
 // -career also accepts a comma-separated ordered list ("scout,spacer")
 // to chain multiple careers over one lifetime (character/career_chain.go:
 // GenerateCareerChainCharacter), falling back to Citizen if every listed
-// career fails to Begin — Noble isn't a valid chain entry (its Begin
-// doesn't fit the shape); use -career noble alone instead. Functionary
-// and Craftsman may only appear as later entries, never first (Book 1:
-// both "never a first career") — e.g. -career "scholar,functionary" or
-// -career "citizen,craftsman".
+// career fails to Begin. Each non-final entry means "transfer after one
+// term"; the final career follows its normal Continue rolls. Functionary
+// and Noble must be final entries, and Functionary and Craftsman may
+// never be first.
 //
 // -age N stops the chain from attempting any further term or career
 // once the character's age would reach or exceed N — never a
@@ -63,8 +62,8 @@ func main() {
 		"scout",
 		"career (or comma-separated ordered list, e.g. \"scholar,functionary\") to generate: scout, citizen, "+
 			"noble, marine, soldier, spacer, rogue, scholar, entertainer, merchant, agent, functionary, or "+
-			"craftsman — noble may only be used alone; functionary and craftsman may only be a later entry, "+
-			"never first",
+			"craftsman — each non-final career lasts one term; functionary and noble must be final; "+
+			"functionary and craftsman may not be first",
 	)
 	ageTarget := flag.Int(
 		"age",
@@ -144,8 +143,7 @@ func splitCareerNames(careerName string) []string {
 // generateSingleCareer keeps today's exact single-career dispatch
 // unchanged — every one of these 11 values, including "noble" and
 // "citizen", byte-for-byte matches pre-chaining behavior. Multi-entry
-// lists go through character.GenerateCareerChainCharacter instead (see
-// main's own caller), which "noble" deliberately isn't part of.
+// lists go through character.GenerateCareerChainCharacter instead.
 // rawCareerName is the untouched -career flag value (not the lowercased/
 // trimmed name) so an invalid single value's error message echoes
 // exactly what the user typed, matching pre-chaining behavior.
@@ -180,7 +178,7 @@ func generateSingleCareer(r *dice.Roller, name, rawCareerName string, c *charact
 			os.Stderr,
 			"chargen: -career must be \"scout\", \"citizen\", \"noble\", \"marine\", \"soldier\", \"spacer\", "+
 				"\"rogue\", \"scholar\", \"entertainer\", \"merchant\", \"agent\", or a comma-separated list "+
-				"of those (except noble), got %q\n",
+				"of those, got %q\n",
 			rawCareerName,
 		)
 		os.Exit(1)

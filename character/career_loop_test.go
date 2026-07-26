@@ -142,6 +142,34 @@ func TestResolveScoutCareerWithBudgetTruncatesAnImmortalCareer(t *testing.T) {
 	}
 }
 
+func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
+	t.Parallel()
+
+	continueCalled := false
+	terms, _ := resolveCareerLoop(
+		dice.New(rand.NewPCG(1, 1)),
+		UPP{Characteristics: [6]ehex.Value{8}},
+		[]Position{C1},
+		func(_ *dice.Roller, upp UPP, _ Position) (Term, UPP) {
+			return Term{Length: 4, RiskResult: Unharmed}, upp
+		},
+		func(_ *dice.Roller, _ UPP) bool {
+			continueCalled = true
+
+			return false
+		},
+		1,
+	)
+
+	if len(terms) != 1 {
+		t.Fatalf("len(terms) = %d, want 1", len(terms))
+	}
+
+	if continueCalled {
+		t.Fatal("Continue was rolled after the caller had already chosen to transfer")
+	}
+}
+
 // TestResolveScoutCareerCCRotationAcrossTerms reuses the immortal fixture:
 // since Risk can never fail, C1/C2/C3 all stay tied at 12 for the whole
 // career, so highestOf's first-wins-on-tie makes the rotation fully

@@ -135,7 +135,11 @@ func resolveCareerLoop(
 
 		terms = append(terms, term)
 
-		if !term.RiskResult.Survived() || term.RiskResult == Disabled || !continueCareer(r, upp) {
+		if !term.RiskResult.Survived() || term.RiskResult == Disabled || len(terms) == maxTerms {
+			break
+		}
+
+		if !continueCareer(r, upp) {
 			break
 		}
 	}
