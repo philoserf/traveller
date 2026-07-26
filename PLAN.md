@@ -91,7 +91,7 @@ _Size: medium._
 ## Phase 2 — per-career mechanics — DONE
 
 #43 (PR #83), #39 (verified correct, closed without change), #42 (#84),
-#40 (#85), #59 (#86). #44 remains — see below.
+#40 (#85), #59 (#86), #44 (#89).
 
 <details>
 <summary>Original plan detail</summary>
@@ -171,21 +171,19 @@ of PRs rather than treating it as one issue.
 
 ## Found along the way
 
-### #82 — Fame Stacks cap (new)
+### #82 — Fame Stacks cap — DONE (PR #88)
 
-> p.91: "A character's Fame is the sum of all Fame points received to 20;
-> beyond 20, only the highest Fame applies."
+Resolved via p.91's own Fame descriptor scale (0 Unknown … 19 Subsector,
+20 Sector, 21 Domain … 36 All Reality): Fame is a scale of *reach*, so
+local fames accumulate to Sector-wide and beyond that only the greatest
+reach counts — `max(min(sum, 20), highest)`.
 
-Fame is summed without limit today (p99 of 16, maximum 40 across 12,000
-characters). Filed rather than fixed because the wording admits two
-readings, one of which lets a *second* Fame award *lower* a character's
-Fame. Needs a decision before implementing, and it interacts with the
-Fame 19+ Mustering Out roll shipped in #55.
-
-### Still open from Phase 2
-
-**#44 — Agent Undercover Assignment table and A/B/C mechanic.** The
-largest of that phase; left for its own pass.
+The lesson worth keeping: the first implementation summed each career's
+Fame into one award, and measuring showed the cap was **inert** (4.2% of
+characters over 20 both before and after). That was the signal the
+granularity was wrong, not that the rule was minor. p.91 counts "Fame
+points *received*", so awards are per-instance. Measure before believing
+a rules fix did anything.
 
 ## Standing checks for every PR
 
