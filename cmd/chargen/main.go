@@ -18,11 +18,7 @@
 // multi-term Prison-sentence simulation for Rogue, Scholar's own
 // Major/Minor selection and Waivers, Entertainer's own optional 2nd/3rd
 // Flux rolls and Comeback, Merchant's own Ship Owner Fame bonus (this
-// codebase tracks Ship Shares, not outright ownership), Agent's own full
-// Undercover Assignment table (rank titles, the three-die A/B/C
-// mechanic, and Citizen's/Scout's own special-cased rows — simplified to
-// a uniform pick among this codebase's own already-implemented career
-// skill tables), Functionary's own F6 Rank title for preceding careers
+// codebase tracks Ship Shares, not outright ownership), Functionary's own F6 Rank title for preceding careers
 // Book 1 doesn't name (falls back to the generic "Director"), and
 // Craftsman's own QREBS Masterpiece-dimension allocation and Vintage
 // Masterpiece value appreciation (no structured item record or

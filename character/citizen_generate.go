@@ -99,22 +99,17 @@ var citizenTableE = [3][6][6]string{
 }
 
 // rollCitizenTableEName rolls Book 1 p.78's own described procedure —
-// "Roll A (reroll if >3), then roll B, and finally top row C" — as a
-// literal reroll loop, not a Uniform(3) pick, matching the book's own
-// wording. Returns the name and true, or false for the one unresolvable
+// "Roll A (reroll if >3), then roll B, and finally top row C" — via
+// rollRestrictedD6 (agent_undercover.go), which is that literal reroll
+// loop rather than an equivalent Uniform(3) pick, matching the book's
+// own wording. Note p.78's C is a plain 1D6 across six columns; only
+// A is restricted here, unlike p.83's Undercover table where both are.
+//
+// Returns the name and true, or false for the one unresolvable
 // entry, "No Skill" (A=1, B=3, C=5) — the same "lost benefit" treatment
 // already established for Table C's Major/Minor/One Science entries.
 func rollCitizenTableEName(r *dice.Roller) (string, bool) {
-	var a int
-
-	for {
-		a = r.D6()
-		if a <= 3 {
-			break
-		}
-	}
-
-	name := citizenTableE[a-1][r.D6()-1][r.D6()-1]
+	name := citizenTableE[rollRestrictedD6(r, len(citizenTableE))-1][r.D6()-1][r.D6()-1]
 	if name == "No Skill" {
 		return "", false
 	}

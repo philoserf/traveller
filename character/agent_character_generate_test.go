@@ -45,7 +45,7 @@ func TestAgentCareerFame(t *testing.T) {
 func TestGenerateAgentCharacterQualified(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(2, 2))
+	r := dice.New(rand.NewPCG(8, 8))
 
 	c, ok := GenerateAgentCharacter(r)
 
@@ -69,8 +69,11 @@ func TestGenerateAgentCharacterQualified(t *testing.T) {
 		t.Fatalf("len(Careers[0].Terms) = %d, want 1", len(c.Careers[0].Terms))
 	}
 
-	if c.Fame != 1 {
-		t.Errorf("Fame = %d, want 1", c.Fame)
+	// Book 1 p.91: "Agent =Number of Commendations". Asserted as that
+	// relationship rather than as a pinned 1, so the test keeps checking
+	// the rule rather than the seed after a dice-stream shift.
+	if want := agentCommendationCount(c.Careers[0].Terms); c.Fame != want {
+		t.Errorf("Fame = %d, want %d (one per Commendation)", c.Fame, want)
 	}
 
 	if c.Cash != 0 {
