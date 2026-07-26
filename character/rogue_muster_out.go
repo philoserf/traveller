@@ -21,7 +21,7 @@ var rogueMusterOutBenefits = [12]string{
 // (step E, p.57), one roll per term served — mirrors
 // ResolveNobleMusterOut's own simpler shape (character/noble_muster_out.go:
 // len(career.Terms) directly), not Scout's/Marine's own
-// scoutMusterOutRollCount, since Rogue has no Dead/Disabled wrinkle at
+// musterOutRollCount, since Rogue has no Dead/Disabled wrinkle at
 // all (no death or disability concept exists for this career). DM is
 // p.84's own "+Total Terms" on both columns.
 func ResolveRogueMusterOut(r *dice.Roller, career Career) MusteringOut {

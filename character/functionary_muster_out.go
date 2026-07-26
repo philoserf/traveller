@@ -26,7 +26,7 @@ var functionaryMusterOutBenefits = [11]string{
 	"TAS Fellow Membership", "Knighthood", "Directorship",
 }
 
-// functionaryMusterOutRollCount mirrors scoutMusterOutRollCount's own
+// functionaryMusterOutRollCount mirrors musterOutRollCount's own
 // shape (career_muster_out.go) but does NOT double the roll count on a
 // Disabled last term. Functionary reuses RiskResult.Disabled to mean
 // "Office Politics failed, career ends" (ResolveFunctionaryTerm's own

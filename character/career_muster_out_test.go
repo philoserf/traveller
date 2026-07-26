@@ -57,30 +57,62 @@ func TestScoutMusterOutTablesMatchBook1P79(t *testing.T) {
 	}
 }
 
-func TestScoutMusterOutRollCount(t *testing.T) {
+// TestMusterOutRollCount pins Book 1 p.68's whole roll budget: "one
+// Mustering Out roll for each term served in Career Resolution. He is
+// allowed one additional roll per Commendation, MCG, or SEH. He is
+// allowed one additional roll if Fame 19+."
+//
+// The medal cases matter most. p.68 names MCG and SEH and stops there;
+// XS and MCUF are far commoner (an XS lands on every surviving Risk
+// roll), so counting them would roughly double a long Armed Forces
+// career's benefits.
+func TestMusterOutRollCount(t *testing.T) {
 	t.Parallel()
+
+	medalTerm := func(medals ...string) Term { return Term{Medals: medals} }
 
 	cases := []struct {
 		name   string
 		career Career
+		fame   int
 		want   int
 	}{
-		{"never qualified", Career{}, 0},
-		{"3 terms, Unharmed ending", Career{Terms: make([]Term, 3)}, 3},
+		{"never qualified", Career{}, 0, 0},
+		{"3 terms, Unharmed ending", Career{Terms: make([]Term, 3)}, 0, 3},
 		{
 			"5 terms, Wounded ending",
 			Career{Terms: append(make([]Term, 4), Term{RiskResult: Wounded})},
-			5,
-		},
-		{
-			"2 terms, Disabled ending doubles the roll count",
-			Career{Terms: append(make([]Term, 1), Term{RiskResult: Disabled})},
-			4,
+			0, 5,
 		},
 		{
 			"7 terms, Dead ending",
 			Career{Terms: append(make([]Term, 6), Term{RiskResult: Dead})},
-			0,
+			0, 0,
+		},
+		{
+			"one roll per Commendation on top of terms",
+			Career{Terms: []Term{{RewardResult: "Noble Commendation-3"}, {RewardResult: "None"}}},
+			0, 3,
+		},
+		{"MCG earns an extra roll", Career{Terms: []Term{medalTerm("MCG")}}, 0, 2},
+		{"SEH earns an extra roll", Career{Terms: []Term{medalTerm("SEH")}}, 0, 2},
+		{
+			"XS and MCUF do not — p.68 names only MCG and SEH",
+			Career{Terms: []Term{medalTerm("XS", "MCUF"), medalTerm("XS")}},
+			0, 2,
+		},
+		{
+			"several qualifying medals each earn one",
+			Career{Terms: []Term{medalTerm("XS", "MCG"), medalTerm("SEH", "MCUF")}},
+			0, 4,
+		},
+		{"Fame 18 earns nothing", Career{Terms: make([]Term, 2)}, 18, 2},
+		{"Fame 19 earns one extra roll", Career{Terms: make([]Term, 2)}, 19, 3},
+		{"Fame well past 19 still earns exactly one", Career{Terms: make([]Term, 2)}, 40, 3},
+		{
+			"Disability doubles the finished total, extras included",
+			Career{Terms: []Term{medalTerm("MCG"), {RiskResult: Disabled}}},
+			19, 8, // (2 terms + 1 medal + 1 fame) * 2
 		},
 	}
 
@@ -88,8 +120,8 @@ func TestScoutMusterOutRollCount(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoutMusterOutRollCount(c.career); got != c.want {
-				t.Errorf("scoutMusterOutRollCount(%s) = %d, want %d", c.name, got, c.want)
+			if got := musterOutRollCount(c.career, c.fame); got != c.want {
+				t.Errorf("musterOutRollCount(%s) = %d, want %d", c.name, got, c.want)
 			}
 		})
 	}
@@ -124,11 +156,11 @@ func TestResolveScoutMusterOutRollCountMatchesTerms(t *testing.T) {
 	r := dice.New(rand.NewPCG(9, 10))
 
 	for _, career := range careers {
-		want := scoutMusterOutRollCount(career)
+		want := musterOutRollCount(career, scoutDiscoveryFame(career))
 
 		out := ResolveScoutMusterOut(r, career)
 		if got := len(out.Money) + len(out.Benefits); got != want {
-			t.Errorf("len(Money)+len(Benefits) = %d, want %d (scoutMusterOutRollCount)", got, want)
+			t.Errorf("len(Money)+len(Benefits) = %d, want %d (musterOutRollCount)", got, want)
 		}
 	}
 }

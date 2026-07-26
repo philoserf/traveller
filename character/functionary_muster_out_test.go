@@ -33,7 +33,7 @@ func TestFunctionaryMusterOutTablesMatchBook1P87(t *testing.T) {
 // TestFunctionaryMusterOutRollCountDoesNotDoubleOnDisabled is the
 // regression test for the bug this slice caught during its own
 // implementation, before code review: functionaryMusterOutRollCount
-// must NOT reuse scoutMusterOutRollCount's own "double on Disabled"
+// must NOT reuse musterOutRollCount's own "double on Disabled"
 // rule — Functionary's own Disabled reuse means "Office Politics
 // failed, career ends," not the universal p.65 physical disability the
 // Double Benefits rule is actually about.

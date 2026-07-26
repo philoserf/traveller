@@ -44,11 +44,14 @@ func TestResolveMarineMusterOutRollCountMatchesTerms(t *testing.T) {
 	r := dice.New(rand.NewPCG(9, 10))
 
 	for _, career := range careers {
-		want := scoutMusterOutRollCount(career)
+		want := musterOutRollCount(
+			career,
+			rankBasedCareerFame(career, len(marineEnlistedRankNames), len(marineOfficerRankNames)),
+		)
 
 		out := ResolveMarineMusterOut(r, career)
 		if got := len(out.Money) + len(out.Benefits); got != want {
-			t.Errorf("len(Money)+len(Benefits) = %d, want %d (scoutMusterOutRollCount)", got, want)
+			t.Errorf("len(Money)+len(Benefits) = %d, want %d (musterOutRollCount)", got, want)
 		}
 	}
 }

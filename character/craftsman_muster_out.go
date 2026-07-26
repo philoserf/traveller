@@ -26,7 +26,7 @@ var craftsmanMusterOutBenefits = [12]string{
 // ResolveCraftsmanMusterOut resolves Book 1 p.75's own Muster Out
 // table. DM = Terms only — no "+Officer Rank" boilerplate component on
 // this career's own box (unlike Functionary's). Safely reuses
-// scoutMusterOutRollCount directly: Craftsman's own RiskResult is
+// musterOutRollCount directly: Craftsman's own RiskResult is
 // always Unharmed (ResolveCraftsmanTerm's own doc comment — no Risk &
 // Reward at all), so the shared helper's own "double on Disabled"
 // branch can never spuriously fire here the way it would have for
@@ -36,7 +36,7 @@ func ResolveCraftsmanMusterOut(r *dice.Roller, career Career) MusteringOut {
 
 	dm := len(career.Terms)
 
-	for range scoutMusterOutRollCount(career) {
+	for range musterOutRollCount(career, craftsmanCareerFame(career.Terms)) {
 		row := musterOutRow(r.D6()+dm, len(craftsmanMusterOutMoney))
 		if r.Uniform(2) == 1 {
 			out.Money = append(out.Money, craftsmanMusterOutMoney[row])

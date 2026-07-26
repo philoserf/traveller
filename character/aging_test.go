@@ -367,7 +367,7 @@ func TestResolveAgingReportsReachedAge(t *testing.T) {
 // resolving a term, so the next career in a chain got one free term,
 // and Mustering Out ran unconditionally afterward. Book 1 p.69's rule
 // that a dead character never reaches Mustering Out was already encoded
-// for career death (scoutMusterOutRollCount); this extends it to p.89.
+// for career death (musterOutRollCount); this extends it to p.89.
 func TestAgingDeathStopsServiceAndMusterOut(t *testing.T) {
 	t.Parallel()
 
