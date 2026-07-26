@@ -51,8 +51,13 @@ func TestResolveCitizenLifeAlwaysSucceedsAtMaxCC(t *testing.T) {
 	r := dice.New(rand.NewPCG(1, 1))
 
 	for range 100 {
-		if !resolveCitizenLife(r, 12) {
-			t.Fatal("resolveCitizenLife(cc=12) = false, want true (2D6 <= 12 always)")
+		ok, roll := resolveCitizenLife(r, 12)
+		if !ok {
+			t.Fatalf("resolveCitizenLife(cc=12) = false, want true (2D6 <= 12 always); roll = %d", roll)
+		}
+
+		if roll < 2 || roll > 12 {
+			t.Fatalf("roll = %d, want within 2D6's own [2,12]", roll)
 		}
 	}
 }
@@ -63,8 +68,8 @@ func TestResolveCitizenLifeNeverSucceedsAtZeroCC(t *testing.T) {
 	r := dice.New(rand.NewPCG(2, 2))
 
 	for range 100 {
-		if resolveCitizenLife(r, 0) {
-			t.Fatal("resolveCitizenLife(cc=0) = true, want false (2D6 minimum is 2)")
+		if ok, roll := resolveCitizenLife(r, 0); ok {
+			t.Fatalf("resolveCitizenLife(cc=0) = true, want false (2D6 minimum is 2); roll = %d", roll)
 		}
 	}
 }

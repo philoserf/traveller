@@ -48,8 +48,10 @@ func BeginCitizen() bool {
 // Scout's Risk & Reward, no characteristic reduction and no wound of any
 // kind on failure — "the Citizen continues the term stuck in a dull,
 // boring, unfulfilling life," not injury.
-func resolveCitizenLife(r *dice.Roller, cc ehex.Value) bool {
-	return rollAgainstTarget(r, int(cc), 0)
+func resolveCitizenLife(r *dice.Roller, cc ehex.Value) (bool, int) {
+	roll := r.TwoD6()
+
+	return succeedsAgainst(roll, int(cc), 0), roll
 }
 
 // citizenTableE is Book 1 p.78's "E CITIZEN SKILLS AND KNOWLEDGES" table:
@@ -227,12 +229,14 @@ func ResolveCitizenTerm(
 	jobSkill, hobbySkill string,
 ) (Term, string, string) {
 	cc := upp.Characteristics[ccPos]
-	succeeded := resolveCitizenLife(r, cc)
+	succeeded, roll := resolveCitizenLife(r, cc)
 
 	term := Term{
 		Length:                    4,
 		ControllingCharacteristic: ccPos,
 		CitizenLifeSucceeded:      succeeded,
+		CitizenLifeRoll:           roll,
+		CitizenLifeTarget:         int(cc),
 		SkillsAwarded:             rollSkillsFromTable(r, citizenTableC, 4),
 	}
 
@@ -243,6 +247,8 @@ func ResolveCitizenTerm(
 	grant, ok, newJob, newHobby := citizenLifeSkillGrant(r, priorSuccesses, jobSkill, hobbySkill)
 	if ok {
 		term.SkillsAwarded = append(term.SkillsAwarded, grant)
+		term.CitizenLifeGrant = grant.Name
+		term.CitizenLifeGrantIsJob = citizenLifeGrantIsJob(priorSuccesses)
 	}
 
 	return term, newJob, newHobby

@@ -2,6 +2,8 @@ package render_test
 
 import (
 	"math/rand/v2"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -626,6 +628,10 @@ var citizenSheet = character.Character{
 				{
 					ControllingCharacteristic: character.C1,
 					CitizenLifeSucceeded:      true,
+					CitizenLifeRoll:           6,
+					CitizenLifeTarget:         8,
+					CitizenLifeGrant:          "Pilot",
+					CitizenLifeGrantIsJob:     true,
 					SkillsAwarded: []character.SkillLevel{
 						{Name: "Pilot", Level: 4, Kind: character.Skill},
 					},
@@ -633,6 +639,8 @@ var citizenSheet = character.Character{
 				{
 					ControllingCharacteristic: character.C2,
 					CitizenLifeSucceeded:      false,
+					CitizenLifeRoll:           11,
+					CitizenLifeTarget:         9,
 				},
 			},
 			MusteringOut: character.MusteringOut{
@@ -652,8 +660,8 @@ func TestCharacterRendersCitizenLifeOutcome(t *testing.T) {
 	out := render.Character(citizenSheet)
 
 	want := []string{
-		"Term 1 (Str): Citizen Life: Success",
-		"Term 2 (Dex): Citizen Life: Failure",
+		"Term 1 — Citizen Life 6 ≤ Str 8: success, Job: Pilot",
+		"Term 2 — Citizen Life 11 > Dex 9: failure",
 	}
 
 	for _, w := range want {
@@ -961,5 +969,74 @@ func TestCharacterRendersMetadataAsOneCompactBlock(t *testing.T) {
 
 	if !sawHardBreak {
 		t.Error("no consecutive metadata lines found — fixture can't verify the compact block")
+	}
+}
+
+// TestCharacterCitizenLifeComparisonMatchesOutcome is #48's key
+// acceptance check: the roll/target comparison a term renders must agree
+// with the outcome it stored. A line that says "9 > End 1" beside
+// "success" would be worse than the old opaque "(End): Success" — it
+// would look explanatory while being wrong.
+//
+// Driven through real generation rather than a fixture, so it covers
+// whatever rolls actually occur, including the equal-to boundary where
+// Book 1 p.78's "or less" makes the check succeed.
+func TestCharacterCitizenLifeComparisonMatchesOutcome(t *testing.T) {
+	t.Parallel()
+
+	line := regexp.MustCompile(`Citizen Life (\d+) ([≤>]) \w+ (\d+): (success|failure)`)
+
+	checked, sawEqual := 0, false
+
+	for seed := range uint64(60) {
+		c, _ := character.GenerateCitizenCharacter(dice.New(rand.NewPCG(seed+1, seed+1)))
+
+		for _, m := range line.FindAllStringSubmatch(render.Character(c), -1) {
+			roll, _ := strconv.Atoi(m[1])
+			target, _ := strconv.Atoi(m[3])
+			cmp, outcome := m[2], m[4]
+
+			if (roll <= target) != (outcome == "success") {
+				t.Errorf("rendered %q: roll %d vs target %d contradicts the stated outcome", m[0], roll, target)
+			}
+
+			if want := map[bool]string{true: "≤", false: ">"}[roll <= target]; cmp != want {
+				t.Errorf("rendered %q: comparison %q, want %q", m[0], cmp, want)
+			}
+
+			if roll == target {
+				sawEqual = true
+			}
+
+			checked++
+		}
+	}
+
+	if checked == 0 {
+		t.Fatal("no Citizen Life lines rendered — the test verified nothing")
+	}
+
+	if !sawEqual {
+		t.Logf("no roll landed exactly on target across %d checks; the 'or less' boundary went unexercised", checked)
+	}
+}
+
+// TestCharacterCitizenLifeGrantIsDistinguishable covers #48's "the
+// successful Job/Hobby grant is distinguishable from ordinary term
+// skills": the grant is named on the term line, and labelled with which
+// of the two alternating tracks it came from.
+func TestCharacterCitizenLifeGrantIsDistinguishable(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(citizenSheet)
+
+	if !strings.Contains(out, "Job: Pilot") {
+		t.Errorf("render.Character should name the Job grant on the term line, got:\n%s", out)
+	}
+
+	// A failed term grants nothing, so its line must stop at the outcome.
+	failed := regexp.MustCompile(`Term 2 —[^\n]*`).FindString(out)
+	if strings.Contains(failed, "Job:") || strings.Contains(failed, "Hobby:") {
+		t.Errorf("a failed Citizen Life term should name no grant, got %q", failed)
 	}
 }
