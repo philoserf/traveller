@@ -1,216 +1,98 @@
-# Traveller backlog plan
+# Character generation plan
 
-Ranked working order for the 17 open issues. Every entry below was checked
-against `reference/Traveller5 Core Rules Book 1 Characters and Combat.txt`
-(and Book 2 for shipgen) — the page text is quoted where it decides scope.
+Remaining work on **character generation only**. Starship generation is
+out of scope — see "Tabled" below.
 
-**Working rule for each item:** read the cited rule text first, implement
-against it, and quote it in the PR. Do not implement from the issue text
-alone — several issues paraphrase the rules inaccurately.
+Every entry is checked against
+`reference/Traveller5 Core Rules Book 1 Characters and Combat.txt`, with
+the page text quoted where it decides scope.
 
----
+**Working rule:** read the cited rule text first, implement against it,
+and quote it in the PR. Do not implement from the issue text alone —
+several issues paraphrase the rules inaccurately, and three have been
+wrong outright.
 
-## Phase 1 — Mustering Out cluster — DONE
-
-All four merged: #55 (PR #77), #57 (#78), #45 (#81), #56 (#80).
-
-<details>
-<summary>Original plan detail</summary>
-
-These four all live in `career_muster_out.go` / `muster_out_apply.go`.
-Doing them adjacently avoids four rounds of churn through the same code.
-Rule text for all four is confirmed and unambiguous.
-
-### 1. #55 — extra Mustering Out rolls
-
-> p.68: "one Mustering Out roll for each term served… one additional roll
-> per Commendation, MCG, or SEH. He is allowed one additional roll if Fame 19+."
-
-`scoutMusterOutRollCount` implements terms + Disability doubling only.
-Note the rule names **MCG or SEH specifically** — not XS or MCUF, which the
-Armed Forces careers grant far more often. Agent Commendations are already
-recorded on terms.
-Also confirms: Fame 19+ grants its roll, and p.68 lets that roll pick any
-eligible career table.
-_Size: medium. Start here — it changes roll counts everything else builds on._
-
-### 2. #57 (remainder) — Knighthood and Forbidden Knowledge
-
-> p.68: "Knighthood. The character receives a Knighthood (= Soc B if the
-> character has C6= Soc)." … "If the improvement is C6+1 and for the
-> character C6= Caste, the benefit is lost."
-> p.69: "Forbidden Knowledge… Each receipt provides skill-1."
-
-The characteristic cap half shipped in #76. Knighthood is fully specified:
-
-> p.68: "A Knighthood raises any value of Soc to B; if the character is
-> already Soc 11+, he receives Soc +1 instead."
-> p.68: "In the Spacer, Soldier, and Marine careers, Knighthood is only
-> available to Officers. A non-officer receives Soc +1 (even if it advances
-> Soc to 11 or beyond)."
-
-The enlisted restriction the issue described is real — I initially reported
-it as unfound, having stopped reading a paragraph too early. Both halves are
-confirmed; no open question remains.
-
-Forbidden Knowledge grants skill-1 but the text names no table, so decide
-and document how the skill is chosen.
-_Size: small–medium._
-
-### 3. #45 — reroll duplicate Benefits
-
-> p.68: "Duplicate benefits may be rerolled."
-> p.69: "A result that duplicates a previous (unwanted or unusable) benefit
-> may be rerolled until a different benefit is received, for example: Wafer
-> Jack, TAS Member, Knighthood."
-
-The p.69 examples effectively define the "unique" set; cumulative results
-(Ship Share, characteristic +1, Fame +2, cash) stay repeatable. "May" is a
-player option — resolve it with this codebase's established convention for
-open choices, and guard against an exhausted table looping forever.
-_Size: medium._
-
-### 4. #56 — pensions and retirement
-
-> p.70: Citizen Cr5,000/yr; Functionary Cr15,000/yr (replaces Citizen's);
-> Reserve Cr100/yr; tenured Professor's pension; Enlisted retirement
-> Cr2,000/term and Officer Cr3,000/term, both requiring 4+ terms.
-> "A pension begins when a character reaches Life Stage 9 Retirement (= age
-> 66 for Humans)." Duplicate entitlements are allowed. "Any Entitlement can
-> be cashed out for a lump sum equal to five years of payments."
-
-`MusteringOut.Pension` and `.RetirementPay` already exist and are never set.
-Note the Life-Stage-9 start is a real gate — most generated characters never
-reach 66. Render annual amounts as income, not cash.
-_Size: medium._
-
-</details>
+Phases 1–3 are done (Mustering Out, per-career mechanics, cross-cutting
+structures). Their detail is not repeated here: git history, the PR
+descriptions, and the doc comments at each implementation site carry it,
+and the comments quote the governing rule directly.
 
 ---
 
-## Phase 2 — per-career mechanics — DONE
+## 1. #93 — Noble rank and NobleTitle() disagree
 
-#43 (PR #83), #39 (verified correct, closed without change), #42 (#84),
-#40 (#85), #59 (#86), #44 (#89).
+A live defect, not a deferral: the two disagree for 25.7% of generated
+Nobles, because Mustering Out raises Soc after the career ends and the
+Soc-derived title outruns the ladder the career walked.
 
-<details>
-<summary>Original plan detail</summary>
+Do this first. It is small and self-contained, and it sits underneath
+#36 — the largest remaining change — so leaving it means re-deriving
+Noble fixtures twice.
 
-Self-contained; each touches one career's own file. Order within the phase
-is by confidence in the rule text, highest first.
+Carries a rules question: whether noble rank is Soc-derived or
+ladder-tracked, and whether a Mustering Out Soc increase awards a Land
+Grant (p.85: "Each increase in Soc during CharGen awards a Land Grant").
 
-### 5. #43 — Merchant Ship Owner Fame
+## 2. #94 — Scout Discovery Fame: +1 or x4
 
-> p.91 Fame table: "Merchant — Ship Owner = 1D"
+> p.79: a Discovery gives "a Land Grant, and Fame +1."
+> p.91 Fame table: "Scout — Discoveries — x4"
 
-Fame award is confirmed. **Open question:** the threshold at which
-accumulated Ship Shares become ownership — find it before implementing.
+Needs a decision, not research. The code does x4, which #82 rebuilt the
+whole Fame system on. Cheap to settle and worth settling before #36,
+since Education changes how characteristics move.
 
-### 6. #39 — Functionary F6 rank titles
+This codebase's own precedent cuts both ways — "a career's own box beats
+the generic summary" favors p.79, but p.91 is the Fame chapter's
+dedicated table with a Mult column, not a summary.
 
-Locate p.87's F6 title table and cover every preceding career this codebase
-supports; the generic "Director" fallback stays only for genuinely unnamed
-combinations.
+## 3. #36 — Command College and Education
 
-### 7. #42 — Entertainer optional Flux rolls and Comeback
+The largest remaining chargen item, and the highest-value one.
+Major/Minor cells are **8.8% of all skill-table cells** across the 13
+careers (48 of 546), and every draw on one is discarded silently today.
+Unresolvable cells total 12.1%.
 
-### 8. #40 — Rogue multi-term prison sentences
+Book 1 has the material despite the issue calling it unresearched: 110
+Education references, 14 for Command College.
 
-### 9. #59 — Rogue Scheme Flux adjustment and previous-career selection
+Scope needs a decision at the research stage. Education is not just a
+characteristic — Command College is deferred at O4 in Marine, Soldier
+and Spacer, and "Resolve ANM School as Education" sits in all three
+Operations tables. Settle how far that runs before building.
 
-### 10. #44 — Agent Undercover Assignment table and A/B/C mechanic
+## 4. #41 — Scholar Major/Minor selection and Waivers
 
-Largest of this phase: a full table plus a three-die mechanic.
+Depends on #36. The payoff measured above is realized here.
 
-</details>
+## 5. #95 — Craftsman never reaches 40 Master Points
 
----
+Zero Masterpieces across 6,000 generated chains, so QREBS and Vintage
+never fire in practice.
 
-## Phase 3 — cross-cutting structures — DONE
+Do this after #41, not before: the real question is skill-level
+progression — every grant in this codebase is a flat +1, so a level-6
+skill needs six grants and five of them needs thirty, while Book 1
+casually assumes a Craftsman with 45 Master Points. #36/#41 change what
+grants skills, so measure after they land.
 
-#58+#37 (PR #90), #54 (#91), #35 (#92).
+## 6. #96 — Land Grant scope deferrals
 
-<details>
-<summary>Original plan detail</summary>
-
-### 11. #58 + #37 — Land Grants (do together)
-
-42 references in Book 1. Scout Discoveries and Noble both need the same
-structured Land Grant, and `noble_generate.go`'s "Capital" skill cell is
-blocked on it too. Building a Scout-only version first would make the shared
-one harder — this is why #58's remaining half was deferred rather than
-half-built.
-
-### 12. #54 — Armed Forces term skills restricted to received Operations columns
-
-Restructures how term skills are drawn: retain all four Operations results
-per term for eligibility while still using only the highest Mod for
-Risk/Reward. Expect fixture churn.
-
-### 13. #35 — Craftsman QREBS and Vintage appreciation
-
-Needs a structured item record and a time-since-creation concept, neither of
-which exists yet.
-
----
-
-</details>
-
-## Phase 4 — foundational and large
-
-### 14. #36 — Command College and Education
-
-Currently the only issue the codebase itself calls unresearched. Education is
-a prerequisite for #41's Major/Minor, and Command College is deferred in
-Marine/Soldier/Spacer at O4. Do this before #41.
-
-### 15. #41 — Scholar Major/Minor selection and Waivers
-
-Depends on #36.
-
-### 16. #6 — shipgen
-
-A whole subsystem against Book 2 (20k lines). The `starship` package is
-types and constants only — one function today. Scope into its own sequence
-of PRs rather than treating it as one issue.
+Preferred World, geodesic hex maps, Moot proxies and voting, and grant
+improvement. Independent of each other; none blocks anything above.
+Preferred World and hex placement both want a world-selection concept
+that does not exist yet.
 
 ---
 
-## Found along the way
+## Tabled
 
-### #82 — Fame Stacks cap — DONE (PR #88)
+**#6 — shipgen.** A separate subsystem against Book 2, not character
+generation. The `starship` package is types and constants today. Out of
+scope for this plan; re-plan it on its own terms when chargen closes,
+scoped into a sequence of PRs rather than one issue.
 
-Resolved via p.91's own Fame descriptor scale (0 Unknown … 19 Subsector,
-20 Sector, 21 Domain … 36 All Reality): Fame is a scale of *reach*, so
-local fames accumulate to Sector-wide and beyond that only the greatest
-reach counts — `max(min(sum, 20), highest)`.
-
-The lesson worth keeping: the first implementation summed each career's
-Fame into one award, and measuring showed the cap was **inert** (4.2% of
-characters over 20 both before and after). That was the signal the
-granularity was wrong, not that the rule was minor. p.91 counts "Fame
-points *received*", so awards are per-instance. Measure before believing
-a rules fix did anything.
-
-## Filed out of Phase 3
-
-Four issues opened rather than resolved in-flight:
-
-- **#93 — Noble rank vs NobleTitle().** They disagree for 25.7% of
-  generated Nobles, because Mustering Out raises Soc after the career
-  ends. A real defect from PR #90, and it exposes an unanswered
-  question: whether noble rank is Soc-derived or ladder-tracked, and
-  whether a Mustering Out Soc increase should award a Land Grant
-  (p.85 says "each increase in Soc during CharGen" does).
-- **#94 — Scout Discovery Fame.** p.79 says "+1", p.91's Fame table says
-  "x4". The code does x4, which #82/#88 rebuilt the whole Fame system
-  on. Needs a decision; no behavior changed.
-- **#95 — Craftsman never reaches 40 Master Points.** Zero Masterpieces
-  across 6,000 chains, so QREBS and Vintage never fire. The gate is
-  faithful; the real question is skill-level progression, since every
-  grant in this codebase is a flat +1.
-- **#96 — Land Grant scope deferrals.** Preferred World, geodesic hex
-  maps, Moot proxies, and grant improvement.
+---
 
 ## Standing checks for every PR
 
@@ -221,3 +103,22 @@ Four issues opened rather than resolved in-flight:
 - Prefer assertions derived from generated data over pinned magic numbers —
   pinned fixtures have needed re-deriving after nearly every rules change.
 - `task check` clean before opening.
+
+## Lessons worth not relearning
+
+- **Measure before believing a rules fix did anything.** #82's first
+  implementation summed each career's Fame into one award, and the p.91
+  cap came out **inert** — 4.2% of characters over the cap both before
+  and after. That was the signal the granularity was wrong, not that the
+  rule was minor. p.91 counts "Fame points _received_", so awards are
+  per-instance.
+- **The book contradicts itself; printed tables settle it.** Masterpiece
+  value is "over 40" on p.75 and "over 39" in the QREBS chapter — the
+  printed value table proves 40. Marine ranks read "Coronel" where
+  Soldier reads "Colonel", consistently, three times.
+- **Check whether a mechanic can actually fire.** Craftsman QREBS is
+  fully implemented and never once triggered in 6,000 characters.
+- **A fixture that passes can still be wrong.** Two Marine assertions
+  passed only by luck — one omitted an automatic skill and was saved by
+  an unresolvable cell; another rested on a premise (C3 stays 0) that a
+  later change quietly broke.
