@@ -12,6 +12,13 @@ import (
 // own upper bound) clamp to Life Stage 9 — the table doesn't define
 // anything further, and a character surviving repeated Aging Checks
 // that long is already an edge case the book doesn't dwell on.
+//
+// That clamp is an extrapolation, and the only reason it stays harmless
+// is that Career Resolution stops at maxCareerTerms (career_loop.go),
+// age 74 — barely past the table's own end. Anything that lets
+// generation run longer is relying on invented Aging Checks for ages
+// p.89 never describes; see maxCareerTerms' own doc comment for what
+// measuring that actually produced.
 func LifeStageForAge(age int) int {
 	switch {
 	case age <= 1:

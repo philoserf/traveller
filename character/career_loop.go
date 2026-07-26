@@ -81,15 +81,39 @@ func continueScout(r *dice.Roller, upp UPP) bool {
 	return continueScoutOutcome(r.TwoD6(), int(upp.Characteristics[C4]))
 }
 
-// maxCareerTerms is a defensive engineering cap, not a Book 1 rule —
-// grounded in Book 1 p.89's traditional human lifespan (74 years) minus the
-// traditional adventuring start (Young Adult, 18), divided into 4-year
-// terms: (74-18)/4 = 14. Not career-specific: it guards any career whose
-// per-term stop conditions can be beaten often enough to loop for a very
-// long time (an immortal-Courier-Duty Scout; a Citizen whose fixed
-// Continue-10 target succeeds ~92% of the time) from running indefinitely,
-// since Aging (which would otherwise end this naturally) isn't modeled
-// yet. A career hitting this cap is not a normal outcome Book 1 describes.
+// maxCareerTerms is where Book 1 p.89's own description of a life runs
+// out: the traditional human lifespan (74 years) minus the traditional
+// adventuring start (Young Adult, 18), in 4-year terms — (74-18)/4 = 14.
+//
+// This was originally written as a placeholder — "a defensive
+// engineering cap, not a Book 1 rule... since Aging (which would
+// otherwise end this naturally) isn't modeled yet." Aging is modeled
+// now, and applied chronologically between terms (aging.go's own
+// agingSimulation), so that reasoning has been tested rather than
+// assumed — and it does not hold. Three independent things in p.89
+// agree on 74 rather than pointing past it:
+//
+//   - the "Stages of Life" table's last row is Retirement, whose upper
+//     bound is 71 (LifeStageForAge's own doc comment); nothing beyond it
+//     is defined, so there is no Aging Check the book describes for a
+//     75-year-old;
+//   - 74 is named as the traditional lifespan; and
+//   - this constant, derived independently from that lifespan, lands on
+//     exactly the same boundary.
+//
+// Removing the cap was tried and measured before being rejected. Careers
+// do terminate on their own without it — nothing reached even a 200-term
+// guard across 21,000 characters — but only because LifeStageForAge
+// clamps every age past 71 to Life Stage 9 and keeps rolling forever,
+// which is this codebase extrapolating into a region the table does not
+// cover. The resulting distribution (p99 of 32 terms, a maximum of 57 —
+// age 246) is not "somewhat longer than traditional"; it is a lifespan
+// the rules never bound at all. Honoring the end of the table is the
+// more faithful reading than inventing checks past it.
+//
+// So a career reaching 14 terms has reached the end of Book 1's own
+// account of a human life, not an arbitrary engineering limit. It is
+// still a rare outcome per career, but a real one, not a bug.
 const maxCareerTerms = 14
 
 // resolveCareerLoop is the shared multi-term Career-resolution loop
