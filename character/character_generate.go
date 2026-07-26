@@ -6,11 +6,23 @@ import (
 	"github.com/philoserf/traveller/dice"
 )
 
-// humanGeneticProfile is the GeneticProfile for a Human character: Str
-// Dex End Int Edu Soc, matching Position's own C1-C6 doc comment and the
-// exact example ("e.g. SDEIES") Character.GeneticProfile's own field
-// comment already gives.
-const humanGeneticProfile = "SDEIES"
+// HumanSpecies and HumanGeneticProfile are the values every character
+// this codebase generates carries — nothing produces a non-Human
+// character yet. Exported so render can tell a default apart from a
+// deviation worth showing (render/character.go's own writeMetadata)
+// rather than hardcoding the same two strings a second time.
+//
+// HumanGeneticProfile is Str Dex End Int Edu Soc, matching Position's
+// own C1-C6 doc comment and the exact example ("e.g. SDEIES")
+// Character.GeneticProfile's own field comment already gives.
+const (
+	HumanSpecies        = "Human"
+	HumanGeneticProfile = "SDEIES"
+)
+
+// humanGeneticProfile is HumanGeneticProfile's own unexported alias,
+// kept so this package's many struct literals read unchanged.
+const humanGeneticProfile = HumanGeneticProfile
 
 // scoutWoundBadges counts one Wound Badge per term whose Risk roll left
 // the Controlling Characteristic reduced — Wounded or Disabled, both
