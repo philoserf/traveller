@@ -32,14 +32,16 @@ func continueNoble(r *dice.Roller) bool {
 // actual rank name (Term.Rank stays unpopulated; see this slice's own
 // plan-file Context for why that's deferred).
 func ResolveNobleCareer(r *dice.Roller, upp UPP) Career {
-	return resolveNobleCareerWithBudget(r, upp, maxCareerTerms)
+	career, _ := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+
+	return career
 }
 
-func resolveNobleCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career {
+func resolveNobleCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
 	career := Career{Name: NobleCareerName, HasRank: true}
 
 	if !BeginNoble(upp.Characteristics[C6]) {
-		return career
+		return career, upp
 	}
 
 	usedThisCycle := make(map[Position]bool, len(nobleReturnIntriguePositions))
@@ -48,6 +50,7 @@ func resolveNobleCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career 
 		ccPos := nextCC(upp, nobleReturnIntriguePositions, usedThisCycle)
 
 		term := ResolveNobleTerm(r, upp, ccPos, career.Terms)
+		upp = applyPersonalAwards(upp, term.SkillsAwarded)
 		career.Terms = append(career.Terms, term)
 
 		if len(career.Terms) == maxTerms {
@@ -59,5 +62,5 @@ func resolveNobleCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) Career 
 		}
 	}
 
-	return career
+	return career, upp
 }

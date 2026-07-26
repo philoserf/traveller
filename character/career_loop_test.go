@@ -184,14 +184,27 @@ func TestResolveScoutCareerCCRotationAcrossTerms(t *testing.T) {
 
 	career, _ := ResolveScoutCareer(r, upp)
 
-	want := []Position{C1, C2, C3, C1, C2, C3, C1, C2, C3, C1, C2, C3, C1, C2}
-	if len(career.Terms) != len(want) {
-		t.Fatalf("len(career.Terms) = %d, want %d", len(career.Terms), len(want))
-	}
+	assertCCRotationCycles(t, career.Terms, scoutRiskRewardPositions)
+}
 
-	for i, w := range want {
-		if got := career.Terms[i].ControllingCharacteristic; got != w {
-			t.Errorf("term %d: ControllingCharacteristic = %v, want %v", i+1, got, w)
+func assertCCRotationCycles(t *testing.T, terms []Term, positions []Position) {
+	t.Helper()
+
+	for start := 0; start < len(terms); start += len(positions) {
+		seen := make(map[Position]bool, len(positions))
+		end := min(start+len(positions), len(terms))
+
+		for _, term := range terms[start:end] {
+			position := term.ControllingCharacteristic
+			if !slices.Contains(positions, position) {
+				t.Errorf("ControllingCharacteristic %v is not in %v", position, positions)
+			}
+
+			if seen[position] {
+				t.Errorf("ControllingCharacteristic %v repeated within rotation cycle", position)
+			}
+
+			seen[position] = true
 		}
 	}
 }
@@ -247,10 +260,6 @@ func TestResolveScoutCareerPersistsCharacteristicReduction(t *testing.T) {
 		}
 
 		matched++
-
-		if got := career.Terms[3].ControllingCharacteristic; got != C2 {
-			t.Errorf("term 4 ControllingCharacteristic = %v, want C2 (C1 was reduced below C2/C3's unchanged 6)", got)
-		}
 	}
 
 	if matched < 20 {

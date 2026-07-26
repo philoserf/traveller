@@ -7,10 +7,8 @@ import (
 )
 
 // resolveCraftsmanCareerWithBudget resolves a full multi-term Craftsman
-// career (Book 1 p.75) via resolveCareerLoop. Craftsman never modifies a
-// characteristic (no Risk & Reward at all), so upp passes through the
-// term resolver unchanged — the same shape Rogue's own "Rogue never
-// modifies its own CC" already establishes.
+// career (Book 1 p.75) via resolveCareerLoop. Craftsman has no injury
+// reduction, but the shared loop applies Personal characteristic awards.
 //
 // Takes ctx directly (not threaded through a shared helper like
 // resolveRiskCareerSegment) because BeginCraftsman needs

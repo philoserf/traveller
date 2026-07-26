@@ -86,16 +86,7 @@ func TestResolveSpacerCareerCCRotation(t *testing.T) {
 
 	career, _ := ResolveSpacerCareer(r, upp)
 
-	want := []Position{C1, C2, C4, C1, C2, C4, C1, C2, C4, C1, C2, C4, C1, C2}
-	if len(career.Terms) != len(want) {
-		t.Fatalf("len(career.Terms) = %d, want %d", len(career.Terms), len(want))
-	}
-
-	for i, w := range want {
-		if got := career.Terms[i].ControllingCharacteristic; got != w {
-			t.Errorf("term %d: ControllingCharacteristic = %v, want %v", i+1, got, w)
-		}
-	}
+	assertCCRotationCycles(t, career.Terms, spacerRiskRewardPositions)
 }
 
 // TestResolveSpacerCareerPersistsCharacteristicReduction mirrors

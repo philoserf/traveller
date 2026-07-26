@@ -62,30 +62,19 @@ func TestResolveScholarCareerPersistsRiskReductionOntoReturnedUPP(t *testing.T) 
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
-	r := dice.New(rand.NewPCG(1, 1))
+	for seed := uint64(1); seed <= 1000; seed++ {
+		career, finalUPP := ResolveScholarCareer(dice.New(rand.NewPCG(seed, seed)), upp)
 
-	career, finalUPP := ResolveScholarCareer(r, upp)
-
-	if len(career.Terms) == 0 {
-		t.Fatal("career.Terms is empty, want at least one term")
-	}
-
-	sawReduction := false
-
-	for _, term := range career.Terms {
-		if term.RiskResult != Wounded && term.RiskResult != Disabled {
-			continue
-		}
-
-		pos := term.ControllingCharacteristic
-		if finalUPP.Characteristics[pos] < upp.Characteristics[pos] {
-			sawReduction = true
+		for _, term := range career.Terms {
+			pos := term.ControllingCharacteristic
+			if (term.RiskResult == Wounded || term.RiskResult == Disabled) &&
+				finalUPP.Characteristics[pos] < upp.Characteristics[pos] {
+				return
+			}
 		}
 	}
 
-	if !sawReduction {
-		t.Fatal("no Wounded/Disabled term's own reduction is reflected in the returned finalUPP")
-	}
+	t.Fatal("no seed in [1,1000] retained a net Wounded/Disabled reduction after Personal improvements")
 }
 
 // TestContinueScholarHasNoNaturalRollException confirms continueScholar

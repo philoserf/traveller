@@ -131,7 +131,7 @@ func resolveCareerLoop(
 		ccPos := nextCC(upp, positions, usedThisCycle)
 
 		term, updatedUPP := resolveTerm(r, upp, ccPos)
-		upp = updatedUPP
+		upp = applyPersonalAwards(updatedUPP, term.SkillsAwarded)
 
 		terms = append(terms, term)
 

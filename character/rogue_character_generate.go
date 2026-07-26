@@ -37,10 +37,10 @@ func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
 // SchemePayoff) both come from the career's own Terms, not from
 // Mustering Out rolls alone.
 func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career := ResolveRogueCareer(r, upp)
+	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms)
 	career.MusteringOut = ResolveRogueMusterOut(r, career)
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
+	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
