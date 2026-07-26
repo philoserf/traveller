@@ -46,7 +46,7 @@ func buildCitizenCharacter(
 		career.MusteringOut = ResolveCitizenMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
@@ -68,9 +68,10 @@ func buildCitizenCharacter(
 		LifeStage:      lifeStage,
 		Notes:          notes,
 		// p.91: "Citizen no intrinsic Fame" — Mustering Out awards only.
-		Fame:    resolveFameStacks(bonuses.FameAwards),
-		Cash:    bonuses.Cash,
-		Careers: []Career{career},
-		Skills:  aggregateSkills(skills),
+		Fame:       resolveFameStacks(bonuses.FameAwards),
+		Cash:       bonuses.Cash,
+		Careers:    []Career{career},
+		Skills:     aggregateSkills(skills),
+		LandGrants: bonuses.LandGrants,
 	}, ok
 }

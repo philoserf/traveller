@@ -256,7 +256,11 @@ func TestNobleTitleForSocBoundaries(t *testing.T) {
 // TestNobleTitleIsDerivedFromSocNotFromCareer confirms the accessor
 // applies to characters who were never Nobles — p.68's Knighthood raises
 // Soc to B from any career's Mustering Out, and that is a Knight.
-func TestNobleTitleIsDerivedFromSocNotFromCareer(t *testing.T) {
+// TestNobleTitleFallsBackToSocWithoutANobleCareer covers the half of
+// NobleTitle that is still Soc-derived: a character who never walked the
+// p.88 ladder has no rank to read, so p.68's Knighthood ("raises any
+// value of Soc to B") has to confer the title through Soc alone.
+func TestNobleTitleFallsBackToSocWithoutANobleCareer(t *testing.T) {
 	t.Parallel()
 
 	var c Character
@@ -269,6 +273,89 @@ func TestNobleTitleIsDerivedFromSocNotFromCareer(t *testing.T) {
 	c.UPP.Characteristics[C6] = 9
 	if got := c.NobleTitle(); got != "" {
 		t.Errorf("NobleTitle() = %q at Soc 9, want no title", got)
+	}
+}
+
+// TestNobleTitleFollowsTheLadderNotSoc is Book 1 p.65's own "Elevated to
+// the next higher Noble rank and its associated increase in Social
+// Standing (if any)" — rank leads, Soc follows, so a tracked ladder
+// position beats whatever the Soc-to-title mapping would say.
+//
+// Both directions are covered, because the two disagreed both ways: Soc
+// ahead of the ladder where Mustering Out raised it after the career
+// ended, and behind it where a Baronet-to-Baron elevation raised no
+// characteristic at all.
+func TestNobleTitleFollowsTheLadderNotSoc(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		soc  ehex.Value
+		rank string
+	}{
+		{"Soc ahead of the ladder", 13, "Baronet"}, // Soc D alone would say Marquis
+		{"ladder ahead of Soc", 12, "Baron"},       // Soc C alone would say Baronet
+		{"lesser Duke at a shared Soc", 15, "Duke"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			char := Character{
+				Careers: []Career{{
+					Name:    NobleCareerName,
+					HasRank: true,
+					Terms:   []Term{{Rank: "Knight"}, {Rank: c.rank}},
+				}},
+			}
+			char.UPP.Characteristics[C6] = c.soc
+
+			if got := char.NobleTitle(); got != c.rank {
+				t.Errorf("NobleTitle() = %q at Soc %v, want the tracked rank %q", got, c.soc, c.rank)
+			}
+		})
+	}
+}
+
+// TestGeneratedNobleRankAndTitleNeverDisagree is #93's own regression:
+// the career's tracked rank and the reported title disagreed for 25.7% of
+// generated Nobles (63 of 245 across 3,000 seeds) before NobleTitle
+// started reading the ladder. Asserted over generated characters rather
+// than a fixture, since the whole defect was that a hand-built case
+// could not show it — it only appeared once Mustering Out moved Soc.
+func TestGeneratedNobleRankAndTitleNeverDisagree(t *testing.T) {
+	t.Parallel()
+
+	nobles := 0
+
+	for seed := uint64(1); seed <= 3000; seed++ {
+		c, ok := GenerateNobleCharacter(dice.New(rand.NewPCG(seed, seed)))
+		if !ok {
+			continue
+		}
+
+		rank := lastTermRank(c.Careers[0].Terms)
+		if rank == "" {
+			continue
+		}
+
+		nobles++
+
+		if got := c.NobleTitle(); got != rank {
+			t.Errorf("seed %d: NobleTitle() = %q but the career walked to %q (Soc %v)",
+				seed, got, rank, c.UPP.Characteristics[C6])
+		}
+
+		if c.Rank != rank {
+			t.Errorf("seed %d: Character.Rank = %q, want the career's own %q", seed, c.Rank, rank)
+		}
+	}
+
+	// Guards the sweep itself: an accidental change that stopped
+	// generating ranked Nobles would otherwise make this test vacuous.
+	if nobles < 200 {
+		t.Fatalf("only %d ranked Nobles in 3,000 seeds — too few for this sweep to mean anything", nobles)
 	}
 }
 
@@ -381,5 +468,93 @@ func TestGeneratedNobleGainsTitleAndGrantsTogether(t *testing.T) {
 
 	if !sawElevated {
 		t.Fatal("no elevated Noble in 400 seeds — the test never exercised its own subject")
+	}
+}
+
+// TestMusterOutSocIncreaseAwardsALandGrant is Book 1 p.85's own "Land
+// Grants. Each increase in Soc during CharGen awards a Land Grant",
+// applied to the increases Mustering Out produces rather than only to
+// the ones the Noble career loop produces. Awarding these was the second
+// half of #93.
+//
+// The grant is sized by the p.88 row the new Soc lands on, and sourced
+// by that row's title — which is why the Knighthood case expects a
+// Knight fief rather than a Gentleman one, even though the raise from
+// Soc 7 to B passes over the Soc A row: p.88 counts titles held, and
+// this character was never a Gentleman.
+func TestMusterOutSocIncreaseAwardsALandGrant(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		benefit string
+		soc     ehex.Value
+		want    string // grant Source, or "" for no grant at all
+	}{
+		{"Knighthood from a commoner Soc", "Knighthood", 7, "Knight"},
+		{"Knighthood at Soc B+ is Soc +1", "Knighthood", 11, "Baronet"},
+		{"Soc +1 into a new rank", "Soc +1", 12, "Marquis"},
+		{"Soc +1 below the p.88 floor", "Soc +1", 5, ""},
+		{"a benefit that moves no Soc", "Str +1", 12, ""},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			career := Career{
+				Name:         "Scout",
+				MusteringOut: MusteringOut{Benefits: []string{c.benefit}},
+			}
+			upp := UPP{Characteristics: [6]ehex.Value{0, 0, 0, 0, 0, c.soc}}
+
+			_, bonuses := ApplyMusteringOut(dice.New(rand.NewPCG(7, 7)), career, upp)
+
+			if c.want == "" {
+				if len(bonuses.LandGrants) != 0 {
+					t.Fatalf("got %d grants, want none: %+v", len(bonuses.LandGrants), bonuses.LandGrants)
+				}
+
+				return
+			}
+
+			if len(bonuses.LandGrants) != 1 {
+				t.Fatalf("got %d grants, want exactly 1: %+v", len(bonuses.LandGrants), bonuses.LandGrants)
+			}
+
+			if got := bonuses.LandGrants[0].Source; got != c.want {
+				t.Errorf("grant source = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+// TestMusterOutLandGrantDrawsNoDiceWhenNoGrantIsDue holds the line on
+// the reproducibility contract: the world behind a fief is generated
+// only when p.85 actually awards one, so adding this rule cannot shift
+// the dice stream for the characters it does not touch.
+//
+// Two same-seed rollers are compared after the fact rather than a draw
+// count being instrumented, because rand.IntN rejection-samples — a
+// wrapped source returning a constant deadlocks instead of counting.
+func TestMusterOutLandGrantDrawsNoDiceWhenNoGrantIsDue(t *testing.T) {
+	t.Parallel()
+
+	career := Career{
+		Name:         "Scout",
+		MusteringOut: MusteringOut{Benefits: []string{"Str +1", "Soc +1", "Ship Share"}},
+	}
+	// Soc 5 rises to 6, which is still below the p.88 table's own floor,
+	// so no fief is due and no world may be generated.
+	upp := UPP{Characteristics: [6]ehex.Value{0, 0, 0, 0, 0, 5}}
+
+	spent := dice.New(rand.NewPCG(11, 13))
+	if _, bonuses := ApplyMusteringOut(spent, career, upp); len(bonuses.LandGrants) != 0 {
+		t.Fatalf("expected no grants, got %+v", bonuses.LandGrants)
+	}
+
+	untouched := dice.New(rand.NewPCG(11, 13))
+	if spent.TwoD6() != untouched.TwoD6() {
+		t.Error("ApplyMusteringOut consumed dice for a Soc increase that earned no Land Grant")
 	}
 }

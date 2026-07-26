@@ -36,7 +36,7 @@ func buildEntertainerCharacter(
 		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
@@ -85,9 +85,10 @@ func buildEntertainerCharacter(
 		// code-review pass caught an earlier version calling
 		// scoutWoundBadges(career) here, which misrepresented a bad
 		// show as a combat injury on the rendered sheet.
-		Fame:    totalFame,
-		Cash:    bonuses.Cash,
-		Careers: []Career{career},
-		Skills:  aggregateSkills(skills),
+		Fame:       totalFame,
+		Cash:       bonuses.Cash,
+		Careers:    []Career{career},
+		Skills:     aggregateSkills(skills),
+		LandGrants: bonuses.LandGrants,
 	}, ok
 }

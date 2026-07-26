@@ -36,7 +36,7 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	// buildRiskCareerCharacter's own use of resolveCareer's returned
 	// updatedUPP). A code-review pass caught an earlier version of this
 	// silently reverting that reduction by using upp here instead.
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
@@ -71,5 +71,6 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
+		LandGrants:     bonuses.LandGrants,
 	}, ok
 }

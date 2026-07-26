@@ -40,7 +40,7 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
@@ -81,8 +81,17 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		Notes:          notes,
 		Fame:           fame,
 		Cash:           bonuses.Cash,
-		Careers:        []Career{career},
-		Skills:         aggregateSkills(skills),
-		LandGrants:     landGrants,
+		// Noble is a ranked career (Career.HasRank), so the p.88 title
+		// the ladder reached is this character's Rank — the same
+		// lastTermRank the Merchant and Scholar builders already record,
+		// and the same value chainRank derives on the chain path. Left
+		// unset until now, which meant every standalone Noble reported an
+		// empty Rank while the identical chain-generated Noble reported
+		// "Baronet"; that divergence is why noble could not be added to
+		// TestCareerChainSingleEntryMatchesLegacyGenerator before.
+		Rank:       lastTermRank(career.Terms),
+		Careers:    []Career{career},
+		Skills:     aggregateSkills(skills),
+		LandGrants: append(landGrants, bonuses.LandGrants...),
 	}, ok
 }
