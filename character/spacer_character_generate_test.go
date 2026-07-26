@@ -123,20 +123,21 @@ func TestBuildSpacerCharacterQualified(t *testing.T) {
 		t.Errorf("len(Skills) = %d, want at least %d (homeworld skills alone)", len(c.Skills), len(homeworldSkills))
 	}
 
-	if c.WoundBadges != 0 {
-		t.Errorf("WoundBadges = %d, want 0 (fixture guarantees Risk always succeeds)", c.WoundBadges)
+	// Derived rather than pinned, for the reason
+	// TestBuildMarineCharacterQualified's own equivalent block explains:
+	// Aging now runs between terms and erodes C1-C3, so no starting UPP
+	// makes "Risk always succeeds" true for a full 14-term career.
+	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+		t.Errorf("WoundBadges = %d, want %d (one per Wounded/Disabled term)", c.WoundBadges, want)
 	}
 
-	// This seed's own Reward rolls resolve to 2 MCUF (+1 each), 1 MCG
-	// (+2), and 1 SEH (+3) — 7 Medal Fame — plus Officer Rank Fame at
-	// the O7 cap (tier 7): 7+7=14.
-	if c.Fame != 14 {
-		t.Errorf("Fame = %d, want 14 (2 MCUF + 1 MCG + 1 SEH Medal Fame, plus O7's own Rank Fame)", c.Fame)
+	if want := spacerCareerFame(c.Careers[0]); c.Fame < want {
+		t.Errorf("Fame = %d, want at least %d (career Fame, before Mustering Out's own additions)", c.Fame, want)
 	}
 
-	if len(c.Medals) != 28 {
-		t.Errorf("len(Medals) = %d, want 28 (2 medals x 14 terms: flat XS plus a Reward-table medal each)",
-			len(c.Medals))
+	if want := allMedalsFromTerms(c.Careers[0].Terms); len(c.Medals) != len(want) {
+		t.Errorf("len(Medals) = %d, want %d (every Term.Medals entry must reach Character.Medals)",
+			len(c.Medals), len(want))
 	}
 
 	if c.Rank != "O7 Admiral" {

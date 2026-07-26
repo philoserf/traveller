@@ -35,7 +35,7 @@ func continueRogue(r *dice.Roller, cc, mod int) bool {
 // no death/disability concept at all, so this is the correct behavior,
 // not a coincidental side effect.
 func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
-	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms)
+	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
 
 	return career
 }
@@ -43,7 +43,7 @@ func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
 // resolveRogueCareerWithBudget is ResolveRogueCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
+func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
 	career := Career{Name: RogueCareerName}
 
 	ccPos := rollRogueCC(r)
@@ -73,6 +73,7 @@ func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int) (
 			return continueRogue(r, int(currentUPP.Characteristics[ccPos]), termCount)
 		},
 		maxTerms,
+		aging,
 	)
 	career.Terms = terms
 

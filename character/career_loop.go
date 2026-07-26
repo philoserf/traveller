@@ -115,6 +115,10 @@ const maxCareerTerms = 14
 // once maxTerms iterations have run, the loop simply never attempts
 // another one (no Continue roll, no new term), rather than cutting an
 // already-resolved term short.
+// aging is threaded in rather than created here so one simulation spans
+// a whole life: a multi-career chain passes the same one through every
+// segment, and its own checkpoint after each term is what stops a career
+// when Aging kills the character mid-service.
 func resolveCareerLoop(
 	r *dice.Roller,
 	upp UPP,
@@ -122,12 +126,22 @@ func resolveCareerLoop(
 	resolveTerm func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP),
 	continueCareer func(r *dice.Roller, upp UPP) bool,
 	maxTerms int,
+	aging *agingSimulation,
 ) ([]Term, UPP) {
 	var terms []Term
 
 	usedThisCycle := make(map[Position]bool, len(positions))
 
 	for range maxTerms {
+		// Already dead — from an Aging checkpoint in an earlier career of
+		// the same chain, since one simulation spans them all. Checked
+		// before resolving anything, not after: the post-term check below
+		// only stops the career that did the killing, and would still let
+		// the next one in the chain serve a full term first.
+		if !aging.alive() {
+			break
+		}
+
 		ccPos := nextCC(upp, positions, usedThisCycle)
 
 		term, updatedUPP := resolveTerm(r, upp, ccPos)
@@ -135,7 +149,21 @@ func resolveCareerLoop(
 
 		terms = append(terms, term)
 
-		if !term.RiskResult.Survived() || term.RiskResult == Disabled || len(terms) == maxTerms {
+		// A term that killed the character outright (Book 1 p.69) ends
+		// things before any Aging check — the dead don't grow older.
+		// Disabled does still age: that career is over, the person isn't.
+		if !term.RiskResult.Survived() {
+			aging.recordFatalTerm()
+
+			break
+		}
+
+		upp = aging.advanceTerm(r, upp)
+		if !aging.alive() {
+			break
+		}
+
+		if term.RiskResult == Disabled || len(terms) == maxTerms {
 			break
 		}
 
@@ -171,7 +199,7 @@ func resolveCareerLoop(
 // since GenerateUPP never generates Sanity in the first place (p.57:
 // "created only as needed").
 func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveScoutCareerWithBudget(r, upp, maxCareerTerms)
+	return resolveScoutCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
 }
 
 // resolveScoutCareerWithBudget is ResolveScoutCareer's own body, with
@@ -180,7 +208,7 @@ func ResolveScoutCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 // comment for why. character/career_chain.go's multi-career orchestrator
 // calls this directly with an -age-derived budget; ResolveScoutCareer
 // itself is unchanged for every other caller.
-func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP) {
+func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
 	career := Career{Name: "Scout"}
 
 	if _, began := BeginScout(r, upp); !began {
@@ -195,6 +223,7 @@ func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Career
 		},
 		continueScout,
 		maxTerms,
+		aging,
 	)
 	career.Terms = terms
 

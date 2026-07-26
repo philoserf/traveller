@@ -24,8 +24,12 @@ func GenerateScholarCharacter(r *dice.Roller) (Character, bool) {
 // buildRiskCareerCharacter's shared resolveMusterOut signature has no
 // room for (see this slice's own plan-file Context).
 func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career, careerUPP := ResolveScholarCareer(r, upp)
-	career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+	var aging agingSimulation
+
+	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+	}
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
 	// characteristic from a survived Wounded/Disabled term (mirroring
@@ -36,21 +40,21 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
-	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
+	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	fame := bonuses.Fame
 
-	if ok {
+	if survivedCareer {
 		fame += scholarSegmentFame(careerUPP, career.Terms)
 	}
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

@@ -1,6 +1,7 @@
 package character
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"reflect"
 	"slices"
@@ -95,7 +96,7 @@ func TestCareerChainSingleEntryMatchesLegacyGenerator(t *testing.T) {
 		{"scholar", GenerateScholarCharacter},
 		{"merchant", GenerateMerchantCharacter},
 		{"entertainer", GenerateEntertainerCharacter},
-		{"citizen", func(r *dice.Roller) (Character, bool) { return GenerateCitizenCharacter(r), true }},
+		{"citizen", GenerateCitizenCharacter},
 	}
 
 	for _, c := range cases {
@@ -288,8 +289,8 @@ func TestCareerChainAgeTargetCutsOffMidCareer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !ok || len(uncapped.Careers) != 1 || len(uncapped.Careers[0].Terms) != 4 {
-		t.Fatalf("uncapped = %+v, want a single 4-term Scout career (fixture assumption broken)", uncapped.Careers)
+	if !ok || len(uncapped.Careers) != 1 || len(uncapped.Careers[0].Terms) != 7 {
+		t.Fatalf("uncapped = %+v, want a single 7-term Scout career (fixture assumption broken)", uncapped.Careers)
 	}
 
 	capped, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 30)
@@ -403,8 +404,8 @@ func TestCareerChainAgeTargetSoLargeItNeverBindsMatchesUnbounded(t *testing.T) {
 // TestCareerChainNobleAgeTargetCutsOffMidCareer is #49's regression: a
 // standalone Noble career must honor an -age budget exactly like every
 // other career, even though cmd/chargen used to reject -age for Noble
-// outright. Seed 43 (found by direct search) runs Noble to 5 terms
-// (age 38) unbounded; capping at age 30 (18+4*3, an exact term
+// outright. Seed 43 (found by direct search) runs Noble to 4 terms
+// (age 34) unbounded; capping at age 30 (18+4*3, an exact term
 // boundary) must truncate to the first 3 of those same terms, not
 // generate a divergent career.
 func TestCareerChainNobleAgeTargetCutsOffMidCareer(t *testing.T) {
@@ -417,8 +418,8 @@ func TestCareerChainNobleAgeTargetCutsOffMidCareer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !ok || len(uncapped.Careers) != 1 || len(uncapped.Careers[0].Terms) != 5 {
-		t.Fatalf("uncapped = %+v, want a single 5-term Noble career (fixture assumption broken)", uncapped.Careers)
+	if !ok || len(uncapped.Careers) != 1 || len(uncapped.Careers[0].Terms) != 4 {
+		t.Fatalf("uncapped = %+v, want a single 4-term Noble career (fixture assumption broken)", uncapped.Careers)
 	}
 
 	capped, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"noble"}, 30)
@@ -718,5 +719,116 @@ func TestCareerChainCraftsmanSegmentProducesEquipmentAndFame(t *testing.T) {
 			seg.Fame,
 			wantFame,
 		)
+	}
+}
+
+// TestCareerChainAgingDeathIsNotASuccessfulAttempt is #60's regression
+// through a public generation path, and PR #69's own review finding
+// alongside it: a character killed by Aging (Book 1 p.89) must report
+// ok=false rather than only recording the death in Notes, and their
+// career history must not outlive them. Because Aging now runs between
+// terms, someone who dies at a checkpoint simply serves no further
+// terms — so Age, the death note, and the term count all agree by
+// construction. Seeds found by direct search; scout 4972 dies before
+// the term cap, so it pins a genuine mid-career stop rather than one
+// that merely coincides with running out of terms.
+func TestCareerChainAgingDeathIsNotASuccessfulAttempt(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		career string
+		seed   uint64
+	}{
+		{"scout", 4972},
+		{"citizen", 264},
+		{"scholar", 4953},
+	}
+
+	for _, c := range cases {
+		t.Run(c.career, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok, err := GenerateCareerChainCharacter(
+				dice.New(rand.NewPCG(c.seed, c.seed)), []string{c.career}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !strings.Contains(got.Notes, "died of natural causes") {
+				t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", got.Notes)
+			}
+
+			if ok {
+				t.Error("ok = true, want false (an Aging death is not a surviving character)")
+			}
+
+			if want := fmt.Sprintf("Age %d: died", got.Age); !strings.Contains(got.Notes, want) {
+				t.Errorf("Age = %d, but Notes = %q — Age must match the fatal checkpoint", got.Age, got.Notes)
+			}
+
+			termsServed := 0
+			for _, career := range got.Careers {
+				termsServed += len(career.Terms)
+			}
+
+			if want := AgeFromTermsServed(termsServed); got.Age != want {
+				t.Errorf("Age = %d but %d terms served implies age %d — the sheet must not record "+
+					"service beyond the age its own death note gives", got.Age, termsServed, want)
+			}
+
+			if got.LifeStage != LifeStageForAge(got.Age) {
+				t.Errorf("LifeStage = %d, want %d (must follow Age)", got.LifeStage, LifeStageForAge(got.Age))
+			}
+		})
+	}
+}
+
+// TestCareerChainAgingDeathGrantsNoMusterOut is the regression for PR
+// #69's third review round: resolveRiskCareerSegment — the shared body
+// behind Scout, Marine, Soldier, Spacer and Agent as chain segments —
+// called its resolveMusterOut callback unconditionally, so those five
+// still collected benefits through the chain path after Aging had
+// killed them, even once every other site was guarded.
+//
+// This exercises the case a dead-on-entry simulation cannot: Aging kills
+// *during* the segment, so the career has real terms behind it and
+// Mustering Out would genuinely roll against them. A simulation already
+// dead when the loop starts returns zero terms, which makes the roll
+// count zero anyway and would pass with the guard still missing.
+//
+// Seed 4972 is deterministic and shared with
+// TestBuildScoutCharacterAgingDeathKeepsCareerFame: an -age target high
+// enough never to bind routes the same character through the chain path
+// instead of the single-career one, so the two must agree.
+func TestCareerChainAgingDeathGrantsNoMusterOut(t *testing.T) {
+	t.Parallel()
+
+	got, ok, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(4972, 4972)), []string{"scout"}, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(got.Notes, "died of natural causes") {
+		t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", got.Notes)
+	}
+
+	if ok {
+		t.Error("ok = true, want false")
+	}
+
+	career := got.Careers[0]
+	if len(career.Terms) == 0 {
+		t.Fatal("career has no terms — this fixture must die partway through a real career, " +
+			"not before it starts, or it cannot exercise the guard at all")
+	}
+
+	mo := career.MusteringOut
+	if n := len(mo.Benefits) + len(mo.Money) + len(mo.Automatics) + len(mo.Entitlements); n != 0 {
+		t.Errorf("Mustering Out entries = %d, want 0 (a dead character never reaches Mustering Out): %+v", n, mo)
+	}
+
+	if got.Cash != 0 {
+		t.Errorf("Cash = %d, want 0", got.Cash)
 	}
 }

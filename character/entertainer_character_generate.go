@@ -29,8 +29,12 @@ func buildEntertainerCharacter(
 	homeworld string,
 	homeworldSkills []SkillLevel,
 ) (Character, bool) {
-	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms)
-	career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
+	var aging agingSimulation
+
+	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -44,9 +48,9 @@ func buildEntertainerCharacter(
 	// A code-review pass caught an earlier version of this checking
 	// RiskResult != Dead here, which silently skipped ResolveAging for a
 	// perfectly alive Entertainer whose Talent had merely run out.
-	ok := len(career.Terms) > 0
+	survivedCareer := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// fame is already the character's own current Fame (the initial 2D
@@ -63,7 +67,7 @@ func buildEntertainerCharacter(
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

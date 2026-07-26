@@ -668,7 +668,7 @@ func TestCharacterHandlesCitizenGeneratedOutput(t *testing.T) {
 	for seed := range uint64(20) {
 		r := dice.New(rand.NewPCG(seed+1, seed+1))
 
-		c := character.GenerateCitizenCharacter(r)
+		c, _ := character.GenerateCitizenCharacter(r)
 
 		if out := render.Character(c); out == "" {
 			t.Errorf("seed %d: render.Character produced empty output", seed)

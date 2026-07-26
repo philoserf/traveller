@@ -26,6 +26,7 @@ func resolveFunctionaryCareerWithBudget(
 	upp UPP,
 	maxTerms int,
 	ctx segmentContext,
+	aging *agingSimulation,
 ) (Career, UPP, int) {
 	career := Career{Name: FunctionaryCareerName, HasRank: true}
 
@@ -44,6 +45,7 @@ func resolveFunctionaryCareerWithBudget(
 		},
 		func(_ *dice.Roller, _ UPP) bool { return true },
 		maxTerms,
+		aging,
 	)
 	career.Terms = terms
 

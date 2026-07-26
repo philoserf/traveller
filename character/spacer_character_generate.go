@@ -24,7 +24,9 @@ func GenerateSpacerCharacter(r *dice.Roller) (Character, bool) {
 // exactly.
 func buildSpacerCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	return buildRiskCareerCharacter(
-		r, upp, homeworld, homeworldSkills, ResolveSpacerCareer, ResolveSpacerMusterOut, spacerCareerFame)
+		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
+			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging)
+		}, ResolveSpacerMusterOut, spacerCareerFame)
 }
 
 // spacerCareerFame mirrors soldierCareerFame's own formula exactly

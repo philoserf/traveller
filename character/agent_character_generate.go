@@ -20,5 +20,7 @@ func GenerateAgentCharacter(r *dice.Roller) (Character, bool) {
 	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
 
 	return buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills,
-		ResolveAgentCareer, ResolveAgentMusterOut, agentCareerFame)
+		func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
+			return resolveAgentCareerWithBudget(r, upp, maxCareerTerms, aging)
+		}, ResolveAgentMusterOut, agentCareerFame)
 }

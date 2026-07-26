@@ -147,7 +147,7 @@ func generateSingleCareer(r *dice.Roller, name, rawCareerName string, c *charact
 	case "scout":
 		*c, ok = character.GenerateScoutCharacter(r)
 	case "citizen":
-		*c = character.GenerateCitizenCharacter(r)
+		*c, ok = character.GenerateCitizenCharacter(r)
 	case "noble":
 		*c, ok = character.GenerateNobleCharacter(r)
 	case "marine":

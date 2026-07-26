@@ -10,23 +10,19 @@ import (
 // to end: a UPP, a homeworld and its background skills, a full
 // multi-term Citizen career, and Citizen's own Mustering Out benefits.
 //
-// Unlike GenerateScoutCharacter, this returns only Character, no ok
-// bool: a Citizen attempt can't fail Career Resolution itself. Begin is
-// Automatic (BeginCitizen always returns true) and Citizen Life has no
-// wound or death mechanic at all, so every possible roll sequence
-// produces a career with at least one term and no "this attempt didn't
-// survive Career Resolution" outcome to report — a bool that can never
-// observably be false would be dead surface area, not mirrored from
-// Scout's own shape just for consistency's sake.
-//
-// This is narrower than "can't die at all": finalizeAging (below) still
-// runs the full Aging simulation (character/aging.go's ResolveAging)
-// against the resulting Character, which genuinely can end in death
-// decades later (Book 1 p.89) — the same "Aging death isn't a voided
-// attempt" distinction GenerateScoutCharacter's own doc comment makes.
-// That death, if it happens, is recorded in Notes; it doesn't reintroduce
-// an ok bool here, for the same reason.
-func GenerateCitizenCharacter(r *dice.Roller) Character {
+// Returns an ok bool like every other generator, but for a narrower
+// reason than theirs: Citizen genuinely can't fail Career Resolution
+// itself (Begin is Automatic — BeginCitizen always returns true — and
+// Citizen Life has no wound or death mechanic at all, so every roll
+// sequence produces a career with at least one term). ok is false here
+// only for an Aging death (Book 1 p.89), which finalizeAging
+// (character/aging.go) simulates over the career's own span and which
+// a Citizen is no more immune to than anyone else. This function used
+// to return Character alone on the reasoning that a never-false bool
+// would be dead surface area; that held only while Aging death was
+// treated as a Notes-only outcome — see finalizeAging's own doc comment
+// for why it no longer is.
+func GenerateCitizenCharacter(r *dice.Roller) (Character, bool) {
 	upp := GenerateUPP(r)
 	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
 
@@ -40,9 +36,15 @@ func GenerateCitizenCharacter(r *dice.Roller) Character {
 // correct for Citizen, not a gap: Citizen Life has no wound mechanic to
 // count. Character.UPP comes from finalizeAging after career Personal
 // awards, Mustering Out characteristic boosts, and Aging reductions.
-func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) Character {
-	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms)
-	career.MusteringOut = ResolveCitizenMusterOut(r, career)
+func buildCitizenCharacter(
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel,
+) (Character, bool) {
+	var aging agingSimulation
+
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveCitizenMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -50,14 +52,14 @@ func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 
 	// survivedCareer is always true: Citizen Life has no death mechanic,
 	// so there's always "the rest of their life" for finalizeAging to
-	// simulate.
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), true)
+	// simulate. The returned ok can still be false — Aging death.
+	age, lifeStage, notes, ok := finalizeAging(&aging, true)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,
@@ -68,5 +70,5 @@ func buildCitizenCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
-	}
+	}, ok
 }

@@ -39,8 +39,12 @@ func GenerateMerchantCharacter(r *dice.Roller) (Character, bool) {
 // buildRiskCareerCharacter's shared signature has no room for (the same
 // Scholar-shaped mismatch from last slice).
 func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
-	career, careerUPP, isOfficer, tier := ResolveMerchantCareer(r, upp)
-	career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
+	var aging agingSimulation
+
+	career, careerUPP, isOfficer, tier := resolveMerchantCareerWithBudget(r, upp, maxCareerTerms, &aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
+	}
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
 	// characteristic from a survived Wounded/Disabled term. A code-review
@@ -53,20 +57,20 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 
 	// len(career.Terms) > 0 is unconditionally true (BeginMerchant never
 	// fails) — ok collapses to "didn't die on the last term."
-	ok := career.Terms[len(career.Terms)-1].RiskResult != Dead
+	survivedCareer := career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	fame := bonuses.Fame
-	if ok {
+	if survivedCareer {
 		fame += merchantCareerFame(tier)
 	}
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

@@ -23,7 +23,9 @@ func GenerateSoldierCharacter(r *dice.Roller) (Character, bool) {
 // (character_generate.go) — Soldier shares Marine's own shape exactly.
 func buildSoldierCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	return buildRiskCareerCharacter(
-		r, upp, homeworld, homeworldSkills, ResolveSoldierCareer, ResolveSoldierMusterOut, soldierCareerFame)
+		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
+			return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, aging)
+		}, ResolveSoldierMusterOut, soldierCareerFame)
 }
 
 // soldierCareerFame mirrors marineCareerFame's own corrected formula

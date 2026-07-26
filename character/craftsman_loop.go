@@ -14,7 +14,13 @@ import (
 // resolveRiskCareerSegment) because BeginCraftsman needs
 // ctx.SkillsSoFar — an input no other risk-shaped career's own Begin
 // needs.
-func resolveCraftsmanCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) (Career, UPP) {
+func resolveCraftsmanCareerWithBudget(
+	r *dice.Roller,
+	upp UPP,
+	maxTerms int,
+	ctx segmentContext,
+	aging *agingSimulation,
+) (Career, UPP) {
 	career := Career{Name: CraftsmanCareerName}
 
 	if !BeginCraftsman(ctx.SkillsSoFar) {
@@ -34,6 +40,7 @@ func resolveCraftsmanCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, ctx
 			return continueCraftsman(r, craftsmanSkillLevel(heldSkills))
 		},
 		maxTerms,
+		aging,
 	)
 	career.Terms = terms
 

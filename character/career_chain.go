@@ -48,10 +48,30 @@ func segmentEndsCareerResolution(seg careerSegment) bool {
 // that actually needs a given field reads it — the same low-risk,
 // mechanical threading pattern the -age target already used for
 // maxTerms.
+// Aging is the one field every segment reads rather than only the odd
+// one out: it's a single simulation for the whole chain, so a checkpoint
+// reached during a later career still counts the terms served in earlier
+// ones (see agingSimulation's own doc comment). It is deliberately a
+// pointer — each segment mutates the shared simulation as its terms
+// advance, and the chain reads the accumulated result afterward.
 type segmentContext struct {
 	PrecedingCareer  string
 	TermsServedSoFar int
 	SkillsSoFar      []SkillLevel
+	Aging            *agingSimulation
+}
+
+// aging returns the chain-wide simulation, or a fresh throwaway one when
+// a caller resolving a single segment in isolation (every direct
+// segment-resolver call in the tests) supplied none. Segment resolvers
+// go through this rather than reading ctx.Aging directly so a zero-value
+// segmentContext stays usable instead of panicking on a nil pointer.
+func (c segmentContext) aging() *agingSimulation {
+	if c.Aging == nil {
+		return &agingSimulation{}
+	}
+
+	return c.Aging
 }
 
 type careerSegmentResolver func(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment
@@ -84,12 +104,18 @@ func resolveRiskCareerSegment(
 	r *dice.Roller,
 	upp UPP,
 	maxTerms int,
-	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int) (Career, UPP),
+	ctx segmentContext,
+	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
 	careerFame func(career Career) int,
 ) careerSegment {
-	career, careerUPP := resolveCareer(r, upp, maxTerms)
-	career.MusteringOut = resolveMusterOut(r, career)
+	aging := ctx.aging()
+
+	career, careerUPP := resolveCareer(r, upp, maxTerms, aging)
+
+	if aging.alive() {
+		career.MusteringOut = resolveMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -107,37 +133,39 @@ func resolveRiskCareerSegment(
 	}
 }
 
-func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
+func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
 		r,
 		upp,
 		maxTerms,
+		ctx,
 		resolveScoutCareerWithBudget,
 		ResolveScoutMusterOut,
 		scoutDiscoveryFame,
 	)
 }
 
-func resolveMarineSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
+func resolveMarineSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r, upp, maxTerms, resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFame)
+		r, upp, maxTerms, ctx, resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFame)
 }
 
-func resolveSoldierSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
+func resolveSoldierSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r, upp, maxTerms, resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFame)
+		r, upp, maxTerms, ctx, resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFame)
 }
 
-func resolveSpacerSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
+func resolveSpacerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r, upp, maxTerms, resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFame)
+		r, upp, maxTerms, ctx, resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFame)
 }
 
-func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
+func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
 		r,
 		upp,
 		maxTerms,
+		ctx,
 		resolveAgentCareerWithBudget,
 		ResolveAgentMusterOut,
 		agentCareerFame,
@@ -149,9 +177,13 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext
 // has no Risk-driven characteristic reduction; Personal awards can
 // still improve UPP. There is no death mechanic, so Survived is always true.
 // Fame/Cash share rogueTermsFameCash with buildRogueCharacter.
-func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms)
-	career.MusteringOut = ResolveRogueMusterOut(r, career)
+func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	aging := ctx.aging()
+
+	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveRogueMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -174,9 +206,13 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext
 
 // resolveScholarSegment mirrors buildScholarCharacter's own body
 // (scholar_character_generate.go), stopping short of finalizeAging.
-func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxTerms)
-	career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	aging := ctx.aging()
+
+	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxTerms, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -202,9 +238,13 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentConte
 // "Dead" means Talent exhausted, not physical death, so Survived is
 // always true and WoundBadges is always 0 (a Talent setback, not a
 // physical wound).
-func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxTerms)
-	career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
+func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	aging := ctx.aging()
+
+	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -223,9 +263,13 @@ func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentC
 // so len(career.Terms) > 0 used to be unconditional — that stops being
 // true once maxTerms can be 0 (an exhausted -age budget), so this
 // checks explicitly rather than indexing career.Terms unconditionally.
-func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, careerUPP, isOfficer, tier := resolveMerchantCareerWithBudget(r, upp, maxTerms)
-	career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
+func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	aging := ctx.aging()
+
+	career, careerUPP, isOfficer, tier := resolveMerchantCareerWithBudget(r, upp, maxTerms, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -247,9 +291,13 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentCont
 // (citizen_character_generate.go), stopping short of finalizeAging.
 // Citizen Life can't fail Career Resolution at all, so Survived is
 // always true.
-func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms)
-	career.MusteringOut = ResolveCitizenMusterOut(r, career)
+func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	aging := ctx.aging()
+
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveCitizenMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -270,8 +318,12 @@ func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentConte
 // doc comment for why scoutWoundBadges must not be called on this
 // segment).
 func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	career, careerUPP, finalTier := resolveFunctionaryCareerWithBudget(r, upp, maxTerms, ctx)
-	career.MusteringOut = ResolveFunctionaryMusterOut(r, career, finalTier)
+	aging := ctx.aging()
+
+	career, careerUPP, finalTier := resolveFunctionaryCareerWithBudget(r, upp, maxTerms, ctx, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveFunctionaryMusterOut(r, career, finalTier)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -291,8 +343,12 @@ func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 // liquid Cash — recorded in Equipment (the first real use of that
 // field), not folded into bonuses.Cash.
 func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	career, careerUPP := resolveCraftsmanCareerWithBudget(r, upp, maxTerms, ctx)
-	career.MusteringOut = ResolveCraftsmanMusterOut(r, career)
+	aging := ctx.aging()
+
+	career, careerUPP := resolveCraftsmanCareerWithBudget(r, upp, maxTerms, ctx, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveCraftsmanMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 
@@ -311,9 +367,13 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 	}
 }
 
-func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext) careerSegment {
-	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms)
-	career.MusteringOut = ResolveNobleMusterOut(r, career)
+func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
+	aging := ctx.aging()
+
+	career, careerUPP := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	if aging.alive() {
+		career.MusteringOut = ResolveNobleMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
 	ok := len(career.Terms) > 0
@@ -470,6 +530,46 @@ func generateCareerChainStart(r *dice.Roller) (UPP, string, []SkillLevel) {
 	return upp, homeworld, skills
 }
 
+// chainSegmentContext builds the per-segment context from the chain's
+// running state — the shared Aging simulation, terms served so far, the
+// skills accumulated to date, and the immediately-preceding career name.
+func chainSegmentContext(
+	aging *agingSimulation,
+	acc *careerChainAccumulator,
+	precedingCareer string,
+) segmentContext {
+	return segmentContext{
+		Aging:            aging,
+		PrecedingCareer:  precedingCareer,
+		TermsServedSoFar: acc.termsServed,
+		SkillsSoFar:      aggregateSkills(acc.skills),
+	}
+}
+
+// applyCitizenFallback runs Book 1 p.64's guaranteed Citizen fallback
+// ("Begin Citizen Life is Automatic") for a chain in which no listed
+// career ever began, folding the result into acc and returning the
+// resulting UPP. Subject to the same -age budget as any other segment,
+// so a target already reached skips it entirely rather than handing out
+// a free career.
+func applyCitizenFallback(
+	r *dice.Roller,
+	upp UPP,
+	acc *careerChainAccumulator,
+	aging *agingSimulation,
+	ageTarget, maxAllowedTotalTerms int,
+) UPP {
+	maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed)
+	if !attemptAllowed {
+		return upp
+	}
+
+	seg := careerChainRegistry["citizen"](r, upp, maxTerms, segmentContext{Aging: aging})
+	acc.addSegment(seg)
+
+	return seg.UPP
+}
+
 // GenerateCareerChainCharacter generates a full Human Character across
 // an ordered sequence of careerNames (already lowercased/trimmed),
 // implementing Book 1's own "Changing Careers" (pp.65-66). An ordered
@@ -507,6 +607,11 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	upp, homeworld, homeworldSkills := generateCareerChainStart(r)
 
 	acc := careerChainAccumulator{skills: slices.Clone(homeworldSkills)}
+
+	// One simulation for the whole chain — see agingSimulation's own doc
+	// comment for why it cannot be per-segment.
+	var aging agingSimulation
+
 	everSucceeded, survived := false, true
 	precedingCareer := ""
 
@@ -520,13 +625,8 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 			maxTerms = min(maxTerms, 1)
 		}
 
-		ctx := segmentContext{
-			PrecedingCareer:  precedingCareer,
-			TermsServedSoFar: acc.termsServed,
-			SkillsSoFar:      aggregateSkills(acc.skills),
-		}
-
-		seg := careerChainRegistry[name](r, upp, maxTerms, ctx)
+		seg := careerChainRegistry[name](r, upp, maxTerms,
+			chainSegmentContext(&aging, &acc, precedingCareer))
 		upp = seg.UPP
 		acc.addSegment(seg)
 
@@ -543,26 +643,30 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 			break
 		}
 
+		// seg.Survived answers only "did this career kill them?" — Aging
+		// is tracked separately and spans the whole chain, so it has to be
+		// checked on its own or the next named career gets attempted by a
+		// character who is already dead.
+		if !aging.alive() {
+			break
+		}
+
 		if segmentEndsCareerResolution(seg) {
 			break
 		}
 	}
 
 	if !everSucceeded {
-		if maxTerms, attemptAllowed := segmentBudget(ageTarget, maxAllowedTotalTerms, acc.termsServed); attemptAllowed {
-			seg := careerChainRegistry["citizen"](r, upp, maxTerms, segmentContext{})
-			upp = seg.UPP
-			acc.addSegment(seg)
-		}
+		upp = applyCitizenFallback(r, upp, &acc, &aging, ageTarget, maxAllowedTotalTerms)
 	}
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, acc.termsServed, survived)
+	age, lifeStage, notes, survived := finalizeAging(&aging, survived)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            upp,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld,
 		Birthdate:      birthdate,

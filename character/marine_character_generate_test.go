@@ -3,6 +3,7 @@ package character
 import (
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -61,12 +62,16 @@ func TestBuildMarineCharacterDies(t *testing.T) {
 			t.Fatal("career has zero terms, want Begin to always succeed (C1=12)")
 		}
 
-		wantOK := terms[len(terms)-1].RiskResult != Dead
+		// Either kill path clears ok: a Dead last term (Book 1 p.69) or
+		// an Aging death (p.89), which now runs between terms.
+		wantOK := terms[len(terms)-1].RiskResult != Dead &&
+			!strings.Contains(c.Notes, "died of natural causes")
 		if ok != wantOK {
-			t.Fatalf("ok = %v, want %v (last term RiskResult = %v)", ok, wantOK, terms[len(terms)-1].RiskResult)
+			t.Fatalf("ok = %v, want %v (last term RiskResult = %v, Notes = %q)",
+				ok, wantOK, terms[len(terms)-1].RiskResult, c.Notes)
 		}
 
-		if !wantOK {
+		if terms[len(terms)-1].RiskResult == Dead {
 			sawDeath = true
 		}
 	}
@@ -126,30 +131,32 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 		t.Errorf("len(Skills) = %d, want at least %d (homeworld skills alone)", len(c.Skills), len(homeworldSkills))
 	}
 
-	// This fixture's own 14 terms all resolve Risk as Unharmed (the same
-	// guarantee TestResolveMarineCareerRespectsMaxTermsCap relies on), so
-	// WoundBadges is 0. Enlisted rank carries no Officer Rank Fame
-	// (marineCareerFame's own rule); this seed's own Reward rolls happen
-	// to resolve to MCUF (+1 Fame each) 5 times and MCG (+2) once, for an
-	// exact total of 7. Confirms marineCareerFame is wired end to end,
-	// not just unit-correct.
-	if c.Fame != 7 {
-		t.Errorf("Fame = %d, want 7 (5 MCUF + 1 MCG from this seed's own Reward rolls)", c.Fame)
+	// Fame, WoundBadges and Medals are all checked against what this
+	// character's own terms actually record rather than against pinned
+	// totals. They used to be pinned, on the premise that a high-UPP
+	// fixture made every Risk roll succeed for all 14 terms — a premise
+	// Aging retired: it now runs between terms and erodes C1-C3, so even
+	// a maximal starting characteristic can fall far enough for a late
+	// Risk roll to fail. Deriving keeps what these assertions were
+	// actually for (marineCareerFame wired end to end, and the
+	// code-review-caught bug where Term.Medals fed Fame but never reached
+	// Character.Medals) without re-pinning a number every Aging change
+	// would invalidate again.
+	if want := marineCareerFame(c.Careers[0]); c.Fame < want {
+		t.Errorf("Fame = %d, want at least %d (career Fame, before Mustering Out's own additions)", c.Fame, want)
 	}
 
-	if c.WoundBadges != 0 {
-		t.Errorf("WoundBadges = %d, want 0 (fixture guarantees Risk always succeeds)", c.WoundBadges)
+	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+		t.Errorf("WoundBadges = %d, want %d (one per Wounded/Disabled term)", c.WoundBadges, want)
 	}
 
-	// Regression test for a code-review-caught bug: Term.Medals was being
-	// summed into Fame but never propagated onto Character.Medals. This
-	// fixture guarantees both Risk and Reward always succeed (see this
-	// test's own doc comment), so every one of the 14 terms grants
-	// exactly two medals — the flat Risk-success XS plus one Reward-table
-	// medal — for exactly 28 total.
-	if len(c.Medals) != 28 {
-		t.Errorf("len(Medals) = %d, want 28 (2 medals x 14 terms: flat XS plus a Reward-table medal each)",
-			len(c.Medals))
+	if want := allMedalsFromTerms(c.Careers[0].Terms); len(c.Medals) != len(want) {
+		t.Errorf("len(Medals) = %d, want %d (every Term.Medals entry must reach Character.Medals)",
+			len(c.Medals), len(want))
+	}
+
+	if len(c.Medals) == 0 {
+		t.Error("len(Medals) = 0, want some (fixture can't verify Medals propagation at all)")
 	}
 
 	// Regression test for Phase V's own core mechanic: Enlisted Promotion

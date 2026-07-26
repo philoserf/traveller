@@ -91,16 +91,17 @@ func lastTermRank(terms []Term) string {
 // retry from — matching the existing return-both-value-and-signal pattern
 // already used throughout this package (BeginScout, ResolveScoutTerm).
 //
-// This does NOT cover an Aging-caused death (character/aging.go's own
-// ResolveAging, applied via finalizeAging below): p.69's rule above is
-// scoped to a Risk-roll reduction during an active Career Resolution
-// attempt, a categorically different, narrower rule than Aging's own
-// general "ultimately... bringing on inevitable death" (p.89), which the
-// book frames as a normal outcome, not a voided attempt. A character who
-// died of old age decades after a successful career still returns
-// ok=true — the story of that death is recorded in Notes, not signaled
-// by this return value. A caller that needs to detect it should check
-// Notes rather than ok.
+// An Aging-caused death (character/aging.go's own ResolveAging, applied
+// via finalizeAging below) also returns ok=false, though it reaches that
+// answer by a different route than p.69's career-death rule above. This
+// package previously returned ok=true for it, reasoning that p.89's
+// "ultimately... bringing on inevitable death" is a normal outcome
+// rather than a voided attempt — someone dying "of old age decades after
+// a successful career," a story for Notes to tell rather than a signal.
+// That reasoning didn't survive contact with what finalizeAging actually
+// simulates: Aging runs only through the career-end age, never past it,
+// so such a death lands inside the lifetime generation just built rather
+// than decades beyond it. See finalizeAging's own doc comment.
 //
 // Age, LifeStage, Notes are computed via finalizeAging (character/aging.go):
 // Age is only an approximation (18 plus 4 years per term served — whether
@@ -150,7 +151,9 @@ func GenerateScoutCharacter(r *dice.Roller) (Character, bool) {
 // doc comment for why.
 func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
 	return buildRiskCareerCharacter(
-		r, upp, homeworld, homeworldSkills, ResolveScoutCareer, ResolveScoutMusterOut, scoutDiscoveryFame)
+		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
+			return resolveScoutCareerWithBudget(r, upp, maxCareerTerms, aging)
+		}, ResolveScoutMusterOut, scoutDiscoveryFame)
 }
 
 // scoutDiscoveryFame is Book 1 p.91's own "Scout: Discoveries x4" —
@@ -193,12 +196,16 @@ func buildRiskCareerCharacter(
 	upp UPP,
 	homeworld string,
 	homeworldSkills []SkillLevel,
-	resolveCareer func(r *dice.Roller, upp UPP) (Career, UPP),
+	resolveCareer func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
 	careerFame func(career Career) int,
 ) (Character, bool) {
-	career, updatedUPP := resolveCareer(r, upp)
-	career.MusteringOut = resolveMusterOut(r, career)
+	var aging agingSimulation
+
+	career, updatedUPP := resolveCareer(r, upp, &aging)
+	if aging.alive() {
+		career.MusteringOut = resolveMusterOut(r, career)
+	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, updatedUPP)
 
@@ -209,9 +216,9 @@ func buildRiskCareerCharacter(
 	// any).
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 
-	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
+	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
 	// careerFame is gated on ok, matching buildNobleCharacter's own
@@ -221,14 +228,14 @@ func buildRiskCareerCharacter(
 	// same gate, since resolveMusterOut's own roll-count already zeroes
 	// out on a Dead last term.
 	fame := bonuses.Fame
-	if ok {
+	if survivedCareer {
 		fame += careerFame(career)
 	}
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            finalUPP,
+		UPP:            boostedUPP,
 		Homeworld:      homeworld,
 		Birthworld:     homeworld, // same world; see GenerateHomeworldSkills' own doc comment
 		Birthdate:      birthdate,

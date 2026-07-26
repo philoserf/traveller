@@ -13,7 +13,13 @@ func TestResolveCraftsmanCareerWithBudgetNeverQualifiesWithoutPrerequisite(t *te
 	for seed := uint64(1); seed <= 10; seed++ {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		career, _ := resolveCraftsmanCareerWithBudget(r, uppCraftsman12, maxCareerTerms, segmentContext{})
+		career, _ := resolveCraftsmanCareerWithBudget(
+			r,
+			uppCraftsman12,
+			maxCareerTerms,
+			segmentContext{},
+			&agingSimulation{},
+		)
 		if len(career.Terms) != 0 {
 			t.Fatalf("seed=%d: len(career.Terms) = %d, want 0 (no prior skills at all)", seed, len(career.Terms))
 		}
@@ -34,7 +40,13 @@ func TestResolveCraftsmanCareerWithBudgetRespectsATighterBudget(t *testing.T) {
 
 	const budget = 3
 
-	career, _ := resolveCraftsmanCareerWithBudget(dice.New(rand.NewPCG(1, 1)), uppCraftsman12, budget, ctx)
+	career, _ := resolveCraftsmanCareerWithBudget(
+		dice.New(rand.NewPCG(1, 1)),
+		uppCraftsman12,
+		budget,
+		ctx,
+		&agingSimulation{},
+	)
 	if len(career.Terms) != budget {
 		t.Errorf("len(career.Terms) = %d, want %d", len(career.Terms), budget)
 	}
@@ -45,11 +57,17 @@ func TestResolveCraftsmanCareerWithBudgetThreadsGrowingHeldSkills(t *testing.T) 
 
 	ctx := segmentContext{SkillsSoFar: craftsmanHighSkillFixture}
 
+	// Budgeted below Physical Aging's own onset (age 34, the end of term
+	// 4) so no Aging checkpoint fires: this test is about Personal awards
+	// reaching the threaded UPP, and Aging — which now runs between terms
+	// and reduces the same characteristics — would otherwise make the
+	// expected value below impossible to state without replaying its dice.
 	career, finalUPP := resolveCraftsmanCareerWithBudget(
 		dice.New(rand.NewPCG(1, 1)),
 		uppCraftsman12,
-		maxCareerTerms,
+		3,
 		ctx,
+		&agingSimulation{},
 	)
 
 	if len(career.Terms) == 0 {
