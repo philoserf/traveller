@@ -31,7 +31,7 @@ func resolveCraftsmanCareerWithBudget(
 
 	terms, finalUPP := resolveCareerLoop(r, upp, craftsmanRiskRewardPositions,
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
-			term, newHeld := ResolveCraftsmanTerm(r, upp, ccPos, heldSkills)
+			term, newHeld := ResolveCraftsmanTerm(r, upp, ccPos, heldSkills, aging.livingAge())
 			heldSkills = newHeld
 
 			return term, upp

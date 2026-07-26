@@ -291,7 +291,7 @@ func TestResolveCraftsmanTermSuccess(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveCraftsmanTerm(r, uppCraftsman12, C1, craftsmanHighSkillFixture)
+	term, _ := ResolveCraftsmanTerm(r, uppCraftsman12, C1, craftsmanHighSkillFixture, 18)
 
 	if term.RiskResult != Unharmed {
 		t.Errorf("RiskResult = %v, want Unharmed (Craftsman never rolls Risk & Reward)", term.RiskResult)
@@ -342,7 +342,7 @@ func TestResolveCraftsmanTermBelowMinimumMasterPointsNeverRolls(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveCraftsmanTerm(r, upp, C1, lowSkill)
+	term, _ := ResolveCraftsmanTerm(r, upp, C1, lowSkill, 18)
 
 	if term.RewardResult != "None" {
 		t.Errorf(
@@ -394,7 +394,7 @@ func TestResolveCraftsmanTermPerfectMasterpiece(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveCraftsmanTerm(r, upp, C1, perfectSkill)
+	term, _ := ResolveCraftsmanTerm(r, upp, C1, perfectSkill, 18)
 
 	if !term.Perfect {
 		t.Fatalf("Perfect = false, want true (masterPoints=%d)", mp)

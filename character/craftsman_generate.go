@@ -128,8 +128,24 @@ func craftsmanMasterPoints(cc int, skills []SkillLevel) int {
 // formula would give): "A Perfect Masterpiece... sells for Double,"
 // applied as a final doubling once points reach 55, not a separate
 // curve.
+//
+// Book 1 states the threshold twice and the two disagree: p.75 says
+// "per Master Point over 40" and the QREBS chapter says "over 39". The
+// printed value table settles it — 45 points is listed at Cr200,000,
+// which is 150,000 + 10,000 x (45 - 40); "over 39" would give
+// Cr210,000 and put every row one step off.
+//
+// Points at or below the floor earn the base value and nothing more.
+// Unreachable from the career itself (craftsmanMinMasterPoints gates
+// creation at exactly this value), but guarded rather than left to
+// return less than the base: p.75 puts the cost of making a Masterpiece
+// at exactly Cr150,000, "Cr25 an hour for 6000 hours".
 func craftsmanMasterpieceValue(masterPoints int) int {
-	value := craftsmanBaseMasterpieceValue + craftsmanValuePerPoint*(masterPoints-craftsmanMinMasterPoints)
+	value := craftsmanBaseMasterpieceValue
+
+	if masterPoints > craftsmanMinMasterPoints {
+		value += craftsmanValuePerPoint * (masterPoints - craftsmanMinMasterPoints)
+	}
 
 	if masterPoints >= craftsmanPerfectMasterPoints {
 		value *= 2
@@ -223,7 +239,9 @@ func rollCraftsmanSkills(r *dice.Roller, count int, heldSkills []SkillLevel) ([]
 // cannot attempt a Masterpiece (treat as Failure)" — but skills are
 // still granted per the Failure rate, matching every other career's own
 // "a failed attempt still teaches something" convention.
-func ResolveCraftsmanTerm(r *dice.Roller, upp UPP, ccPos Position, heldSkills []SkillLevel) (Term, []SkillLevel) {
+func ResolveCraftsmanTerm(
+	r *dice.Roller, upp UPP, ccPos Position, heldSkills []SkillLevel, ageAtCreation int,
+) (Term, []SkillLevel) {
 	term := Term{Length: 4, ControllingCharacteristic: ccPos}
 
 	cc := int(upp.Characteristics[ccPos])
@@ -241,7 +259,12 @@ func ResolveCraftsmanTerm(r *dice.Roller, upp UPP, ccPos Position, heldSkills []
 		perfect := masterPoints >= craftsmanPerfectMasterPoints
 		term.Perfect = perfect
 
-		value := craftsmanMasterpieceValue(masterPoints)
+		// Book 1 p.75's QREBS allocation and the value it implies, kept as
+		// a structured record beside the display string below.
+		masterpiece := newMasterpiece(r, masterPoints, ageAtCreation)
+		term.Masterpiece = &masterpiece
+
+		value := masterpiece.BaseValue
 		if perfect {
 			term.RewardResult = fmt.Sprintf("Perfect Masterpiece (Cr%d)", value)
 		} else {
