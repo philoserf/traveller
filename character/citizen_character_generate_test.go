@@ -57,8 +57,12 @@ func TestBuildCitizenCharacterUPPBoundedWithAgingBuffer(t *testing.T) {
 		c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 		for i, v := range c.UPP.Characteristics[:5] {
-			if v < 4 || v > ehex.Max {
-				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, %d]", seed, i, v, ehex.Max)
+			// Upper bound is the Human cap, not ehex.Max. This test was
+			// relaxed to ehex.Max when Personal awards began raising
+			// characteristics; that hid awards carrying a Human past 15.
+			if v < 4 || int(v) > HumanCharacteristicMax {
+				t.Errorf("seed %d: Characteristics[%d] = %d, want in [4, %d]",
+					seed, i, v, HumanCharacteristicMax)
 			}
 		}
 

@@ -1,7 +1,5 @@
 package character
 
-import "github.com/philoserf/traveller/ehex"
-
 // applyPersonalAwards applies the Personal column's characteristic
 // improvements to the live UPP. The award remains on its Term as career
 // history, but is excluded from Character.Skills.
@@ -16,10 +14,7 @@ func applyPersonalAwards(upp UPP, awards []SkillLevel) UPP {
 			continue
 		}
 
-		boosted := min(int(upp.Characteristics[position])+award.Level, int(ehex.Max))
-
-		//nolint:gosec // bounded by the min(...) clamp above
-		upp.Characteristics[position] = ehex.Value(boosted)
+		upp.Characteristics[position] = awardCharacteristic(upp.Characteristics[position], award.Level)
 	}
 
 	return upp

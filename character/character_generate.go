@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
 )
 
 // HumanSpecies and HumanGeneticProfile are the values every character
@@ -19,6 +20,36 @@ const (
 	HumanSpecies        = "Human"
 	HumanGeneticProfile = "SDEIES"
 )
+
+// HumanCharacteristicMax is the highest value a Human characteristic can
+// reach through in-generation awards (Book 1 p.70). It is far below
+// ehex.Max, which is only the largest value a single extended-hex digit
+// can encode (33) — a storage limit, not a species one.
+//
+// Awards in this codebase are all +1, so "clamped at 15" and p.70's own
+// "an award that would exceed 15 is lost" describe the same outcome; the
+// distinction would only matter for a +2 award, which no table grants.
+//
+// Reductions are not bounded by this: Aging and Risk both drive
+// characteristics down, and their floor is 0, not 15.
+const HumanCharacteristicMax = 15
+
+// awardCharacteristic applies an award of amount to current, per Book 1
+// p.70: an award that would take the result past HumanCharacteristicMax
+// is lost, leaving the characteristic untouched.
+//
+// Lost, not clamped down to the cap. A test fixture starting above 15 —
+// several use 20 to make Risk unfailable — must not be dragged down to
+// 15 by receiving an award, which is what a plain min() would do.
+func awardCharacteristic(current ehex.Value, amount int) ehex.Value {
+	boosted := int(current) + amount
+	if boosted > HumanCharacteristicMax {
+		return current
+	}
+
+	//nolint:gosec // bounded above by HumanCharacteristicMax
+	return ehex.Value(boosted)
+}
 
 // humanGeneticProfile is HumanGeneticProfile's own unexported alias,
 // kept so this package's many struct literals read unchanged.

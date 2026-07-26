@@ -126,3 +126,25 @@ func TestAggregateSkillsEmptyInput(t *testing.T) {
 		t.Errorf("aggregateSkills(nil) = %+v, want empty", got)
 	}
 }
+
+// TestApplyPersonalAwardsRespectsTheHumanCharacteristicCap mirrors the
+// Mustering Out case for the other path that raises characteristics —
+// the Personal column of a career's own skill table. Both must observe
+// Book 1 p.70's cap, or a character can be pushed past 15 by whichever
+// one isn't checked.
+func TestApplyPersonalAwardsRespectsTheHumanCharacteristicCap(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{HumanCharacteristicMax, 14, 20, 5, 5, 5}}
+
+	got := applyPersonalAwards(upp, []SkillLevel{
+		{Name: "Str", Level: 1, Kind: Personal}, // at the cap: lost
+		{Name: "Dex", Level: 1, Kind: Personal}, // one below: reaches it
+		{Name: "End", Level: 1, Kind: Personal}, // above it: lost, not reduced
+	})
+
+	want := UPP{Characteristics: [6]ehex.Value{HumanCharacteristicMax, HumanCharacteristicMax, 20, 5, 5, 5}}
+	if got != want {
+		t.Errorf("applyPersonalAwards(...) = %v, want %v", got, want)
+	}
+}

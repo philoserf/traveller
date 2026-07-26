@@ -162,15 +162,43 @@ func TestApplyMusteringOut(t *testing.T) {
 	}
 }
 
-func TestApplyMusteringOutClampsAtMax(t *testing.T) {
+// TestApplyMusteringOutRespectsTheHumanCharacteristicCap is #57's
+// regression. Book 1 p.70 caps a Human characteristic at 15 and loses
+// any award that would take it past — this used to clamp at ehex.Max
+// (33), which is how many values a single extended-hex digit can encode,
+// not a limit on people. Repeated awards carried real generated
+// characters to 17.
+func TestApplyMusteringOutRespectsTheHumanCharacteristicCap(t *testing.T) {
 	t.Parallel()
 
-	m := MusteringOut{Benefits: []string{"Str +1"}}
-	upp := UPP{Characteristics: [6]ehex.Value{ehex.Max, 0, 0, 0, 0, 0}}
+	cases := []struct {
+		name    string
+		start   ehex.Value
+		want    ehex.Value
+		explain string
+	}{
+		{"below the cap, award applies", 9, 10, ""},
+		{"one below the cap, award reaches it", 14, HumanCharacteristicMax, ""},
+		{"at the cap, award is lost", HumanCharacteristicMax, HumanCharacteristicMax, ""},
+		{
+			"above the cap, award is lost without dragging the value down",
+			20, 20,
+			"p.70 loses the award; it does not clamp an already-higher value to 15",
+		},
+	}
 
-	gotUPP, _ := ApplyMusteringOut(m, upp)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 
-	if gotUPP.Characteristics[C1] != ehex.Max {
-		t.Errorf("Characteristics[C1] = %v, want clamped at %v", gotUPP.Characteristics[C1], ehex.Max)
+			got, _ := ApplyMusteringOut(
+				MusteringOut{Benefits: []string{"Str +1"}},
+				UPP{Characteristics: [6]ehex.Value{c.start, 0, 0, 0, 0, 0}},
+			)
+
+			if got.Characteristics[C1] != c.want {
+				t.Errorf("Str %v + 1 = %v, want %v. %s", c.start, got.Characteristics[C1], c.want, c.explain)
+			}
+		})
 	}
 }
