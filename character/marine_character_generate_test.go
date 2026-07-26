@@ -159,11 +159,22 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 		t.Error("len(Medals) = 0, want some (fixture can't verify Medals propagation at all)")
 	}
 
-	// Regression test for Phase V's own core mechanic: Enlisted Promotion
-	// always succeeds against C1=20, capping the rank at M6 well before
-	// the career's own 14-term run ends; Commission never succeeds
-	// against C3=End=0, so the character never transitions to Officer.
-	if c.Rank != "M6 Sergeant Major" {
-		t.Errorf("Rank = %q, want %q", c.Rank, "M6 Sergeant Major")
+	// Regression test for Phase V's own core mechanic: promotion always
+	// succeeds against C1=20, so the rank reaches the top of its ladder
+	// well before the career's own 14-term run ends.
+	//
+	// Which ladder is no longer fixed. This previously asserted the
+	// Enlisted cap outright, on the premise that Commission could never
+	// succeed against C3=End=0 — a premise that stopped holding once Term
+	// skills were restricted to the Operations columns actually received
+	// (Book 1 p.65). Fewer eligible columns means the Personal column,
+	// which grants characteristics, is drawn far more often, so C3 no
+	// longer stays at 0. The cap itself is what this test is for, so it
+	// is asserted against whichever ladder the character ended on.
+	topEnlisted := marineRankName(false, len(marineEnlistedRankNames))
+	topOfficer := marineRankName(true, len(marineOfficerRankNames))
+
+	if c.Rank != topEnlisted && c.Rank != topOfficer {
+		t.Errorf("Rank = %q, want the top of a ladder (%q or %q)", c.Rank, topEnlisted, topOfficer)
 	}
 }

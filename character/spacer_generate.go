@@ -84,11 +84,11 @@ func spacerBranchNameAndMod(row int, isOfficer bool) (string, int) {
 
 // rollSpacerOperations rolls 4 times (p.81: "Spacer rolls 4 times per
 // Term for Operations; select the highest Mod from the four"),
-// delegating to the shared rollHighestOfFour/operationsEduDM
+// delegating to the shared rollOperations/operationsEduDM
 // (career_generate.go) — no branch DM term, unlike Marine's/Soldier's
 // own Operations roll.
-func rollSpacerOperations(r *dice.Roller, edu int) (string, int) {
-	return rollHighestOfFour(r, operationsEduDM(edu), spacerNavalOperationsNames[:], spacerNavalOperationsMods[:])
+func rollSpacerOperations(r *dice.Roller, edu int) ([]string, string, int) {
+	return rollOperations(r, operationsEduDM(edu), spacerNavalOperationsNames[:], spacerNavalOperationsMods[:])
 }
 
 // ResolveSpacerTerm resolves one 4-year Spacer term — mirrors
@@ -104,7 +104,7 @@ func rollSpacerOperations(r *dice.Roller, edu int) (string, int) {
 func ResolveSpacerTerm(
 	r *dice.Roller, upp UPP, ccPos Position, branchRow int, priorTerms []Term,
 ) (Term, UPP) {
-	opName, opMod := rollSpacerOperations(r, int(upp.Characteristics[C5]))
+	operations, opName, opMod := rollSpacerOperations(r, int(upp.Characteristics[C5]))
 
 	isOfficer, tier := rankState(priorTerms, len(spacerEnlistedRankNames), len(spacerOfficerRankNames))
 	branch, branchMod := spacerBranchNameAndMod(branchRow, isOfficer)
@@ -117,6 +117,7 @@ func ResolveSpacerTerm(
 		ControllingCharacteristic: ccPos,
 		Branch:                    branch,
 		Assignment:                opName,
+		Operations:                operations,
 		RewardResult:              "None",
 		Rank:                      spacerRankName(isOfficer, tier),
 	}
@@ -162,16 +163,32 @@ func ResolveSpacerTerm(
 
 	term.Rank = spacerRankName(isOfficer, tier)
 
+	// Term skills only. The extra skill a Commission or Promotion
+	// grants is counted separately below, because p.65 exempts it from
+	// the Operations-column restriction.
 	skillCount := spacerSkillsPerTerm
+	exemptSkills := 0
+
 	if term.Commissioned || term.Promoted {
-		skillCount++
+		exemptSkills++
 
 		if skill, ok := spacerRankAutomaticSkill(isOfficer, tier); ok {
 			term.SkillsAwarded = append(term.SkillsAwarded, skill)
 		}
 	}
 
-	term.SkillsAwarded = append(term.SkillsAwarded, rollSkillsFromTable(r, spacerSkillTable, skillCount)...)
+	// Book 1 p.65: Term skills "may be taken on a column of the Skills
+	// table corresponding to an Operations result received in the Term",
+	// plus Personal, which "may always be rolled".
+	columns := eligibleSkillColumns(operations, spacerOperationsColumns)
+	term.SkillsAwarded = append(term.SkillsAwarded,
+		rollSkillsFromColumns(r, spacerSkillTable, columns, skillCount)...)
+
+	// The Commission/Promotion skill is one of the eligibilities p.65
+	// exempts, so it draws from the whole table — which is how p.65's own
+	// worked example reaches a column its Operations never granted.
+	term.SkillsAwarded = append(term.SkillsAwarded,
+		rollSkillsFromTable(r, spacerSkillTable, exemptSkills)...)
 
 	return term, upp
 }

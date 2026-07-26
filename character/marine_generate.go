@@ -84,13 +84,13 @@ func rollMarineBranch(r *dice.Roller) (string, int) {
 // rollMarineOperations rolls 4 times (p.86: "Roll 4 times per Term for
 // Operations; select the highest Mod from the four"), returning the
 // winning operation's own name and Mod. Delegates to the shared
-// rollHighestOfFour/operationsEduDM (career_generate.go) — Marine's own
+// rollOperations/operationsEduDM (career_generate.go) — Marine's own
 // former per-loop body, generalized once Soldier became a second real
 // caller of the identical shape.
-func rollMarineOperations(r *dice.Roller, branch string, edu int) (string, int) {
+func rollMarineOperations(r *dice.Roller, branch string, edu int) ([]string, string, int) {
 	dm := marineOperationsBranchDM[branch] + operationsEduDM(edu)
 
-	return rollHighestOfFour(r, dm, marineOperationsNames[:], marineOperationsMods[:])
+	return rollOperations(r, dm, marineOperationsNames[:], marineOperationsMods[:])
 }
 
 // ResolveMarineTerm resolves one 4-year Marine term. branch/branchMod
@@ -143,7 +143,7 @@ func rollMarineOperations(r *dice.Roller, branch string, edu int) (string, int) 
 func ResolveMarineTerm(
 	r *dice.Roller, upp UPP, ccPos Position, branch string, branchMod int, priorTerms []Term,
 ) (Term, UPP) {
-	opName, opMod := rollMarineOperations(r, branch, int(upp.Characteristics[C5]))
+	operations, opName, opMod := rollMarineOperations(r, branch, int(upp.Characteristics[C5]))
 
 	cc := upp.Characteristics[ccPos]
 	mod := -(branchMod + opMod)
@@ -155,6 +155,7 @@ func ResolveMarineTerm(
 		ControllingCharacteristic: ccPos,
 		Branch:                    branch,
 		Assignment:                opName,
+		Operations:                operations,
 		RewardResult:              "None",
 		Rank:                      marineRankName(isOfficer, tier),
 	}
@@ -200,16 +201,32 @@ func ResolveMarineTerm(
 
 	term.Rank = marineRankName(isOfficer, tier)
 
+	// Term skills only. The extra skill a Commission or Promotion
+	// grants is counted separately below, because p.65 exempts it from
+	// the Operations-column restriction.
 	skillCount := marineSkillsPerTerm
+	exemptSkills := 0
+
 	if term.Commissioned || term.Promoted {
-		skillCount++
+		exemptSkills++
 
 		if skill, ok := marineRankAutomaticSkill(isOfficer, tier); ok {
 			term.SkillsAwarded = append(term.SkillsAwarded, skill)
 		}
 	}
 
-	term.SkillsAwarded = append(term.SkillsAwarded, rollSkillsFromTable(r, marineSkillTable, skillCount)...)
+	// Book 1 p.65: Term skills "may be taken on a column of the Skills
+	// table corresponding to an Operations result received in the Term",
+	// plus Personal, which "may always be rolled".
+	columns := eligibleSkillColumns(operations, marineOperationsColumns)
+	term.SkillsAwarded = append(term.SkillsAwarded,
+		rollSkillsFromColumns(r, marineSkillTable, columns, skillCount)...)
+
+	// The Commission/Promotion skill is one of the eligibilities p.65
+	// exempts, so it draws from the whole table — which is how p.65's own
+	// worked example reaches a column its Operations never granted.
+	term.SkillsAwarded = append(term.SkillsAwarded,
+		rollSkillsFromTable(r, marineSkillTable, exemptSkills)...)
 
 	return term, upp
 }

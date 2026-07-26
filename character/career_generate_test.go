@@ -62,13 +62,13 @@ func TestOperationsEduDM(t *testing.T) {
 	}
 }
 
-// TestRollHighestOfFour is a property test, not exact-value pinning
-// (which of 4 rolls wins is inherently seed-dependent): the returned Mod
-// must be at least as high as musterOutRow's own single-roll result
-// would give for the very first of the 4 dice drawn — confirming
-// rollHighestOfFour doesn't silently take a worse row than what it
-// actually rolled.
-func TestRollHighestOfFour(t *testing.T) {
+// TestRollOperationsTakesTheHighestModAndKeepsEveryResult is a property
+// test, not exact-value pinning (which of 4 rolls wins is inherently
+// seed-dependent): the returned Mod must be at least as high as
+// musterOutRow's own single-roll result would give for the very first of
+// the 4 dice drawn, and every one of the four assignments must come
+// back — the half this function previously discarded.
+func TestRollOperationsTakesTheHighestModAndKeepsEveryResult(t *testing.T) {
 	t.Parallel()
 
 	names := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
@@ -76,14 +76,35 @@ func TestRollHighestOfFour(t *testing.T) {
 
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r1 := dice.New(rand.NewPCG(seed, seed))
-		_, got := rollHighestOfFour(r1, 0, names, mods)
+		received, best, got := rollOperations(r1, 0, names, mods)
 
 		r2 := dice.New(rand.NewPCG(seed, seed))
 		firstRow := musterOutRow(r2.D6(), len(names))
 		firstMod := mods[firstRow]
 
 		if got < firstMod {
-			t.Errorf("seed %d: rollHighestOfFour = %d, want >= first roll's own Mod %d", seed, got, firstMod)
+			t.Errorf("seed %d: rollOperations Mod = %d, want >= first roll's own Mod %d", seed, got, firstMod)
+		}
+
+		if len(received) != operationsRollsPerTerm {
+			t.Errorf("seed %d: got %d assignments, want %d", seed, len(received), operationsRollsPerTerm)
+		}
+
+		if !slices.Contains(received, best) {
+			t.Errorf("seed %d: headline assignment %q is not among the four received %v", seed, best, received)
+		}
+
+		// The reported Mod must belong to an assignment actually rolled,
+		// and be the best of them.
+		for _, name := range received {
+			if m := operationMod(name, names, mods); m > got {
+				t.Errorf("seed %d: received %q with Mod %d, but reported %d", seed, name, m, got)
+			}
+		}
+
+		if operationMod(best, names, mods) != got {
+			t.Errorf("seed %d: headline %q has Mod %d, but reported %d",
+				seed, best, operationMod(best, names, mods), got)
 		}
 	}
 }
