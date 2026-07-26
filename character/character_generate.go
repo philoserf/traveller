@@ -91,16 +91,17 @@ func lastTermRank(terms []Term) string {
 // retry from — matching the existing return-both-value-and-signal pattern
 // already used throughout this package (BeginScout, ResolveScoutTerm).
 //
-// This does NOT cover an Aging-caused death (character/aging.go's own
-// ResolveAging, applied via finalizeAging below): p.69's rule above is
-// scoped to a Risk-roll reduction during an active Career Resolution
-// attempt, a categorically different, narrower rule than Aging's own
-// general "ultimately... bringing on inevitable death" (p.89), which the
-// book frames as a normal outcome, not a voided attempt. A character who
-// died of old age decades after a successful career still returns
-// ok=true — the story of that death is recorded in Notes, not signaled
-// by this return value. A caller that needs to detect it should check
-// Notes rather than ok.
+// An Aging-caused death (character/aging.go's own ResolveAging, applied
+// via finalizeAging below) also returns ok=false, though it reaches that
+// answer by a different route than p.69's career-death rule above. This
+// package previously returned ok=true for it, reasoning that p.89's
+// "ultimately... bringing on inevitable death" is a normal outcome
+// rather than a voided attempt — someone dying "of old age decades after
+// a successful career," a story for Notes to tell rather than a signal.
+// That reasoning didn't survive contact with what finalizeAging actually
+// simulates: Aging runs only through the career-end age, never past it,
+// so such a death lands inside the lifetime generation just built rather
+// than decades beyond it. See finalizeAging's own doc comment.
 //
 // Age, LifeStage, Notes are computed via finalizeAging (character/aging.go):
 // Age is only an approximation (18 plus 4 years per term served — whether
@@ -211,7 +212,7 @@ func buildRiskCareerCharacter(
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
 	// careerFame is gated on ok, matching buildNobleCharacter's own

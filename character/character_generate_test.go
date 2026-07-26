@@ -3,6 +3,7 @@ package character
 import (
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -113,17 +114,22 @@ func TestBuildScoutCharacterNeverQualified(t *testing.T) {
 	}
 }
 
-// TestBuildScoutCharacterDies confirms ok exactly matches the
-// terms-derived rule (last term Dead => false) across many trials of a
+// TestBuildScoutCharacterDies confirms ok exactly matches the two rules
+// that can each independently kill a character, across many trials of a
 // fixture where death is a frequent outcome, not just statistically
-// probable — the equivalence is checked every trial, not sampled.
+// probable — the equivalence is checked every trial, not sampled. Those
+// rules are a Dead last term (Book 1 p.69, Career Resolution) and an
+// Aging death (p.89, finalizeAging); ok is false when either fires.
+// This fixture's own Str/Dex/End of 1 makes the second one common, not
+// hypothetical: Aging reduces exactly those three, so there's almost no
+// margin before a checkpoint zeroes them.
 func TestBuildScoutCharacterDies(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{1, 1, 1, 12, 12, 0}}
 	r := dice.New(rand.NewPCG(41, 43))
 
-	sawDeath := false
+	sawCareerDeath, sawAgingDeath := false, false
 
 	for range 200 {
 		c, ok := buildScoutCharacter(r, upp, "hw", nil)
@@ -133,18 +139,25 @@ func TestBuildScoutCharacterDies(t *testing.T) {
 			t.Fatal("career has zero terms, want Begin to always succeed via Retry (Edu=12)")
 		}
 
-		wantOK := terms[len(terms)-1].RiskResult != Dead
+		diedInCareer := terms[len(terms)-1].RiskResult == Dead
+		diedOfAging := strings.Contains(c.Notes, "died of natural causes")
+
+		wantOK := !diedInCareer && !diedOfAging
 		if ok != wantOK {
-			t.Fatalf("ok = %v, want %v (last term RiskResult = %v)", ok, wantOK, terms[len(terms)-1].RiskResult)
+			t.Fatalf("ok = %v, want %v (last term RiskResult = %v, Notes = %q)",
+				ok, wantOK, terms[len(terms)-1].RiskResult, c.Notes)
 		}
 
-		if !wantOK {
-			sawDeath = true
-		}
+		sawCareerDeath = sawCareerDeath || diedInCareer
+		sawAgingDeath = sawAgingDeath || diedOfAging
 	}
 
-	if !sawDeath {
-		t.Fatal("no trial produced a death across 200 trials — fixture can't verify the ok=false path")
+	if !sawCareerDeath {
+		t.Error("no trial produced a career death across 200 trials — fixture can't verify that ok=false path")
+	}
+
+	if !sawAgingDeath {
+		t.Error("no trial produced an Aging death across 200 trials — fixture can't verify that ok=false path")
 	}
 }
 
@@ -189,7 +202,7 @@ func TestBuildScoutCharacterUPPCarriesForwardReduction(t *testing.T) {
 	wantCareer.MusteringOut = ResolveScoutMusterOut(r1, wantCareer)
 	boostedUPP, _ := ApplyMusteringOut(wantCareer.MusteringOut, updatedUPP)
 	wantOK := len(wantCareer.Terms) > 0 && wantCareer.Terms[len(wantCareer.Terms)-1].RiskResult != Dead
-	wantUPP, wantAge, wantLifeStage, wantNotes := finalizeAging(r1, boostedUPP, len(wantCareer.Terms), wantOK)
+	wantUPP, wantAge, wantLifeStage, wantNotes, _ := finalizeAging(r1, boostedUPP, len(wantCareer.Terms), wantOK)
 
 	r2 := dice.New(rand.NewPCG(23, 29))
 	c, _ := buildScoutCharacter(r2, upp, "hw", nil)

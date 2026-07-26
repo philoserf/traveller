@@ -42,7 +42,7 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	ok := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
 	// Base Fame (p.85's "Base Fame equal to 1.5 times Soc") and Exile Fame

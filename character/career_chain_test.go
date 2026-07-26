@@ -1,6 +1,7 @@
 package character
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"reflect"
 	"slices"
@@ -95,7 +96,7 @@ func TestCareerChainSingleEntryMatchesLegacyGenerator(t *testing.T) {
 		{"scholar", GenerateScholarCharacter},
 		{"merchant", GenerateMerchantCharacter},
 		{"entertainer", GenerateEntertainerCharacter},
-		{"citizen", func(r *dice.Roller) (Character, bool) { return GenerateCitizenCharacter(r), true }},
+		{"citizen", GenerateCitizenCharacter},
 	}
 
 	for _, c := range cases {
@@ -718,5 +719,54 @@ func TestCareerChainCraftsmanSegmentProducesEquipmentAndFame(t *testing.T) {
 			seg.Fame,
 			wantFame,
 		)
+	}
+}
+
+// TestCareerChainAgingDeathIsNotASuccessfulAttempt is #60's regression
+// through a public generation path: a character killed by Aging (Book 1
+// p.89) must report ok=false, not merely record the death in Notes, and
+// their Age must not exceed the age in that death note. Seeds found by
+// direct search; scholar 1248 dies at a checkpoint strictly before its
+// own career-end age, so it exercises the Age cap too.
+func TestCareerChainAgingDeathIsNotASuccessfulAttempt(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		career string
+		seed   uint64
+	}{
+		{"scholar", 1248},
+		{"scholar", 1894},
+		{"citizen", 3088},
+	}
+
+	for _, c := range cases {
+		t.Run(c.career, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok, err := GenerateCareerChainCharacter(
+				dice.New(rand.NewPCG(c.seed, c.seed)), []string{c.career}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !strings.Contains(got.Notes, "died of natural causes") {
+				t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", got.Notes)
+			}
+
+			if ok {
+				t.Error("ok = true, want false (an Aging death is not a surviving character)")
+			}
+
+			if want := fmt.Sprintf("Age %d: died", got.Age); !strings.Contains(got.Notes, want) {
+				t.Errorf("Age = %d, but Notes = %q — Age must match the fatal checkpoint, never exceed it",
+					got.Age, got.Notes)
+			}
+
+			if got.LifeStage != LifeStageForAge(got.Age) {
+				t.Errorf("LifeStage = %d, want %d (must follow the capped Age)",
+					got.LifeStage, LifeStageForAge(got.Age))
+			}
+		})
 	}
 }

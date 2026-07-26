@@ -46,7 +46,7 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 
 	ok := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
 	cash := bonuses.Cash

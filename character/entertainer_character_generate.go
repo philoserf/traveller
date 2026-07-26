@@ -46,7 +46,7 @@ func buildEntertainerCharacter(
 	// perfectly alive Entertainer whose Talent had merely run out.
 	ok := len(career.Terms) > 0
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
 	// fame is already the character's own current Fame (the initial 2D

@@ -26,7 +26,7 @@ func TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(21, 21))
 
-	c := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 	if len(c.Careers[0].Terms) != 1 {
 		t.Fatalf("seed 21: len(Terms) = %d, want 1 (fixture assumption broke)", len(c.Careers[0].Terms))
@@ -54,7 +54,7 @@ func TestBuildCitizenCharacterUPPBoundedWithAgingBuffer(t *testing.T) {
 	for _, seed := range []uint64{1, 2, 3} {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		c := buildCitizenCharacter(r, upp, "hw", nil)
+		c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 		for i, v := range c.UPP.Characteristics[:5] {
 			if v < 4 || v > ehex.Max {
@@ -73,7 +73,7 @@ func TestBuildCitizenCharacterHomeworldEqualsBirthworld(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3, 4))
 
-	c := buildCitizenCharacter(r, UPP{}, "some-uwp", nil)
+	c, _ := buildCitizenCharacter(r, UPP{}, "some-uwp", nil)
 
 	if c.Homeworld != "some-uwp" || c.Birthworld != "some-uwp" {
 		t.Errorf("Homeworld = %q, Birthworld = %q, want both %q", c.Homeworld, c.Birthworld, "some-uwp")
@@ -88,7 +88,7 @@ func TestBuildCitizenCharacterSkillsIncludeHomeworldSkills(t *testing.T) {
 	r := dice.New(rand.NewPCG(7, 7))
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 
-	c := buildCitizenCharacter(r, upp, "hw", homeworldSkills)
+	c, _ := buildCitizenCharacter(r, upp, "hw", homeworldSkills)
 
 	// Seed 7 confirmed by direct inspection to re-grant "Vacc Suit"
 	// during the career itself, merging with the homeworld grant via
@@ -116,12 +116,12 @@ func TestBuildCitizenCharacterDoesNotAliasHomeworldSkills(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 
 	r1 := dice.New(rand.NewPCG(7, 7))
-	c1 := buildCitizenCharacter(r1, upp, "hw", shared)
+	c1, _ := buildCitizenCharacter(r1, upp, "hw", shared)
 
 	before := slices.Clone(c1.Skills)
 
 	r2 := dice.New(rand.NewPCG(9, 9))
-	_ = buildCitizenCharacter(r2, upp, "hw", shared)
+	_, _ = buildCitizenCharacter(r2, upp, "hw", shared)
 
 	if !slices.Equal(c1.Skills, before) {
 		t.Errorf(
@@ -142,7 +142,7 @@ func TestBuildCitizenCharacterFixedZeroValueFields(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 	if c.Species != "Human" {
 		t.Errorf("Species = %q, want %q", c.Species, "Human")
@@ -178,7 +178,7 @@ func TestBuildCitizenCharacterAppliesMusteringOutCash(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 	wantCash := 0
 
@@ -207,7 +207,7 @@ func TestBuildCitizenCharacterSetsAgeAndLifeStage(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 	terms := len(c.Careers[0].Terms)
 
@@ -230,7 +230,7 @@ func TestBuildCitizenCharacterSetsBirthdate(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
 
 	assertBirthdateFormat(t, c.Birthdate, c.Age)
 }
@@ -241,8 +241,8 @@ func TestGenerateCitizenCharacterDeterminism(t *testing.T) {
 	r1 := dice.New(rand.NewPCG(99, 99))
 	r2 := dice.New(rand.NewPCG(99, 99))
 
-	c1 := GenerateCitizenCharacter(r1)
-	c2 := GenerateCitizenCharacter(r2)
+	c1, _ := GenerateCitizenCharacter(r1)
+	c2, _ := GenerateCitizenCharacter(r2)
 
 	if c1.Species != c2.Species || c1.GeneticProfile != c2.GeneticProfile {
 		t.Fatalf("identical seeds produced different Species/GeneticProfile: %+v vs %+v", c1, c2)
@@ -281,7 +281,7 @@ func TestGenerateCitizenCharacterManySeedsInvariants(t *testing.T) {
 	for seed := range uint64(500) {
 		r := dice.New(rand.NewPCG(seed+1, seed+1))
 
-		c := GenerateCitizenCharacter(r)
+		c, _ := GenerateCitizenCharacter(r)
 
 		terms := c.Careers[0].Terms
 		if len(terms) < 1 {

@@ -138,9 +138,17 @@ func agingExtremeIllnessIsFatal(priorExtremeCount int) bool {
 // ResolveAging simulates every Aging checkpoint from Physical Aging's own
 // onset through finalAge against upp, per Book 1 p.89. Returns the
 // resulting UPP, whether the character survived (false only when a second
-// agingSeverityExtreme batch occurs — "the character dies"), and a
+// agingSeverityExtreme batch occurs — "the character dies"), a
 // human-readable note for every major/extreme illness or the fatal event,
-// in chronological order.
+// in chronological order, and the age the character actually reached.
+//
+// reachedAge is finalAge for a survivor, or the fatal checkpoint's own
+// age for one who died — never finalAge in that case. Aging runs over
+// the same span Career Resolution already covered (finalizeAging passes
+// the career-end age), so without this a character could be reported as
+// having died at 70 while their Age field still read 74: older than
+// their own recorded death. Callers use it to cap Age/LifeStage so the
+// two can't contradict each other.
 //
 // A characteristic already at 0 entering a checkpoint (from some
 // non-Aging cause, e.g. a Scout Risk wound) is left at 0 rather than
@@ -152,7 +160,7 @@ func agingExtremeIllnessIsFatal(priorExtremeCount int) bool {
 // at 0 in the returned UPP rather than reset to 1 — the reset-to-1 rule
 // is for a character who survives the illness, which a dead one, by
 // definition, does not.
-func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string) {
+func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string, int) {
 	var notes []string
 
 	extremeCount := 0
@@ -186,7 +194,7 @@ func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string) {
 					len(zeroed),
 				))
 
-				return upp, false, notes
+				return upp, false, notes, age
 			}
 
 			extremeCount++
@@ -205,30 +213,43 @@ func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string) {
 		}
 	}
 
-	return upp, true, notes
+	return upp, true, notes, finalAge
 }
 
 // finalizeAging computes a character's approximate final Age (via
 // AgeFromTermsServed) and, if survivedCareer, runs ResolveAging against upp
 // for the rest of their life. Returns the resulting UPP (upp unchanged if
-// !survivedCareer), Age, LifeStage, and a semicolon-joined summary of any
-// illness/death Aging produced (empty if none, or if !survivedCareer).
+// !survivedCareer), Age, LifeStage, a semicolon-joined summary of any
+// illness/death Aging produced (empty if none, or if !survivedCareer),
+// and whether the character is alive at the end of generation.
 //
 // survivedCareer should be false only for a character who died during
 // Career Resolution itself (Book 1 p.69's "Dying During Character
 // Generation," e.g. buildScoutCharacter's own ok) — a categorically
-// different, narrower rule than Aging's own general death (p.89), which
-// this function's own ResolveAging call already handles on its own terms
-// without needing to be gated by, or gate, that earlier outcome.
-func finalizeAging(r *dice.Roller, upp UPP, termsServed int, survivedCareer bool) (UPP, int, int, string) {
+// different, narrower rule than Aging's own general death (p.89).
+//
+// The returned bool is the conjunction of both: false for a p.69 career
+// death and false for a p.89 Aging death. An earlier version of this
+// package treated the latter as a Notes-only outcome, reasoning that
+// p.89 death is "a normal outcome, not a voided attempt" — the story of
+// someone dying "of old age decades after a successful career." That
+// framing doesn't match what this function actually simulates: Aging
+// runs only through the career-end age, the very span Career Resolution
+// just covered, never decades past it. So a p.89 death here is not a
+// peaceful retirement, it's the character dying partway through the
+// lifetime that generation just built — leaving a sheet whose Age could
+// exceed the age in its own death note. Both halves are fixed together:
+// Age/LifeStage are capped at the fatal checkpoint (via ResolveAging's
+// own reachedAge), and the death is signaled through the return value
+// rather than only in prose a caller has to parse.
+func finalizeAging(r *dice.Roller, upp UPP, termsServed int, survivedCareer bool) (UPP, int, int, string, bool) {
 	age := AgeFromTermsServed(termsServed)
-	lifeStage := LifeStageForAge(age)
 
 	if !survivedCareer {
-		return upp, age, lifeStage, ""
+		return upp, age, LifeStageForAge(age), "", false
 	}
 
-	agedUPP, _, notes := ResolveAging(r, upp, age)
+	agedUPP, survivedAging, notes, reachedAge := ResolveAging(r, upp, age)
 
-	return agedUPP, age, lifeStage, strings.Join(notes, "; ")
+	return agedUPP, reachedAge, LifeStageForAge(reachedAge), strings.Join(notes, "; "), survivedAging
 }

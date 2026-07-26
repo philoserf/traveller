@@ -1,8 +1,10 @@
 package character
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -224,7 +226,7 @@ func TestResolveAgingNoEffectBeforeOnset(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{7, 7, 7, 7, 7, 7}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	got, survived, notes := ResolveAging(r, upp, 33)
+	got, survived, notes, _ := ResolveAging(r, upp, 33)
 
 	if got != upp {
 		t.Errorf("ResolveAging before onset changed upp: got %v, want unchanged %v", got, upp)
@@ -253,7 +255,7 @@ func TestResolveAgingNeverTriggersIllnessWithSufficientBuffer(t *testing.T) {
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		got, survived, notes := ResolveAging(r, upp, 74)
+		got, survived, notes, _ := ResolveAging(r, upp, 74)
 		if !survived {
 			t.Errorf("seed %d: survived = false, want true", seed)
 		}
@@ -288,7 +290,7 @@ func TestResolveAgingProducesIllnessAndDeathOverManyTrials(t *testing.T) {
 	for seed := uint64(1); seed <= trials; seed++ {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		got, survived, notes := ResolveAging(r, upp, 110)
+		got, survived, notes, _ := ResolveAging(r, upp, 110)
 
 		if !survived {
 			died++
@@ -308,4 +310,51 @@ func TestResolveAgingProducesIllnessAndDeathOverManyTrials(t *testing.T) {
 	if died+illOnly == 0 {
 		t.Errorf("0 of %d trials produced any illness or death notes, want at least 1", trials)
 	}
+}
+
+// TestResolveAgingReportsReachedAge is #60's regression for the
+// Age-coherence half: a survivor reaches finalAge exactly, while one who
+// dies reaches only the fatal checkpoint's own age — never finalAge.
+// Without this a sheet could report an Age older than the age in its own
+// death note.
+func TestResolveAgingReportsReachedAge(t *testing.T) {
+	t.Parallel()
+
+	t.Run("survivor reaches finalAge", func(t *testing.T) {
+		t.Parallel()
+
+		upp := UPP{Characteristics: [6]ehex.Value{15, 15, 15, 15, 15, 15}}
+
+		_, survived, _, reachedAge := ResolveAging(dice.New(rand.NewPCG(1, 1)), upp, 74)
+		if !survived {
+			t.Fatal("survived = false, want true (all-15 UPP has ample aging buffer)")
+		}
+
+		if reachedAge != 74 {
+			t.Errorf("reachedAge = %d, want 74 (a survivor reaches the age asked for)", reachedAge)
+		}
+	})
+
+	t.Run("the dead reach only the fatal checkpoint", func(t *testing.T) {
+		t.Parallel()
+
+		// finalAge far past the likely death so the cap is actually
+		// observable — at 74 this fixture dies on the final checkpoint,
+		// where a capped and an uncapped answer are indistinguishable.
+		upp := UPP{Characteristics: [6]ehex.Value{2, 2, 2, 2, 2, 2}}
+
+		_, survived, notes, reachedAge := ResolveAging(dice.New(rand.NewPCG(1, 1)), upp, 110)
+		if survived {
+			t.Fatal("survived = true, want false (fixture assumption broke)")
+		}
+
+		if reachedAge >= 110 {
+			t.Errorf("reachedAge = %d, want < 110 (death must cap the age reached)", reachedAge)
+		}
+
+		want := fmt.Sprintf("Age %d: died", reachedAge)
+		if last := notes[len(notes)-1]; !strings.HasPrefix(last, want) {
+			t.Errorf("final note = %q, want it to start with %q (reachedAge must match the death note)", last, want)
+		}
+	})
 }

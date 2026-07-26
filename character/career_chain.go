@@ -556,7 +556,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		}
 	}
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, upp, acc.termsServed, survived)
+	finalUPP, age, lifeStage, notes, survived := finalizeAging(r, upp, acc.termsServed, survived)
 	birthdate := GenerateBirthdate(r, age)
 
 	return Character{

@@ -55,7 +55,7 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	// fails) — ok collapses to "didn't die on the last term."
 	ok := career.Terms[len(career.Terms)-1].RiskResult != Dead
 
-	finalUPP, age, lifeStage, notes := finalizeAging(r, boostedUPP, len(career.Terms), ok)
+	finalUPP, age, lifeStage, notes, ok := finalizeAging(r, boostedUPP, len(career.Terms), ok)
 	birthdate := GenerateBirthdate(r, age)
 
 	fame := bonuses.Fame
