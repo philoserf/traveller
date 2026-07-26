@@ -169,10 +169,13 @@ func TestCareerChainFallsBackToCitizenEvenForASingleFailedEntry(t *testing.T) {
 func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	t.Parallel()
 
-	var seed uint64
-	var got Character
-	var ok bool
-	var err error
+	var (
+		seed uint64
+		got  Character
+		ok   bool
+		err  error
+	)
+
 	for seed = 1; seed <= 500; seed++ {
 		got, ok, err = GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, 0)
 		if err == nil && ok && len(got.Careers) == 2 &&
@@ -180,6 +183,7 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 			break
 		}
 	}
+
 	if seed > 500 {
 		t.Fatal("no seed in [1,500] produced successful Scout-to-Spacer transfer")
 	}
@@ -438,9 +442,11 @@ func TestCareerChainTransfersToTerminalFunctionaryAfterOneTerm(t *testing.T) {
 			if len(got.Careers[0].Terms) != 1 {
 				t.Fatalf("Scholar terms = %d, want 1 before voluntary transfer", len(got.Careers[0].Terms))
 			}
+
 			return
 		}
 	}
+
 	t.Fatal("no seed in [1,1000] produced a successful Functionary transfer")
 }
 

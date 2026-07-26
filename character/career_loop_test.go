@@ -155,6 +155,7 @@ func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
 		},
 		func(_ *dice.Roller, _ UPP) bool {
 			continueCalled = true
+
 			return false
 		},
 		1,
@@ -163,6 +164,7 @@ func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
 	if len(terms) != 1 {
 		t.Fatalf("len(terms) = %d, want 1", len(terms))
 	}
+
 	if continueCalled {
 		t.Fatal("Continue was rolled after the caller had already chosen to transfer")
 	}

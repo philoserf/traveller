@@ -318,6 +318,7 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, _ segmentContext
 
 	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, upp)
 	ok := len(career.Terms) > 0
+
 	fame := bonuses.Fame
 	if ok {
 		fame += nobleBaseFame(upp.Characteristics[C6]) + nobleExileFame(career.Terms)
@@ -455,6 +456,21 @@ func segmentBudget(ageTarget, maxAllowedTotalTerms, termsServed int) (int, bool)
 	return min(maxCareerTerms, remaining), true
 }
 
+func maxAllowedCareerTerms(ageTarget int) int {
+	if ageTarget == 0 {
+		return 0
+	}
+
+	return max(0, (ageTarget-18)/4)
+}
+
+func generateCareerChainStart(r *dice.Roller) (UPP, string, []SkillLevel) {
+	upp := GenerateUPP(r)
+	homeworld, skills := GenerateHomeworldSkills(r)
+
+	return upp, homeworld, skills
+}
+
 // GenerateCareerChainCharacter generates a full Human Character across
 // an ordered sequence of careerNames (already lowercased/trimmed),
 // implementing Book 1's own "Changing Careers" (pp.65-66). An ordered
@@ -487,13 +503,9 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		return Character{}, false, err
 	}
 
-	maxAllowedTotalTerms := 0
-	if ageTarget != 0 {
-		maxAllowedTotalTerms = max(0, (ageTarget-18)/4)
-	}
+	maxAllowedTotalTerms := maxAllowedCareerTerms(ageTarget)
 
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills := generateCareerChainStart(r)
 
 	acc := careerChainAccumulator{skills: slices.Clone(homeworldSkills)}
 	everSucceeded, survived := false, true
@@ -504,6 +516,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		if !attemptAllowed {
 			break
 		}
+
 		if i < len(careerNames)-1 {
 			maxTerms = min(maxTerms, 1)
 		}
