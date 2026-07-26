@@ -71,7 +71,12 @@ type Term struct {
 	TalentAfterTerm      int    // Entertainer only: Talent value after this term (Fame increases grant +1)
 	FameIncreased        bool   // Entertainer only: this term's own Flux roll was positive
 	UndercoverCareer     string // Agent only: which career's own skill table this term's own skill was drawn from
-	Perfect              bool   // Craftsman only: this term's own Masterpiece reached 55+ Master Points
+	// UndercoverAssignment is Book 1 p.83's own rolled Undercover
+	// Assignment as printed — the table's service label plus the rank
+	// title its C column selected ("Navy Officer Commander"), or the
+	// label alone for the rows that print no title. Agent only.
+	UndercoverAssignment string
+	Perfect              bool // Craftsman only: this term's own Masterpiece reached 55+ Master Points
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.

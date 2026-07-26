@@ -12,35 +12,6 @@ const AgentCareerName = "Agent"
 
 var agentRiskRewardPositions = []Position{C1, C2, C3, C4}
 
-// agentUndercoverSkillTables maps each of this codebase's own nine
-// already-implemented career names to its own skill table — the
-// deliberately simplified stand-in for Book 1 p.83's own 18-row x
-// 3-column "AGENT UNDERCOVER ASSIGNMENT" table (a real Undercover
-// Assignment names a specific rank title within one of eleven other
-// careers per cell, resolved via a nested three-die A/B/C reroll
-// mechanic — this codebase instead uniformly picks one of its own
-// already-implemented career skill tables, deferring the rank-title
-// flavor text, the three-die mechanic, and Citizen's/Scout's own
-// special-cased rows, since the full table doesn't actually run a real
-// career underneath — it's narrative dressing for which skill table to
-// draw from).
-var agentUndercoverSkillTables = map[string][7][6]string{
-	"Scout":       scoutSkillTable,
-	"Marine":      marineSkillTable,
-	"Soldier":     soldierSkillTable,
-	"Spacer":      spacerSkillTable,
-	"Rogue":       rogueSkillTable,
-	"Scholar":     scholarSkillTable,
-	"Entertainer": entertainerSkillTable,
-	"Merchant":    merchantSkillTable,
-	"Noble":       nobleSkillTable,
-}
-
-var agentUndercoverCareerNames = []string{
-	"Scout", "Marine", "Soldier", "Spacer", "Rogue",
-	"Scholar", "Entertainer", "Merchant", "Noble",
-}
-
 // agentSkillTable is Book 1 p.83's own "AGENT SKILLS" table. Its own
 // "Any Knowledge" cell (column 6, row 1) is handled by
 // resolveSkillCell's own unresolvable-cell case (career_generate.go) —
@@ -66,22 +37,6 @@ func BeginAgent(r *dice.Roller, c3 int) bool {
 	return rollAgainstTarget(r, c3, 0)
 }
 
-// rollAgentUndercoverCareer resolves "Roll for Undercover Assignment" —
-// simplified to a uniform pick among this codebase's own nine
-// already-implemented career skill tables (see this slice's own
-// plan-file Context). "Select (not Roll) one skill" (the box's own
-// wording for the skill draw itself) is resolved via
-// rollSkillFromTable's own dice-driven uniform pick across the whole
-// table — the same "open player choice resolved via uniform random
-// pick through the dice roller" convention already established for
-// Scout's Duty and Entertainer's Specialty, not a literal contradiction
-// of "not Roll" (the book means "not looked up on a weighted table,"
-// not "not resolved via any RNG at all" — this codebase has no
-// interactive player to make the pick).
-func rollAgentUndercoverCareer(r *dice.Roller) string {
-	return agentUndercoverCareerNames[r.Uniform(len(agentUndercoverCareerNames))-1]
-}
-
 // agentCommendationCount sums how many prior terms earned a
 // Commendation — the shared Fame/Mustering-Out-DM count. Mirrors
 // merchantRewardCount's own generic RewardResult check.
@@ -102,7 +57,9 @@ func agentCommendationCount(terms []Term) int {
 // label needs term.UndercoverCareer already set.
 func ResolveAgentTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
 	term := Term{Length: 4, ControllingCharacteristic: ccPos}
-	term.UndercoverCareer = rollAgentUndercoverCareer(r)
+	assignment, title := rollAgentUndercoverAssignment(r)
+	term.UndercoverCareer = assignment.Career
+	term.UndercoverAssignment = title
 
 	cc := upp.Characteristics[ccPos]
 	riskResult, reducedCC := resolveRisk(r, cc, 0)
@@ -132,22 +89,8 @@ func ResolveAgentTerm(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
 
 	// The Undercover skill — exactly one, unconditionally, per Book 1's
 	// own "Select ... one skill" (singular, no "lost" language, unlike
-	// the surrounding count-based grants above) — rerolled until a
-	// resolvable cell is drawn, rather than reusing rollSkillsFromTable's
-	// own "unresolvable = lost" convention, since this specific grant is
-	// guaranteed by the book's own text.
-	var undercoverSkill SkillLevel
-
-	for {
-		skill, ok := rollSkillFromTable(r, agentUndercoverSkillTables[term.UndercoverCareer])
-		if ok {
-			undercoverSkill = skill
-
-			break
-		}
-	}
-
-	term.SkillsAwarded = append(term.SkillsAwarded, undercoverSkill)
+	// the surrounding count-based grants above).
+	term.SkillsAwarded = append(term.SkillsAwarded, rollAgentUndercoverSkill(r, assignment.Career))
 
 	return term, upp
 }
