@@ -35,7 +35,7 @@ func continueRogue(r *dice.Roller, cc, mod int) bool {
 // no death/disability concept at all, so this is the correct behavior,
 // not a coincidental side effect.
 func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
-	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, nil)
 
 	return career
 }
@@ -43,7 +43,12 @@ func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
 // resolveRogueCareerWithBudget is ResolveRogueCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
+// priorCareers are the careers this character already served, for Book
+// 1 p.84's own "A Rogue may select for his Scheme (rather than roll) any
+// previous career." Empty for a standalone Rogue, who has none.
+func resolveRogueCareerAndUPPWithBudget(
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, priorCareers []string,
+) (Career, UPP) {
 	career := Career{Name: RogueCareerName}
 
 	ccPos := rollRogueCC(r)
@@ -75,7 +80,13 @@ func resolveRogueCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, a
 			// The sentence earned last term is served at the start of this
 			// one (Book 1 p.84), so it is threaded forward rather than
 			// applied where it was incurred.
-			term := ResolveRogueTerm(r, int(upp.Characteristics[ccPos]), termCount, pendingPrison) // "+Terms"
+			term := ResolveRogueTerm(
+				r,
+				int(upp.Characteristics[ccPos]),
+				termCount,
+				pendingPrison,
+				priorCareers,
+			) // "+Terms"
 			term.ControllingCharacteristic = ccPos
 			pendingPrison = term.PrisonYears
 			termCount++

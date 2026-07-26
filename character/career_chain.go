@@ -59,6 +59,11 @@ type segmentContext struct {
 	TermsServedSoFar int
 	SkillsSoFar      []SkillLevel
 	Aging            *agingSimulation
+	// PriorCareers are every career already served, in order. Rogue
+	// needs the whole list rather than PrecedingCareer alone, for Book 1
+	// p.84's "may select for his Scheme (rather than roll) any previous
+	// career" — any, not merely the last.
+	PriorCareers []string
 }
 
 // aging returns the chain-wide simulation, or a fresh throwaway one when
@@ -180,7 +185,7 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms, aging, ctx.PriorCareers)
 	if aging.alive() {
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
 	}
@@ -569,11 +574,17 @@ func chainSegmentContext(
 	acc *careerChainAccumulator,
 	precedingCareer string,
 ) segmentContext {
+	priorCareers := make([]string, 0, len(acc.careers))
+	for _, career := range acc.careers {
+		priorCareers = append(priorCareers, career.Name)
+	}
+
 	return segmentContext{
 		Aging:            aging,
 		PrecedingCareer:  precedingCareer,
 		TermsServedSoFar: acc.termsServed,
 		SkillsSoFar:      aggregateSkills(acc.skills),
+		PriorCareers:     priorCareers,
 	}
 }
 
