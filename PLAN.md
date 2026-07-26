@@ -192,19 +192,25 @@ granularity was wrong, not that the rule was minor. p.91 counts "Fame
 points *received*", so awards are per-instance. Measure before believing
 a rules fix did anything.
 
-## Open rules questions
+## Filed out of Phase 3
 
-Two conflicts found in Phase 3, flagged rather than silently resolved:
+Four issues opened rather than resolved in-flight:
 
-- **Scout Discovery Fame.** p.79 says a Discovery gives "Fame +1";
-  p.91's Fame table says "Scout — Discoveries — x4". The code implements
-  x4, which #82/#88 rebuilt the whole Fame system on. Unresolved; no
-  behavior changed.
-- **Craftsman Master Points are effectively unreachable.** p.75 needs
-  CC + Craftsman + five level-6 skills to total 40. Across 6,000
-  generated chains none reached it, so QREBS and Vintage never fire in
-  practice. Faithful to the rules as written; open question whether
-  skill progression should make it reachable.
+- **#93 — Noble rank vs NobleTitle().** They disagree for 25.7% of
+  generated Nobles, because Mustering Out raises Soc after the career
+  ends. A real defect from PR #90, and it exposes an unanswered
+  question: whether noble rank is Soc-derived or ladder-tracked, and
+  whether a Mustering Out Soc increase should award a Land Grant
+  (p.85 says "each increase in Soc during CharGen" does).
+- **#94 — Scout Discovery Fame.** p.79 says "+1", p.91's Fame table says
+  "x4". The code does x4, which #82/#88 rebuilt the whole Fame system
+  on. Needs a decision; no behavior changed.
+- **#95 — Craftsman never reaches 40 Master Points.** Zero Masterpieces
+  across 6,000 chains, so QREBS and Vintage never fire. The gate is
+  faithful; the real question is skill-level progression, since every
+  grant in this codebase is a flat +1.
+- **#96 — Land Grant scope deferrals.** Preferred World, geodesic hex
+  maps, Moot proxies, and grant improvement.
 
 ## Standing checks for every PR
 
