@@ -3,6 +3,8 @@ package character
 import (
 	"strconv"
 	"strings"
+
+	"github.com/philoserf/traveller/ehex"
 )
 
 // musterOutCharacteristicNames maps every characteristic-boost token this
@@ -82,6 +84,11 @@ func musterOutCharacteristicBoost(entry string) (Position, int, bool) {
 type MusterOutBonuses struct {
 	Fame int
 	Cash int
+	// Skills are benefits that grant a skill outright rather than money,
+	// Fame or a characteristic — Forbidden Knowledge today. Returned
+	// rather than applied, since this function has no Character to apply
+	// them to; callers fold them in beside the career's own term skills.
+	Skills []SkillLevel
 }
 
 // ApplyMusteringOut applies m's mechanical effects onto upp: Fame and
@@ -96,16 +103,16 @@ type MusterOutBonuses struct {
 // yet; it stays recorded only in MusteringOut's own []string fields, the
 // exact gap ResolveScoutMusterOut's own doc comment already flagged as
 // deferred, not silently dropped.
-func ApplyMusteringOut(m MusteringOut, upp UPP) (UPP, MusterOutBonuses) {
+func ApplyMusteringOut(career Career, upp UPP) (UPP, MusterOutBonuses) {
 	var bonuses MusterOutBonuses
 
-	for _, entry := range m.Money {
+	for _, entry := range career.MusteringOut.Money {
 		if amount, ok := musterOutCashAmount(entry); ok {
 			bonuses.Cash += amount
 		}
 	}
 
-	for _, entry := range m.Benefits {
+	for _, entry := range career.MusteringOut.Benefits {
 		if amount, ok := musterOutFameBonus(entry); ok {
 			bonuses.Fame += amount
 
@@ -114,8 +121,86 @@ func ApplyMusteringOut(m MusteringOut, upp UPP) (UPP, MusterOutBonuses) {
 
 		if p, amount, ok := musterOutCharacteristicBoost(entry); ok {
 			upp.Characteristics[p] = awardCharacteristic(upp.Characteristics[p], amount)
+
+			continue
+		}
+
+		switch entry {
+		case knighthoodBenefit:
+			upp.Characteristics[C6] = applyKnighthood(upp.Characteristics[C6], career)
+		case forbiddenKnowledgeBenefit:
+			bonuses.Skills = append(bonuses.Skills, skillLevel1(forbiddenKnowledgeSkill, Skill))
 		}
 	}
 
 	return upp, bonuses
+}
+
+// Benefit strings this function resolves mechanically rather than
+// leaving as narrative record. They must match the muster-out tables'
+// own spellings exactly (career_muster_out.go and friends).
+const (
+	knighthoodBenefit         = "Knighthood"
+	forbiddenKnowledgeBenefit = "Forbidden Knowledge"
+)
+
+// forbiddenKnowledgeSkill is what a Forbidden Knowledge award grants.
+//
+// Book 1 p.69 describes the benefit — "a skill or knowledge that is not,
+// should not, or cannot, be mentioned in polite society… Each receipt
+// provides skill-1" — but gives no table to roll on, only a single
+// worked example: "a familiarity with the use of machineguns (Fighter)
+// is not mentioned in polite conversation."
+//
+// So this grants that example rather than a list of this codebase's own
+// invention. Widening it to a random pick would mean deciding which
+// skills count as forbidden, which the book does not do.
+const forbiddenKnowledgeSkill = "Fighter"
+
+// knighthoodSocFloor is Book 1 p.68's "A Knighthood raises any value of
+// Soc to B" — B being 11 in extended hex.
+const knighthoodSocFloor = 11
+
+// applyKnighthood resolves Book 1 p.68's Knighthood benefit against the
+// character's Social Standing:
+//
+//	"A Knighthood raises any value of Soc to B; if the character is
+//	already Soc 11+, he receives Soc +1 instead."
+//	"In the Spacer, Soldier, and Marine careers, Knighthood is only
+//	available to Officers. A non-officer receives Soc +1 (even if it
+//	advances Soc to 11 or beyond)."
+//
+// Only Humans are generated here, so C6 is always Soc — p.68's separate
+// C6=Caste and C6=Charisma cases can't arise (a Caste character keeps
+// the title's social standing but no mechanical change; noted, not
+// implemented, matching this package's treatment of other Human-only
+// branches).
+func applyKnighthood(soc ehex.Value, career Career) ehex.Value {
+	if knighthoodIsOfficersOnly(career.Name) && !mustersOutAsOfficer(career) {
+		return awardCharacteristic(soc, 1)
+	}
+
+	if soc >= knighthoodSocFloor {
+		return awardCharacteristic(soc, 1)
+	}
+
+	// Not awardCharacteristic: this is a raise to a floor, not an
+	// increment, and the floor is below HumanCharacteristicMax anyway.
+	return knighthoodSocFloor
+}
+
+// knighthoodIsOfficersOnly reports the three careers p.68 restricts.
+func knighthoodIsOfficersOnly(careerName string) bool {
+	return careerName == SpacerCareerName ||
+		careerName == SoldierCareerName ||
+		careerName == MarineCareerName
+}
+
+// mustersOutAsOfficer reads Officer status off the rank held at the end
+// of the career. Spacer, Soldier and Marine all format an Officer rank
+// with an "O" prefix and their Enlisted ranks with something else (R, S
+// and M respectively), so the prefix is the whole test — and it is only
+// consulted for those three careers, where that holds.
+func mustersOutAsOfficer(career Career) bool {
+	return strings.HasPrefix(lastTermRank(career.Terms), "O")
 }

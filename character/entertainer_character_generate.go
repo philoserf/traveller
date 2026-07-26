@@ -36,9 +36,10 @@ func buildEntertainerCharacter(
 		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
+	skills = append(skills, bonuses.Skills...)
 
 	// ok is purely "did the character ever qualify" (mirroring Rogue's
 	// own no-death-mechanic convention), NOT gated on the last term's

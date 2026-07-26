@@ -202,7 +202,7 @@ func TestBuildScoutCharacterUPPCarriesForwardReduction(t *testing.T) {
 
 	wantCareer, updatedUPP := resolveScoutCareerWithBudget(r1, upp, maxCareerTerms, &wantAging)
 	wantCareer.MusteringOut = ResolveScoutMusterOut(r1, wantCareer)
-	wantUPP, _ := ApplyMusteringOut(wantCareer.MusteringOut, updatedUPP)
+	wantUPP, _ := ApplyMusteringOut(wantCareer, updatedUPP)
 	wantOK := len(wantCareer.Terms) > 0 && wantCareer.Terms[len(wantCareer.Terms)-1].RiskResult != Dead
 	wantAge, wantLifeStage, wantNotes, _ := finalizeAging(&wantAging, wantOK)
 
