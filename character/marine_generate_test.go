@@ -301,11 +301,10 @@ func TestResolveMarineTermGrantsRewardMedal(t *testing.T) {
 	}
 }
 
-// TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds confirms Medals
-// stays empty when Risk fails (no flat XS) and Reward also fails (no
-// table lookup) — seed 8 (found by direct search) produces a Disabled
-// Risk result with a failed Reward roll.
-func TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
+// TestResolveMarineTermRewardUsesTermStartCC is the regression for #50.
+// Seed 8 reduces the CC during Risk, then rolls a Reward that succeeds
+// against the term-start CC but would fail against the reduced value.
+func TestResolveMarineTermRewardUsesTermStartCC(t *testing.T) {
 	t.Parallel()
 
 	r := dice.New(rand.NewPCG(8, 8))
@@ -316,8 +315,8 @@ func TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
 		t.Fatalf("RiskResult = %v, want Wounded or Disabled (fixture assumption broke)", term.RiskResult)
 	}
 
-	if len(term.Medals) != 0 {
-		t.Errorf("Medals = %v, want empty", term.Medals)
+	if want := []string{"XS"}; !slices.Equal(term.Medals, want) {
+		t.Errorf("Medals = %v, want %v (Reward must use the term-start CC)", term.Medals, want)
 	}
 }
 

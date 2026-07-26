@@ -171,7 +171,7 @@ func ResolveMarineTerm(
 		term.Medals = append(term.Medals, "XS")
 	}
 
-	if ok, rewardRoll := resolveReward(r, reducedCC, mod); ok {
+	if ok, rewardRoll := resolveReward(r, cc, mod); ok {
 		if isOfficer {
 			rewardRoll++ // Book 1 p.70's own "If Officer, increase +1"
 		}

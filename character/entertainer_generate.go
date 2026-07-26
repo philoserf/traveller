@@ -123,8 +123,8 @@ func ResolveEntertainerTerm(r *dice.Roller, fame, talent int) (Term, int, int) {
 	// described on this page, so the outcome is recorded via the
 	// existing generic RewardResult string, not a new typed field.
 	if riskResult != Dead {
-		clampedTalent = min(talent, int(ehex.Max))
-
+		// Reward uses the term-start Talent; the Risk reduction applies
+		// to later terms, just as it does for a UPP-based CC.
 		//nolint:gosec // bounded by the min(...) clamp above, gosec can't see that
 		if ok, _ := resolveReward(r, ehex.Value(clampedTalent), 0); ok {
 			term.RewardResult = "Success"

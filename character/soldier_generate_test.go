@@ -246,11 +246,10 @@ func TestResolveSoldierTermGrantsRewardMedal(t *testing.T) {
 	}
 }
 
-// TestResolveSoldierTermNoMedalsWhenNeitherRollSucceeds mirrors
-// TestResolveMarineTermNoMedalsWhenNeitherRollSucceeds — seed 8 (found
-// by direct search) produces a Disabled Risk result with a failed
-// Reward roll.
-func TestResolveSoldierTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
+// TestResolveSoldierTermRewardUsesTermStartCC mirrors the Marine #50
+// regression: Risk reduces the CC, but Reward still succeeds against
+// the term-start value.
+func TestResolveSoldierTermRewardUsesTermStartCC(t *testing.T) {
 	t.Parallel()
 
 	r := dice.New(rand.NewPCG(8, 8))
@@ -261,8 +260,8 @@ func TestResolveSoldierTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
 		t.Fatalf("RiskResult = %v, want Wounded or Disabled (fixture assumption broke)", term.RiskResult)
 	}
 
-	if len(term.Medals) != 0 {
-		t.Errorf("Medals = %v, want empty", term.Medals)
+	if want := []string{"XS"}; !slices.Equal(term.Medals, want) {
+		t.Errorf("Medals = %v, want %v (Reward must use the term-start CC)", term.Medals, want)
 	}
 }
 

@@ -302,9 +302,9 @@ func TestResolveSpacerTermGrantsRewardMedal(t *testing.T) {
 	}
 }
 
-// TestResolveSpacerTermNoMedalsWhenNeitherRollSucceeds mirrors
-// TestResolveSoldierTermNoMedalsWhenNeitherRollSucceeds.
-func TestResolveSpacerTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
+// TestResolveSpacerTermRewardUsesTermStartCC mirrors the Marine and
+// Soldier #50 regressions.
+func TestResolveSpacerTermRewardUsesTermStartCC(t *testing.T) {
 	t.Parallel()
 
 	r := dice.New(rand.NewPCG(8, 8))
@@ -315,8 +315,8 @@ func TestResolveSpacerTermNoMedalsWhenNeitherRollSucceeds(t *testing.T) {
 		t.Fatalf("RiskResult = %v, want Wounded or Disabled (fixture assumption broke)", term.RiskResult)
 	}
 
-	if len(term.Medals) != 0 {
-		t.Errorf("Medals = %v, want empty", term.Medals)
+	if want := []string{"XS"}; !slices.Equal(term.Medals, want) {
+		t.Errorf("Medals = %v, want %v (Reward must use the term-start CC)", term.Medals, want)
 	}
 }
 
