@@ -42,7 +42,9 @@ func marineRankName(isOfficer bool, tier int) string {
 // own analogous automatic skill, p.65), not a repeated per-term grant
 // for as long as the rank is held — callers must gate this on the term
 // that actually caused the transition (Commissioned or Promoted true),
-// not just "current tier matches".
+// not just "current tier matches". M1 Private has no automatic skill at
+// all — genuinely distinct from Soldier's own table, which does grant
+// one at S1 Private (soldierRankAutomaticSkill's own doc comment).
 func marineRankAutomaticSkill(isOfficer bool, tier int) (SkillLevel, bool) {
 	switch {
 	case isOfficer && tier == 1:

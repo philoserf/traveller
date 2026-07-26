@@ -108,6 +108,55 @@ func TestBranchAutomaticSkill(t *testing.T) {
 	}
 }
 
+// TestGrantStartingRankAutoSkillToFirstTerm is the regression for #53:
+// the starting Enlisted tier-1 Auto Skill must land on term 1 even
+// though nothing in that first term itself is a Commissioned/Promoted
+// event.
+func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no-op on a career that never qualified", func(t *testing.T) {
+		t.Parallel()
+
+		career := Career{}
+		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
+
+		if career.Terms != nil {
+			t.Errorf("career.Terms = %v, want nil (unchanged)", career.Terms)
+		}
+	})
+
+	t.Run("appends the starting skill to term 1", func(t *testing.T) {
+		t.Parallel()
+
+		career := Career{Terms: []Term{{}, {}}}
+		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
+
+		if want := []SkillLevel{{Name: "Fighter", Level: 1, Kind: Skill}}; !slices.Equal(
+			career.Terms[0].SkillsAwarded, want,
+		) {
+			t.Errorf("career.Terms[0].SkillsAwarded = %+v, want %+v", career.Terms[0].SkillsAwarded, want)
+		}
+
+		if len(career.Terms[1].SkillsAwarded) != 0 {
+			t.Errorf("career.Terms[1].SkillsAwarded = %+v, want empty (only term 1 gets the starting grant)",
+				career.Terms[1].SkillsAwarded)
+		}
+	})
+
+	t.Run("no-op when the career's own table has no starting-tier entry", func(t *testing.T) {
+		t.Parallel()
+
+		career := Career{Terms: []Term{{}}}
+		grantStartingRankAutoSkillToFirstTerm(&career, marineRankAutomaticSkill)
+
+		if len(career.Terms[0].SkillsAwarded) != 0 {
+			t.Errorf("career.Terms[0].SkillsAwarded = %+v, want empty (M1 Private has no Auto Skill)",
+				career.Terms[0].SkillsAwarded)
+		}
+	})
+}
+
 // TestRiskOutcomeBoundaries pins Book 1 p.65's universal four Risk
 // outcomes against fixed original/reduced pairs, no dice involved —
 // originally Scout-specific (TestScoutRiskOutcomeBoundaries), renamed

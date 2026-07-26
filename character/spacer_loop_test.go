@@ -74,6 +74,28 @@ func TestResolveSpacerCareerRespectsMaxTermsCap(t *testing.T) {
 	}
 }
 
+// TestResolveSpacerCareerGrantsStartingRankAutoSkill is the regression
+// for #53: R1 Spacehand's own "Fighter" Auto Skill must land on term 1
+// even though a fresh career's first term is never itself a
+// Commissioned/Promoted event.
+func TestResolveSpacerCareerGrantsStartingRankAutoSkill(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{20, 20, 0, 20, 8, 0}}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := ResolveSpacerCareer(r, upp)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty (fixture assumption broke)")
+	}
+
+	if !slices.ContainsFunc(career.Terms[0].SkillsAwarded, func(s SkillLevel) bool { return s.Name == "Fighter" }) {
+		t.Errorf("term 1 SkillsAwarded = %+v, want a Fighter entry (R1 Spacehand's own starting Auto Skill)",
+			career.Terms[0].SkillsAwarded)
+	}
+}
+
 // TestResolveSpacerCareerCCRotation reuses the immortal fixture: C1=C2=C4
 // tied at 20, so highestOf's first-wins-on-tie makes the rotation fully
 // predictable — the pool cycles C1, C2, C4 in that order (the order

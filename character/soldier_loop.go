@@ -55,6 +55,7 @@ func resolveSoldierCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int) (Care
 	career.Terms = terms
 
 	grantBranchSkillToFirstTerm(r, &career, branch)
+	grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
 
 	return career, finalUPP
 }

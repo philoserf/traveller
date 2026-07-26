@@ -121,6 +121,17 @@ linters:
       - path: character/(rogue|agent)_muster_out_test\.go
         linters:
           - dupl
+      # marine_generate.go's ResolveMarineTerm and soldier_generate.go's
+      # ResolveSoldierTerm are the production (non-test) counterpart to
+      # the marine_generate_test.go exclusion above — same deliberate
+      # per-career mirroring, same "Spacer's own int branchRow parameter
+      # defeats dupl's clone detection" reason ResolveSpacerTerm never
+      # joins this pair. Previously just under dupl's own detection
+      # threshold; #53's otherwise-unrelated changes elsewhere in the
+      # package shifted enough token-count context to surface it.
+      - path: character/(marine|soldier)_generate\.go
+        linters:
+          - dupl
 
 formatters:
   enable:
