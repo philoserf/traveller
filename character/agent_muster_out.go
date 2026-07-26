@@ -22,13 +22,7 @@ func ResolveAgentMusterOut(r *dice.Roller, career Career) MusteringOut {
 	dm := len(career.Terms) + agentCommendationCount(career.Terms)
 
 	for range musterOutRollCount(career, agentCareerFame(career)) {
-		row := musterOutRow(r.D6()+dm, len(agentMusterOutMoney))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, agentMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, agentMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, agentMusterOutMoney[:], agentMusterOutBenefits[:])
 	}
 
 	return out

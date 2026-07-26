@@ -8,10 +8,10 @@ import (
 	"github.com/philoserf/traveller/dice"
 )
 
-// TestCitizenMusterOutRowClamp confirms rollCitizenMusterOutRow's own
-// max (11, one fewer than Scout's 12) is wired correctly into the shared
-// musterOutRow helper — musterOutRow's own general clamp behavior is
-// already covered by TestScoutMusterOutRow.
+// TestCitizenMusterOutRowClamp confirms Citizen's own table max (11, one
+// fewer than Scout's 12) clamps correctly through the shared musterOutRow
+// helper — musterOutRow's own general clamp behavior is already covered
+// by TestScoutMusterOutRow.
 func TestCitizenMusterOutRowClamp(t *testing.T) {
 	t.Parallel()
 

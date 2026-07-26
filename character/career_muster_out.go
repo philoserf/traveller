@@ -1,6 +1,7 @@
 package character
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/philoserf/traveller/dice"
@@ -165,16 +166,83 @@ func resolveRankMusterOut(
 	fame := rankBasedCareerFame(career, enlistedRankCount, officerRankCount)
 
 	for range musterOutRollCount(career, fame) {
-		row := musterOutRow(r.D6()+dm, len(money))
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, money[row])
-		} else {
-			out.Benefits = append(out.Benefits, benefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, money, benefits)
 	}
 
 	return out
+}
+
+// uniqueMusterOutBenefits are the results a second copy of which is
+// "unwanted or unusable" — Book 1 p.69's own three examples:
+//
+//	"A result that duplicates a previous (unwanted or unusable) benefit
+//	may be rerolled until a different benefit is received, for example:
+//	Wafer Jack, TAS Member, Knighthood."
+//
+// Everything else on the tables genuinely stacks and is left alone: Ship
+// Shares accumulate toward ownership, characteristic and Fame awards add
+// up, cash adds up, and p.69 says of Forbidden Knowledge outright that
+// "each receipt provides skill-1".
+//
+// "For example" means the book's list is illustrative rather than
+// closed. These are the three it actually names; extending the set would
+// be this codebase deciding which further benefits are unusable twice,
+// which the book declines to do.
+var uniqueMusterOutBenefits = map[string]bool{
+	"Wafer Jack":            true,
+	"TAS Fellow Membership": true,
+	knighthoodBenefit:       true,
+}
+
+// musterOutRerollLimit bounds p.69's "rerolled until a different benefit
+// is received". The rule assumes a different result is reachable, and
+// often it isn't: these tables clamp anything above their last row to
+// that row (p.68), so a long career's DM can make one row the only
+// possible outcome. A Scout with enough terms rolls Knighthood every
+// time, and "until different" would never terminate.
+//
+// On exhaustion the duplicate is kept rather than dropped — the
+// character did earn a result, and recording nothing would be a worse
+// answer than recording one they can't use twice.
+const musterOutRerollLimit = 12
+
+// appendMusterOutRoll performs one Mustering Out roll and files the
+// result, rerolling a duplicated unique Benefit per p.69.
+//
+// The Money/Benefits column choice is made first and not revisited: p.68
+// gives the character that choice per roll ("Character may select either
+// the Money column or Benefits column"), and the reroll rule is about
+// the benefit received, not about reconsidering which column to read.
+func appendMusterOutRoll(r *dice.Roller, out *MusteringOut, dm int, money, benefits []string) {
+	// Row first, then the column choice — the order every resolver used
+	// before this helper existed. Swapping them would re-order the dice
+	// for every roll rather than only for the duplicates being rerolled.
+	row := musterOutRow(r.D6()+dm, len(money))
+
+	if r.Uniform(2) == 1 {
+		out.Money = append(out.Money, money[row])
+
+		return
+	}
+
+	out.Benefits = append(out.Benefits, rerollDuplicateBenefit(r, out.Benefits, dm, benefits, benefits[row]))
+}
+
+// rerollDuplicateBenefit returns entry, or a rerolled replacement when
+// entry duplicates a unique Benefit already in received. Split out from
+// appendMusterOutRoll for Noble, whose own table splits three ways
+// (p.85 adds an Entitlements column) and so can't use the two-column
+// helper.
+func rerollDuplicateBenefit(r *dice.Roller, received []string, dm int, benefits []string, entry string) string {
+	for range musterOutRerollLimit {
+		if !uniqueMusterOutBenefits[entry] || !slices.Contains(received, entry) {
+			return entry
+		}
+
+		entry = benefits[musterOutRow(r.D6()+dm, len(benefits))]
+	}
+
+	return entry
 }
 
 // ResolveScoutMusterOut resolves Book 1 p.79's Scout Mustering Out table

@@ -54,12 +54,7 @@ func ResolveFunctionaryMusterOut(r *dice.Roller, career Career, finalTier int) M
 	dm := len(career.Terms)
 
 	for range functionaryMusterOutRollCount(career) {
-		row := musterOutRow(r.D6()+dm, len(functionaryMusterOutMoney))
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, functionaryMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, functionaryMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, functionaryMusterOutMoney[:], functionaryMusterOutBenefits[:])
 	}
 
 	if len(career.Terms) > 0 {

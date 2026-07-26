@@ -23,10 +23,6 @@ var citizenMusterOutBenefits = [11]string{
 	"Str +1", "C2 +1", "C3 +1", "Int +1", "Soc +1", "TAS Fellow Membership", "Ship Share",
 }
 
-func rollCitizenMusterOutRow(r *dice.Roller, dm int) int {
-	return musterOutRow(r.D6()+dm, 11)
-}
-
 // ResolveCitizenMusterOut resolves Book 1 p.78's Citizen Mustering Out
 // table (step E, p.57 — a distinct step following Career Resolution; see
 // ResolveScoutMusterOut's own doc comment for why Mustering Out stays a
@@ -54,13 +50,7 @@ func ResolveCitizenMusterOut(r *dice.Roller, career Career) MusteringOut {
 	dm := len(career.Terms)
 
 	for range len(career.Terms) {
-		row := rollCitizenMusterOutRow(r, dm)
-
-		if r.Uniform(2) == 1 {
-			out.Money = append(out.Money, citizenMusterOutMoney[row])
-		} else {
-			out.Benefits = append(out.Benefits, citizenMusterOutBenefits[row])
-		}
+		appendMusterOutRoll(r, &out, dm, citizenMusterOutMoney[:], citizenMusterOutBenefits[:])
 	}
 
 	return out
