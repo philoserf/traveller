@@ -231,11 +231,16 @@ func termOutcomeLine(c character.Career, i int, t character.Term) string {
 		return fmt.Sprintf("Term %d", i+1) + ": " + entertainerTermLabel(t)
 	}
 
+	// Citizen names its own Controlling Characteristic inside the check
+	// it renders, so the generic "(CC)" parenthetical would print it
+	// twice — and unexplained the first time.
+	if c.Name == character.CitizenCareerName {
+		return fmt.Sprintf("Term %d — %s", i+1, citizenLifeLabel(t))
+	}
+
 	prefix := fmt.Sprintf("Term %d (%s)", i+1, positionAbbrev(t.ControllingCharacteristic))
 
 	switch c.Name {
-	case character.CitizenCareerName:
-		return prefix + ": " + citizenLifeLabel(t.CitizenLifeSucceeded)
 	case character.NobleCareerName:
 		return prefix + ": " + nobleTermLabel(t)
 	case character.RogueCareerName:
@@ -401,12 +406,50 @@ func functionaryTermLabel(t character.Term) string {
 	return label
 }
 
-func citizenLifeLabel(succeeded bool) string {
-	if succeeded {
-		return "Citizen Life: Success"
+// citizenLifeLabel renders Citizen Life (Book 1 p.78) as the check it
+// actually is — 2D6 against the term's own Controlling Characteristic,
+// success on equal-or-under, no Mods — rather than as an unexplained
+// "(Str): Success" tuple. Showing the roll beside the target it was
+// compared against lets a reader confirm the outcome instead of taking
+// it on trust, and names which characteristic was being tested and why.
+//
+// A successful term's extra Job or Hobby skill is called out by name.
+// It also appears in the term's own skill list (it is a real skill), but
+// nothing there distinguishes it from the four unconditional Table C
+// skills beside it, and it is the entire mechanical consequence of
+// succeeding.
+//
+// Failure carries no wound and no characteristic reduction — Book 1's
+// own "the Citizen continues the term stuck in a dull, boring,
+// unfulfilling life" — so the line deliberately stops at "failure"
+// rather than implying a cost the rules don't impose.
+func citizenLifeLabel(t character.Term) string {
+	comparison, outcome := "≤", "success"
+	if !t.CitizenLifeSucceeded {
+		comparison, outcome = ">", "failure"
 	}
 
-	return "Citizen Life: Failure"
+	label := fmt.Sprintf("Citizen Life %d %s %s %d: %s",
+		t.CitizenLifeRoll, comparison, positionAbbrev(t.ControllingCharacteristic),
+		t.CitizenLifeTarget, outcome)
+
+	if t.CitizenLifeGrant != "" {
+		label += ", " + citizenLifeGrantLabel(t) + ": " + t.CitizenLifeGrant
+	}
+
+	return label
+}
+
+// citizenLifeGrantLabel names which of the two alternating tracks a
+// successful term's grant came from — Book 1 p.78 alternates Job and
+// Hobby across successful terms, so the label has to follow the same
+// count rather than be stored per term.
+func citizenLifeGrantLabel(t character.Term) string {
+	if t.CitizenLifeGrantIsJob {
+		return "Job"
+	}
+
+	return "Hobby"
 }
 
 // writeMusteringOut always renders all four benefit lists, even for a

@@ -28,25 +28,44 @@ type Term struct {
 	RiskResult                RiskResult
 	RewardResult              string
 	SkillsAwarded             []SkillLevel
-	Promoted                  bool   // Armed Forces only: Officer/Enlisted Promotion succeeded this term
-	CitizenLifeSucceeded      bool   // Citizen only
-	NobleAction               string // "Return" or "Intrigue" — Noble only
-	NobleSucceeded            bool   // Noble only
-	Elevated                  bool   // Noble only: Elevation succeeded this term
-	Scheme                    string // Rogue only: this term's own Scheme flavor name
-	Imprisoned                bool   // Rogue only: Risk failed this term
-	PrisonYears               int    // Rogue only: sentence length if Imprisoned (0-4)
-	RewardSucceeded           bool   // Rogue only: this term's own Reward roll outcome
-	SchemePayoff              int    // Rogue only: Cr payoff this term (0 if Reward failed; halved if Imprisoned)
-	SchemeShipShare           bool   // Rogue only: Reward succeeded on a Ship-Share-valued Scheme
-	PublicationSucceeded      bool   // Scholar only: this term's own Publication roll outcome
-	AwardWinning              bool   // Scholar only: Publication beat CC by 4+, counts as two Publications
-	TenureGranted             bool   // Scholar only: Tenure roll succeeded this term
-	FameAfterTerm             int    // Entertainer only: Fame value after this term's own Flux roll
-	TalentAfterTerm           int    // Entertainer only: Talent value after this term (Fame increases grant +1)
-	FameIncreased             bool   // Entertainer only: this term's own Flux roll was positive
-	UndercoverCareer          string // Agent only: which career's own skill table this term's own skill was drawn from
-	Perfect                   bool   // Craftsman only: this term's own Masterpiece reached 55+ Master Points
+	Promoted                  bool // Armed Forces only: Officer/Enlisted Promotion succeeded this term
+	CitizenLifeSucceeded      bool // Citizen only
+	// CitizenLifeRoll/CitizenLifeTarget are the raw 2D6 and the
+	// characteristic it was rolled against (Book 1 p.78: "roll 2D for the
+	// Controlling Characteristic or less"). Retained so a rendered term
+	// can show why it succeeded or failed rather than only that it did —
+	// the outcome bool alone can't explain itself. Citizen only.
+	CitizenLifeRoll   int
+	CitizenLifeTarget int
+	// CitizenLifeGrant names the extra Job/Hobby skill a successful
+	// Citizen Life term grants, so a reader can tell it apart from the
+	// four unconditional Table C skills sitting beside it in
+	// SkillsAwarded (where it is also recorded, since it is a real
+	// skill). Empty when the term failed or the grant resolved to
+	// nothing. Citizen only.
+	CitizenLifeGrant string
+	// CitizenLifeGrantIsJob distinguishes which of Book 1 p.78's two
+	// alternating tracks CitizenLifeGrant came from. The alternation is
+	// driven by the count of prior successful terms, so it can't be
+	// recovered from a single Term after the fact. Citizen only.
+	CitizenLifeGrantIsJob bool
+	NobleAction           string // "Return" or "Intrigue" — Noble only
+	NobleSucceeded        bool   // Noble only
+	Elevated              bool   // Noble only: Elevation succeeded this term
+	Scheme                string // Rogue only: this term's own Scheme flavor name
+	Imprisoned            bool   // Rogue only: Risk failed this term
+	PrisonYears           int    // Rogue only: sentence length if Imprisoned (0-4)
+	RewardSucceeded       bool   // Rogue only: this term's own Reward roll outcome
+	SchemePayoff          int    // Rogue only: Cr payoff this term (0 if Reward failed; halved if Imprisoned)
+	SchemeShipShare       bool   // Rogue only: Reward succeeded on a Ship-Share-valued Scheme
+	PublicationSucceeded  bool   // Scholar only: this term's own Publication roll outcome
+	AwardWinning          bool   // Scholar only: Publication beat CC by 4+, counts as two Publications
+	TenureGranted         bool   // Scholar only: Tenure roll succeeded this term
+	FameAfterTerm         int    // Entertainer only: Fame value after this term's own Flux roll
+	TalentAfterTerm       int    // Entertainer only: Talent value after this term (Fame increases grant +1)
+	FameIncreased         bool   // Entertainer only: this term's own Flux roll was positive
+	UndercoverCareer      string // Agent only: which career's own skill table this term's own skill was drawn from
+	Perfect               bool   // Craftsman only: this term's own Masterpiece reached 55+ Master Points
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.
