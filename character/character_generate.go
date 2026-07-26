@@ -250,7 +250,7 @@ func buildRiskCareerCharacter(
 		career.MusteringOut = resolveMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, updatedUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(career, updatedUPP)
 
 	// Clone before appending: appending onto the caller's own
 	// homeworldSkills slice in place could silently corrupt an earlier
@@ -258,6 +258,7 @@ func buildRiskCareerCharacter(
 	// calls (append reuses spare backing-array capacity when there is
 	// any).
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
+	skills = append(skills, bonuses.Skills...)
 
 	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 

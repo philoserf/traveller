@@ -40,9 +40,10 @@ func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
+	skills = append(skills, bonuses.Skills...)
 
 	survivedCareer := len(career.Terms) > 0
 

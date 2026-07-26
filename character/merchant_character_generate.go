@@ -51,9 +51,10 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	// pass caught an earlier version using upp here, silently reverting
 	// that reduction (the same class of bug caught for Scholar last
 	// slice).
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
+	skills = append(skills, bonuses.Skills...)
 
 	// len(career.Terms) > 0 is unconditionally true (BeginMerchant never
 	// fails) — ok collapses to "didn't die on the last term."

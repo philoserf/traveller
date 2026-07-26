@@ -46,9 +46,10 @@ func buildCitizenCharacter(
 		career.MusteringOut = ResolveCitizenMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career.MusteringOut, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
+	skills = append(skills, bonuses.Skills...)
 
 	// survivedCareer is always true: Citizen Life has no death mechanic,
 	// so there's always "the rest of their life" for finalizeAging to
