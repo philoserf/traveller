@@ -490,7 +490,7 @@ func TestResolveMarineTermNeverPromotesPastTheRankCap(t *testing.T) {
 	}
 }
 
-// TestMarineCareerFame confirms marineCareerFame sums each term's own
+// TestMarineCareerFame confirms marineCareerFameAwards sums each term's own
 // Medal Fame (Book 1 p.91's per-medal values), Wound Badge Fame (via
 // scoutWoundBadges, x1 each), and — for an Officer — Rank Fame (the
 // numeric tier, derived via rankState) — see this and the prior
@@ -558,8 +558,8 @@ func TestMarineCareerFame(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := marineCareerFame(Career{Terms: c.terms}); got != c.want {
-				t.Errorf("marineCareerFame(%+v) = %d, want %d", c.terms, got, c.want)
+			if got := sumInts(marineCareerFameAwards(Career{Terms: c.terms})); got != c.want {
+				t.Errorf("sumInts(marineCareerFameAwards(%+v)) = %d, want %d", c.terms, got, c.want)
 			}
 		})
 	}

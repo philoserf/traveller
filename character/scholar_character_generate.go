@@ -46,11 +46,14 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 	age, lifeStage, notes, ok := finalizeAging(&aging, survivedCareer)
 	birthdate := GenerateBirthdate(r, age)
 
-	fame := bonuses.Fame
+	// Book 1 p.91 Fame Stacks over the individual awards.
+	fameAwards := bonuses.FameAwards
 
 	if survivedCareer {
-		fame += scholarSegmentFame(careerUPP, career.Terms)
+		fameAwards = append(fameAwards, scholarSegmentFameAwards(careerUPP, career.Terms)...)
 	}
+
+	fame := resolveFameStacks(fameAwards)
 
 	return Character{
 		Species:        "Human",
@@ -69,28 +72,4 @@ func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldS
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
 	}, ok
-}
-
-// scholarCareerFame is Book 1 p.91's own Fame table: two separate,
-// unconditional, additive rows for Scholar — "=Rank" and "=Publications"
-// — confirmed from the page image directly (the .txt OCR extraction
-// visually scrambles this dense multi-column table). No Wound-Badge or
-// Medal-tier contribution — those rows are nested under the page's own
-// "Armed Forces" bracket (Army/Marine/Navy only), not universal.
-func scholarCareerFame(terms []Term, startTier int) int {
-	return scholarRankTier(terms, startTier) + scholarPublicationsTotal(terms)
-}
-
-// scholarSegmentFame derives startTier from upp and calls
-// scholarCareerFame — shared by buildScholarCharacter and
-// resolveScholarSegment (career_chain.go), both of which need this exact
-// pairing. Edu (C5) is never a Risk & Reward position
-// (scholarRiskRewardPositions is C1-C4), so it's never reduced —
-// careerUPP and the original upp always agree here, but callers pass
-// careerUPP anyway for consistency with the rest of their own bodies,
-// not because the two would ever actually differ.
-func scholarSegmentFame(upp UPP, terms []Term) int {
-	startTier := scholarStartTier(int(upp.Characteristics[C5]))
-
-	return scholarCareerFame(terms, startTier)
 }

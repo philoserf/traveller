@@ -131,7 +131,7 @@ func TestBuildSpacerCharacterQualified(t *testing.T) {
 		t.Errorf("WoundBadges = %d, want %d (one per Wounded/Disabled term)", c.WoundBadges, want)
 	}
 
-	if want := spacerCareerFame(c.Careers[0]); c.Fame < want {
+	if want := sumInts(spacerCareerFameAwards(c.Careers[0])); c.Fame < want {
 		t.Errorf("Fame = %d, want at least %d (career Fame, before Mustering Out's own additions)", c.Fame, want)
 	}
 

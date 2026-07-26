@@ -21,7 +21,7 @@ func ResolveAgentMusterOut(r *dice.Roller, career Career) MusteringOut {
 
 	dm := len(career.Terms) + agentCommendationCount(career.Terms)
 
-	for range musterOutRollCount(career, agentCareerFame(career)) {
+	for range musterOutRollCount(career, resolveFameStacks(agentCareerFameAwards(career))) {
 		appendMusterOutRoll(r, &out, dm, agentMusterOutMoney[:], agentMusterOutBenefits[:])
 	}
 

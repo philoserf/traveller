@@ -32,8 +32,8 @@ func TestAgentCareerFame(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := agentCareerFame(Career{Terms: c.terms}); got != c.want {
-				t.Errorf("agentCareerFame(%v) = %d, want %d", c.terms, got, c.want)
+			if got := sumInts(agentCareerFameAwards(Career{Terms: c.terms})); got != c.want {
+				t.Errorf("sumInts(agentCareerFameAwards(%v)) = %d, want %d", c.terms, got, c.want)
 			}
 		})
 	}

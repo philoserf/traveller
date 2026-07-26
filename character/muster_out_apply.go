@@ -83,7 +83,12 @@ func musterOutCharacteristicBoost(entry string) (Position, int, bool) {
 // silently transpose Fame and Cash.
 type MusterOutBonuses struct {
 	Fame int
-	Cash int
+	// FameAwards is each "Fame +N" benefit separately, alongside their
+	// total in Fame. Book 1 p.91's Fame Stacks rule needs the individual
+	// awards, not just their sum — it caps accumulated Fame at 20 but
+	// lets a single award larger than that stand on its own.
+	FameAwards []int
+	Cash       int
 	// Skills are benefits that grant a skill outright rather than money,
 	// Fame or a characteristic — Forbidden Knowledge today. Returned
 	// rather than applied, since this function has no Character to apply
@@ -115,6 +120,7 @@ func ApplyMusteringOut(career Career, upp UPP) (UPP, MusterOutBonuses) {
 	for _, entry := range career.MusteringOut.Benefits {
 		if amount, ok := musterOutFameBonus(entry); ok {
 			bonuses.Fame += amount
+			bonuses.FameAwards = append(bonuses.FameAwards, amount)
 
 			continue
 		}

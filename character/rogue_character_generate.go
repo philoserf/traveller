@@ -29,7 +29,7 @@ func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
 // Rogue has neither Wounded/Disabled/Dead nor WoundBadges, a genuinely
 // different shape from Marine/Soldier/Spacer, not just different data.
 //
-// Fame and Cash are computed via rogueTermsFameCash rather than solely
+// Fame and Cash are computed via rogueTermsCash rather than solely
 // through ApplyMusteringOut, since Rogue's own intrinsic Fame (Book 1
 // p.91: "Successful Schemes x2 / Failed Schemes x3" — see this slice's
 // own plan-file Context for why this formula is implemented instead of
@@ -57,13 +57,16 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	birthdate := GenerateBirthdate(r, age)
 
 	cash := bonuses.Cash
-	fame := bonuses.Fame
+	// Book 1 p.91 Fame Stacks over the individual awards.
+	fameAwards := bonuses.FameAwards
 
 	if survivedCareer {
-		termFame, termCash := rogueTermsFameCash(career.Terms)
-		fame += termFame
+		termCash := rogueTermsCash(career.Terms)
+		fameAwards = append(fameAwards, rogueTermFameAwards(career.Terms)...)
 		cash += termCash
 	}
+
+	fame := resolveFameStacks(fameAwards)
 
 	return Character{
 		Species:        "Human",
@@ -82,23 +85,19 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	}, ok
 }
 
-// rogueTermsFameCash sums Book 1 p.91's own "Successful Schemes x2 /
-// Failed Schemes x3" Fame and each term's own Cash payoff
-// (SchemePayoff) — shared by buildRogueCharacter and resolveRogueSegment
+// rogueTermsCash sums each term's own Cash payoff (SchemePayoff) —
+// shared by buildRogueCharacter and resolveRogueSegment
 // (career_chain.go), extracted once both were confirmed to duplicate
-// the identical loop body.
-func rogueTermsFameCash(terms []Term) (int, int) {
-	fame, cash := 0, 0
+// the identical loop body. The p.91 "Successful Schemes x2 / Failed
+// Schemes x3" Fame these terms also earn is rogueTermFameAwards' job
+// (fame.go): the Fame Stacks cap needs the awards individually, so
+// returning a pre-summed total here would discard what it reads.
+func rogueTermsCash(terms []Term) int {
+	cash := 0
 
 	for _, t := range terms {
 		cash += t.SchemePayoff
-
-		if t.Imprisoned {
-			fame += 3 // Book 1 p.91's own "Failed Schemes x3"
-		} else {
-			fame += 2 // "Successful Schemes x2"
-		}
 	}
 
-	return fame, cash
+	return cash
 }

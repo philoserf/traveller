@@ -26,16 +26,16 @@ func buildSpacerCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSk
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging)
-		}, ResolveSpacerMusterOut, spacerCareerFame)
+		}, ResolveSpacerMusterOut, spacerCareerFameAwards)
 }
 
-// spacerCareerFame mirrors soldierCareerFame's own formula exactly
+// spacerCareerFameAwards mirrors soldierCareerFameAwards's own formula exactly
 // (character/soldier_character_generate.go) — Medal Fame + Wound Badge
 // Fame + Officer Rank Fame (=Rank, the numeric tier) — since Spacer
 // shares the same "Army/Marine/Navy: Officer Rank*" Fame bracket (Book 1
-// p.91) Marine and Soldier do. See marineCareerFame's own doc comment
+// p.91) Marine and Soldier do. See marineCareerFameAwards's own doc comment
 // for the full reasoning. The shared formula body lives in
 // rankBasedCareerFame (career_rank.go).
-func spacerCareerFame(career Career) int {
-	return rankBasedCareerFame(career, len(spacerEnlistedRankNames), len(spacerOfficerRankNames))
+func spacerCareerFameAwards(career Career) []int {
+	return rankBasedCareerFameAwards(career, len(spacerEnlistedRankNames), len(spacerOfficerRankNames))
 }

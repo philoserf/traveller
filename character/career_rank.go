@@ -46,7 +46,7 @@ func rankState(terms []Term, enlistedTiers, officerTiers int) (bool, int) {
 // confirmed byte-identical across all three careers except which
 // rank-name tables get passed in, extracted per this codebase's own
 // "generalize on 2nd instance" discipline once a third verbatim match
-// (Spacer) appeared. See marineCareerFame's own doc comment
+// (Spacer) appeared. See marineCareerFameAwards's own doc comment
 // (marine_character_generate.go) for the full formula rationale: Medal
 // Fame + Wound Badge Fame (x1 each) + Officer Rank Fame (=Rank, the
 // numeric tier).

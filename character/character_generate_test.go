@@ -77,8 +77,8 @@ func TestScoutDiscoveryFame(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoutDiscoveryFame(Career{Terms: tt.terms}); got != tt.want {
-				t.Errorf("scoutDiscoveryFame() = %d, want %d", got, tt.want)
+			if got := sumInts(scoutDiscoveryFameAwards(Career{Terms: tt.terms})); got != tt.want {
+				t.Errorf("sumInts(scoutDiscoveryFameAwards()) = %d, want %d", got, tt.want)
 			}
 		})
 	}
@@ -397,7 +397,7 @@ func TestBuildRiskCareerCharacterGatesCareerFameOnOK(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildRiskCareerCharacter(r, UPP{}, "hw", nil, resolveCareer, resolveMusterOut, scoutDiscoveryFame)
+	c, ok := buildRiskCareerCharacter(r, UPP{}, "hw", nil, resolveCareer, resolveMusterOut, scoutDiscoveryFameAwards)
 
 	if ok {
 		t.Fatal("ok = true, want false (fixture's last term is Dead)")
@@ -412,7 +412,7 @@ func TestBuildRiskCareerCharacterGatesCareerFameOnOK(t *testing.T) {
 // ApplyMusteringOut is actually wired into buildScoutCharacter — seed 46
 // with this fixture was found by direct search to produce both
 // Fame-bearing and Cash-bearing Mustering Out rolls. This seed's own
-// career also produces two Discoveries (scoutDiscoveryFame's own +4
+// career also produces two Discoveries (scoutDiscoveryFameAwards's own +4
 // each), so the total is 12, not Mustering Out's own 4 alone — the
 // regression test for careerFame actually being summed in, not just
 // bonuses.Fame.

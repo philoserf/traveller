@@ -138,11 +138,11 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 	// Aging retired: it now runs between terms and erodes C1-C3, so even
 	// a maximal starting characteristic can fall far enough for a late
 	// Risk roll to fail. Deriving keeps what these assertions were
-	// actually for (marineCareerFame wired end to end, and the
+	// actually for (marineCareerFameAwards wired end to end, and the
 	// code-review-caught bug where Term.Medals fed Fame but never reached
 	// Character.Medals) without re-pinning a number every Aging change
 	// would invalidate again.
-	if want := marineCareerFame(c.Careers[0]); c.Fame < want {
+	if want := sumInts(marineCareerFameAwards(c.Careers[0])); c.Fame < want {
 		t.Errorf("Fame = %d, want at least %d (career Fame, before Mustering Out's own additions)", c.Fame, want)
 	}
 
