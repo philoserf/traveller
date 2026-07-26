@@ -126,7 +126,12 @@ Largest of this phase: a full table plus a three-die mechanic.
 
 ---
 
-## Phase 3 — cross-cutting structures
+## Phase 3 — cross-cutting structures — DONE
+
+#58+#37 (PR #90), #54 (#91), #35 (#92).
+
+<details>
+<summary>Original plan detail</summary>
 
 ### 11. #58 + #37 — Land Grants (do together)
 
@@ -148,6 +153,8 @@ Needs a structured item record and a time-since-creation concept, neither of
 which exists yet.
 
 ---
+
+</details>
 
 ## Phase 4 — foundational and large
 
@@ -184,6 +191,20 @@ characters over 20 both before and after). That was the signal the
 granularity was wrong, not that the rule was minor. p.91 counts "Fame
 points *received*", so awards are per-instance. Measure before believing
 a rules fix did anything.
+
+## Open rules questions
+
+Two conflicts found in Phase 3, flagged rather than silently resolved:
+
+- **Scout Discovery Fame.** p.79 says a Discovery gives "Fame +1";
+  p.91's Fame table says "Scout — Discoveries — x4". The code implements
+  x4, which #82/#88 rebuilt the whole Fame system on. Unresolved; no
+  behavior changed.
+- **Craftsman Master Points are effectively unreachable.** p.75 needs
+  CC + Craftsman + five level-6 skills to total 40. Across 6,000
+  generated chains none reached it, so QREBS and Vintage never fire in
+  practice. Faithful to the rules as written; open question whether
+  skill progression should make it reachable.
 
 ## Standing checks for every PR
 
