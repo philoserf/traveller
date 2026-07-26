@@ -30,6 +30,9 @@ type careerSegment struct {
 	Skills      []SkillLevel
 	Medals      []string
 	Equipment   []string // Craftsman only: Masterpieces created this segment
+	// Masterpieces are the same items as Equipment, structured — QREBS,
+	// Master Points and creation age (masterpiece.go).
+	Masterpieces []Masterpiece
 	// LandGrants are Book 1 p.88's own awards of territory earned in this
 	// segment — Noble fiefs and Scout Discovery grants. Carried through
 	// the chain because p.68 retains them at Mustering Out, so a later
@@ -416,6 +419,7 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 		Fame:       bonuses.Fame + craftsmanCareerFame(career.Terms),
 		FameAwards: append(bonuses.FameAwards, craftsmanCareerFame(career.Terms)), Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Equipment: equipment,
+		Masterpieces: masterpiecesFromTerms(career.Terms),
 	}
 }
 
@@ -572,6 +576,7 @@ type careerChainAccumulator struct {
 	skills                         []SkillLevel
 	medals                         []string
 	equipment                      []string
+	masterpieces                   []Masterpiece
 	cash, woundBadges, termsServed int
 	// fameAwards are every Fame award from every career, kept separate
 	// for Book 1 p.91's Fame Stacks rule (resolveFameStacks).
@@ -597,6 +602,7 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 	acc.skills = append(acc.skills, seg.Skills...)
 	acc.medals = append(acc.medals, seg.Medals...)
 	acc.equipment = append(acc.equipment, seg.Equipment...)
+	acc.masterpieces = append(acc.masterpieces, seg.Masterpieces...)
 	acc.fameAwards = append(acc.fameAwards, seg.FameAwards...)
 	acc.landGrants = append(acc.landGrants, seg.LandGrants...)
 	acc.cash += seg.Cash
@@ -797,6 +803,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		Skills:         aggregateSkills(acc.skills),
 		Medals:         acc.medals,
 		Equipment:      acc.equipment,
+		Masterpieces:   acc.masterpieces,
 		LandGrants:     acc.landGrants,
 	}, survived, nil
 }

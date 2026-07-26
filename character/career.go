@@ -84,6 +84,11 @@ type Term struct {
 	// label alone for the rows that print no title. Agent only.
 	UndercoverAssignment string
 	Perfect              bool // Craftsman only: this term's own Masterpiece reached 55+ Master Points
+	// Masterpiece is the structured record of what this term created —
+	// its QREBS allocation, Master Points and creation age. RewardResult
+	// still carries the display string beside it. Craftsman only, and nil
+	// for a term whose creation attempt failed. See masterpiece.go.
+	Masterpiece *Masterpiece
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.
