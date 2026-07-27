@@ -78,6 +78,26 @@ misleading.
 
 #36 closed with them; #113 carries what they deferred.
 
+**#41** (PR #115) gave Scholars their Major, their Minor and their
+Waivers, all three stated outright on p.76 — including the rule that
+makes Scholar the one career whose Major/Minor cells always resolve:
+"Every Scholar has a Major and a Minor. If no degree... then select any
+Skill or Knowledge from the Skills List." 461 of 3,000 Scholars reach
+the career without a degree, and were losing 1,830 cells to a rule
+saying they have both.
+
+**#95** (PR #116) closed with no production change: the mechanic was
+never broken, only unreachable, and #110 fixed that. 126 Craftsmen now
+serve across 6,000 chains and one creates a Masterpiece — 42 Master
+Points, QREBS allocated, sold at Cr170,000 and Vintage-appreciated to
+Cr176,800. Every line of PR #92's code runs in generated output at last.
+
+Correcting what this plan said twice: the gate does NOT need five
+distinct level-6 skills. The formula sums the levels of _up to_ five
+qualifying skills — "up to FIVE" is a cap, not a requirement — and the
+Masterpiece above clears 40 with four (Trader-10, Electronics-9,
+Designer-8, Computer-7, totalling 34). High levels substitute for count.
+
 **#110** (PR #112) let each listed career run to its own natural end
 instead of being cut to a single term. The cap it removed had no rules
 basis — Book 1's own one-term obligation is p.61's, and belongs to
@@ -148,31 +168,19 @@ Two smaller cells are also still unresolved and are cheap now.
 block — worth 15 cells. "Capital" is #101. Both draw a die, so both move
 every character's stream; do them together and measure once.
 
-## 2. #41 — Scholar Major/Minor selection and Waivers
+## 2. #101 and #102 — the last two unresolved cells, and school names
 
-Depends on #36. The payoff measured above is realized here.
+Both are cheap now and both draw a die, so both move every character's
+stream. Do them together and measure once.
 
-## 3. #95 — Craftsman never reaches 40 Master Points
+"One Science" finally has an enumerable list — p.60's C-flagged Sciences
+block — worth 15 cells. "Capital" is #101: Land Grant tracking has
+existed since PR #90, so the deferral comment saying otherwise is stale,
+though where the cell resolves needs deciding (the grants are not in
+view where the cell is rolled). #102 is the Educational Institution
+Chart, pure flavour but priced in dice.
 
-Re-measured after #36b. The original diagnosis was right and #36b
-confirmed it: characters satisfying both `BeginCraftsman` prerequisites
-went from 4.32% to **10.18%**, and those holding two level-6 skills from
-10.7% to 22.5%. Education was the missing mechanism.
-
-#110 has since cleared the other blocker: Craftsman served zero terms
-across ~18,000 characters and now serves 62 in 3,000 citizen,craftsman
-chains. The career runs.
-
-What remains is the gate itself, and it is a narrow one. The formula
-needs five _distinct_ skills at level 6+, and no character in 6,000
-holds more than four; the best Master Point total seen is 38 against a
-threshold of 40. So this is now a question about how many high-level
-skills a life produces, not about Craftsman and not about Education.
-
-Worth re-measuring Masterpieces first, since #110 changed the population
-that reaches the career at all — the figure above predates it.
-
-## 4. #96 — Land Grant scope deferrals
+## 3. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
@@ -204,6 +212,12 @@ that does not exist yet.
   Education leaves a Major at 4 or 5 and the career cells grant the same
   subject again. A staged change measured only stage by stage will
   understate itself.
+- **A mechanic can be correct, tested, and still never run.** QREBS and
+  Vintage were fully implemented and unit-tested, and fired zero times in
+  generated output for months, because the career that uses them could
+  not be entered. No unit test could have caught it — the code was right.
+  What catches it is a test that walks the whole path and asserts the
+  thing happens at all. #95 now has one.
 - **Check whether a rule forbids the thing before building it.** #103
   asked for standalone Craftsman and Functionary generators to close a
   test-coverage gap, and the gap was real — but Book 1 forbids either as
