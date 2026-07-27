@@ -11,10 +11,12 @@ import "github.com/philoserf/traveller/dice"
 // real "never qualified" outcome) and RiskResult can be Dead (a real
 // death outcome).
 func GenerateSoldierCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildSoldierCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildSoldierCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildSoldierCharacter assembles a Character from an already-rolled

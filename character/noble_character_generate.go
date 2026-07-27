@@ -21,10 +21,12 @@ import (
 // that front), so there's nothing analogous to Scout's own
 // RiskResult != Dead check to make.
 func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildNobleCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildNobleCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildNobleCharacter assembles a Character from an already-rolled upp,

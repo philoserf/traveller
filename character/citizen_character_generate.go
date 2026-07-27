@@ -23,10 +23,12 @@ import (
 // treated as a Notes-only outcome — see finalizeAging's own doc comment
 // for why it no longer is.
 func GenerateCitizenCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildCitizenCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildCitizenCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildCitizenCharacter assembles a Character from an already-rolled

@@ -96,10 +96,12 @@ func merchantShipOwnerFame(r *dice.Roller, career Career) int {
 // multi-term Merchant career, and Merchant's own Mustering Out
 // benefits.
 func GenerateMerchantCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildMerchantCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildMerchantCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildMerchantCharacter assembles a Character from an already-rolled

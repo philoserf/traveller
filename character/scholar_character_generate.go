@@ -10,10 +10,12 @@ import (
 // to end: a UPP, a homeworld and its background skills, a full
 // multi-term Scholar career, and Scholar's own Mustering Out benefits.
 func GenerateScholarCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildScholarCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildScholarCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildScholarCharacter assembles a Character from an already-rolled

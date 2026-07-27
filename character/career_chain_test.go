@@ -220,8 +220,10 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	// silently selected for that. Sharing the simulation and building the
 	// context the way chainSegmentContext does makes the model exact.
 	r := dice.New(rand.NewPCG(seed, seed))
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	// generateStart, not GenerateUPP plus GenerateHomeworldSkills: the
+	// chain runs CharGen step C between them (education.go), and a replay
+	// that skipped it would be one Education's worth of draws out of step.
+	upp, homeworld, homeworldSkills, _ := generateStart(r)
 
 	var aging agingSimulation
 

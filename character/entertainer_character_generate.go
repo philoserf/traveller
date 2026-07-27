@@ -11,10 +11,12 @@ import (
 // full multi-term Entertainer career, and Entertainer's own Mustering
 // Out benefits.
 func GenerateEntertainerCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildEntertainerCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildEntertainerCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildEntertainerCharacter assembles a Character from an already-rolled

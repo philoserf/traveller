@@ -177,10 +177,12 @@ func lastTermRank(terms []Term) string {
 // better scoped once more than one career/skill source exists to validate
 // the merge rule against.
 func GenerateScoutCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildScoutCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildScoutCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildScoutCharacter assembles a Character from an already-rolled upp,

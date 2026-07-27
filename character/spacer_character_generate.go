@@ -11,10 +11,12 @@ import "github.com/philoserf/traveller/dice"
 // "never qualified" outcome) and RiskResult can be Dead (a real death
 // outcome).
 func GenerateSpacerCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildSpacerCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildSpacerCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildSpacerCharacter assembles a Character from an already-rolled upp,
