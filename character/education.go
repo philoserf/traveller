@@ -83,6 +83,14 @@ type educationInstitution struct {
 // treatment nextCC and BeginScout's own Begin-target choice already get,
 // and for the same reason: a genuinely better option exists, so a
 // uniform random pick would be a worse default than the obvious one.
+// One consequence of resolving the choice that way is worth naming,
+// because it looks like dead data and is not: Trade School is never
+// reached. Its prerequisite is Edu 5+, the same as College's, and
+// College is listed first — so every character who qualifies for one
+// qualifies for the better one. That is the preference working, not a
+// gap in it. A player who wanted Trade School's flat "Major+2" over
+// College's "Major+1 per Pass" across four years would be choosing the
+// smaller award, since four passes beat two.
 var educationInstitutions = []educationInstitution{
 	{
 		Name: "University", MinEdu: 7,
@@ -134,6 +142,18 @@ type Education struct {
 	Honors bool
 	// Degree is what Graduation conferred, if anything.
 	Degree string
+	// SchoolNameRoll is the 1D entry chosen from p.92's own Educational
+	// Institution Chart, 1-6, or 0 if no school was attended. Kept even
+	// when SchoolName below cannot be rendered, so that filling in the
+	// remaining placeholders later costs no dice.
+	SchoolNameRoll int
+	// SchoolName is that entry with its placeholders filled in, or empty
+	// when any of them has no source yet — see resolveInstitutionName.
+	SchoolName string
+	// SchoolRank is p.61's own "School Rank... the relative rank of
+	// schools when compared with others". Zero for ED5, whose chart entry
+	// prints "Rank= Inconsequential" rather than a die.
+	SchoolRank int
 	// Waivers is how many Waiver rolls were attempted, successful or not
 	// — p.59's own Mod is "minus number of previous waivers rolled
 	// (successful or not)", so the count includes the failures.
@@ -180,6 +200,12 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	upp = applyGraduation(upp, school, &edu)
 	resolveHonors(r, upp, school, &edu)
+
+	// p.72's own "For Each School Attended: Note School Name and Rank",
+	// rolled after the schooling itself so a character who was refused
+	// admission never gets a school name. <Skill> resolves against the
+	// Major, which is what a Trade School taught.
+	edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = rollInstitution(r, school.Name, edu.Major)
 
 	edu.Skills = aggregateSkills(edu.Skills)
 
