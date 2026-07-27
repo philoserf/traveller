@@ -413,9 +413,13 @@ func TestResolveSpacerTermGrantsCommission(t *testing.T) {
 		want++
 	}
 
-	if len(term.SkillsAwarded) > want {
-		t.Errorf("len(SkillsAwarded) = %d, want at most %d (per-term %d + Commission +1 + automatic)",
-			len(term.SkillsAwarded), want, spacerSkillsPerTerm)
+	if got := len(term.SkillsAwarded) - anmSchoolAwards(term); got > want {
+		t.Errorf(
+			"len(SkillsAwarded) = %d excluding ANM School, want at most %d (per-term %d + Commission +1 + automatic)",
+			got,
+			want,
+			spacerSkillsPerTerm,
+		)
 	}
 
 	if hasAutomatic && !slices.ContainsFunc(term.SkillsAwarded, func(s SkillLevel) bool {

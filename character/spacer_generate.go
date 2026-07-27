@@ -181,14 +181,9 @@ func ResolveSpacerTerm(
 	// table corresponding to an Operations result received in the Term",
 	// plus Personal, which "may always be rolled".
 	columns := eligibleSkillColumns(operations, spacerOperationsColumns)
-	term.SkillsAwarded = append(term.SkillsAwarded,
-		rollSkillsFromColumns(r, spacerSkillTable, columns, skillCount)...)
 
-	// The Commission/Promotion skill is one of the eligibilities p.65
-	// exempts, so it draws from the whole table — which is how p.65's own
-	// worked example reaches a column its Operations never granted.
-	term.SkillsAwarded = append(term.SkillsAwarded,
-		rollSkillsFromTable(r, spacerSkillTable, exemptSkills)...)
+	term.SkillsAwarded = append(term.SkillsAwarded, armedForcesTermSkills(
+		r, upp, SpacerCareerName, spacerSkillTable, operations, columns, skillCount, exemptSkills)...)
 
 	return term, upp
 }

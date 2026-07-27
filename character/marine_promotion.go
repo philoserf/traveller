@@ -19,11 +19,9 @@ var marineOfficerRankNames = [7]string{
 }
 
 // *Command College triggers in Year 1 of the next Term upon reaching O4
-// Force Commander (if Continue) — not modeled; the book doesn't elaborate
-// what Command College actually does mechanically beyond being attended,
-// and implementing it would need a real structural change (an inserted
-// partial term), the same kind of complexity that's kept Education
-// deferred all session.
+// Force Commander (if Continue). Modeled — see command_college.go, which
+// also records why the "inserted partial term" this comment used to
+// predict is not in fact needed.
 
 // marineRankName formats a rank state as Book 1's own "M1 Private"/"O4
 // Force Commander" notation.

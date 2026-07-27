@@ -21,8 +21,8 @@ var soldierOfficerRankNames = [7]string{
 }
 
 // *Command College triggers in Year 1 of the next Term upon reaching O4
-// Major (if Continue) — not modeled, the same deferral already applied
-// to Marine's own O4 Force Commander trigger.
+// Major (if Continue). Modeled — see command_college.go. A Soldier draws
+// his two skills from the Military Academy column, being the Army.
 
 // soldierRankName formats a rank state as Book 1's own "S1 Private"/"O4
 // Major" notation.

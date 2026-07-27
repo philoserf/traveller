@@ -160,6 +160,7 @@ func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
 		},
 		1,
 		&agingSimulation{},
+		nil,
 	)
 
 	if len(terms) != 1 {

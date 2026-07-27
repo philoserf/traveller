@@ -176,14 +176,9 @@ func ResolveSoldierTerm(
 	// table corresponding to an Operations result received in the Term",
 	// plus Personal, which "may always be rolled".
 	columns := eligibleSkillColumns(operations, soldierOperationsColumns)
-	term.SkillsAwarded = append(term.SkillsAwarded,
-		rollSkillsFromColumns(r, soldierSkillTable, columns, skillCount)...)
 
-	// The Commission/Promotion skill is one of the eligibilities p.65
-	// exempts, so it draws from the whole table — which is how p.65's own
-	// worked example reaches a column its Operations never granted.
-	term.SkillsAwarded = append(term.SkillsAwarded,
-		rollSkillsFromTable(r, soldierSkillTable, exemptSkills)...)
+	term.SkillsAwarded = append(term.SkillsAwarded, armedForcesTermSkills(
+		r, upp, SoldierCareerName, soldierSkillTable, operations, columns, skillCount, exemptSkills)...)
 
 	return term, upp
 }

@@ -64,9 +64,14 @@ func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging 
 
 	var priorTerms []Term
 
+	// Book 1 p.61's Command College, which fires once this career
+	// reaches Officer 4 and Continues (command_college.go).
+	collegeCheck, collegeSkills := armedForcesCommandCollege(MarineCareerName)
+
 	terms, finalUPP := resolveCareerLoop(r, upp, marineRiskRewardPositions,
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
 			term, updatedUPP := ResolveMarineTerm(r, upp, ccPos, branch, branchMod, priorTerms)
+			term.SkillsAwarded = append(collegeSkills(), term.SkillsAwarded...)
 			priorTerms = append(priorTerms, term)
 
 			return term, updatedUPP
@@ -74,6 +79,7 @@ func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging 
 		continueMarine,
 		maxTerms,
 		aging,
+		collegeCheck,
 	)
 	career.Terms = terms
 
