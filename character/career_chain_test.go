@@ -223,7 +223,7 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	// generateStart, not GenerateUPP plus GenerateHomeworldSkills: the
 	// chain runs CharGen step C between them (education.go), and a replay
 	// that skipped it would be one Education's worth of draws out of step.
-	upp, homeworld, homeworldSkills, _ := generateStart(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
 	var aging agingSimulation
 
@@ -250,7 +250,10 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	rawSkills = append(rawSkills, homeworldSkills...)
 	rawSkills = append(rawSkills, scoutSeg.Skills...)
 	rawSkills = append(rawSkills, spacerSeg.Skills...)
-	wantSkills := aggregateSkills(rawSkills)
+	// Through the same resolution the real assembly uses, or the Major
+	// and Minor markers the career tables recorded would still be sitting
+	// in the expectation as literal "Major"/"Minor" entries.
+	wantSkills := aggregateSkills(resolveMajorMinorSkills(rawSkills, education))
 
 	if got.Fame != wantFame {
 		t.Errorf("Fame = %d, want %d (sum of both segments)", got.Fame, wantFame)
