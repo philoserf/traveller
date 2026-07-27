@@ -76,10 +76,24 @@ rather than a random one. Level-6 skill entries roughly doubled for
 Scout and Merchant. Measuring step C by itself showed only +8% and was
 misleading.
 
-#36 stays open for what both stages deferred: Service Academy, OTC and
-NOTC (they confer Commissions and oblige service), the degree-chained
-schools (Masters, Professors, Medical, Law), Flight School, and the Tra
-path.
+#36 closed with them; #113 carries what they deferred.
+
+**#110** (PR #112) let each listed career run to its own natural end
+instead of being cut to a single term. The cap it removed had no rules
+basis — Book 1's own one-term obligation is p.61's, and belongs to
+commissioned academy graduates. Removing it exposed a real defect
+underneath: with no -age target, segmentBudget handed every career a
+fresh fourteen terms rather than one budget for a life, so an uncapped
+two-career chain reached age 130. "No target" now means "the end of
+p.89's table".
+
+Two things about that change are worth keeping in mind while reading
+generated output. Long chains rarely complete now — a five-career chain
+reaches its last entry 13% of the time, because a first career that runs
+well consumes most of a life — and that is the rule working. And the old
+behaviour had an artifact it is easy to miss in hindsight: every
+citizen,craftsman character served exactly one term and stopped at age
+22, at 100% consistency.
 
 **#103** was filed out of that round and closed without code: it asked
 for standalone Craftsman and Functionary generators so the parity test
@@ -106,16 +120,18 @@ next item depends on all of them:
   nothing toward the level-6 threshold #95 needs. That still rests
   entirely on #36b's own `Major+1 per Pass`.
 
-## 1. #36 — the rest of Education
+## 1. #113 — the rest of Education
 
-The academic spine shipped (see above). What is left, each deferred
-because it pulls in a mechanic of its own rather than more of Education:
+The academic spine shipped (see above) and #36 closed with it. #113
+carries the rest — its title is accurate where #36's "unresearched" no
+longer was. Each piece was deferred because it pulls in a mechanic of
+its own rather than more of Education:
 
 - **Service Academy, OTC, NOTC.** They confer an Army, Navy or Marine
   Commission and oblige a term of service — "The character is required
   to serve one term in the service... he is in the Reserves" — which is
-  a career interaction. Read alongside #110, which is about exactly that
-  sentence being applied too widely.
+  a career interaction. #110 removed a blanket version of that cap for
+  having no basis; this is the real one, and it arrives here.
 - **Masters, Professors, Medical School, Law School.** These gate on the
   degree step C now produces (BA, MA, Honors BA), so they chain off it.
   Masters shares the "Minor+1 per 2 Passes" cell already implemented.
@@ -136,42 +152,27 @@ every character's stream; do them together and measure once.
 
 Depends on #36. The payoff measured above is realized here.
 
-## 3. #110 — career chains cap every non-final career at one term
-
-Found while re-measuring #95, and now in front of it.
-
-`GenerateCareerChainCharacter` gives every career but the last a single
-term. Book 1 has a one-term obligation but p.61 scopes it to
-commissioned academy graduates — "The character is required to serve one
-term in the service" — not to every career a player lists. The cap has
-no other rules basis I could find and no recorded rationale.
-
-It is why Craftsman is unreachable: `BeginCraftsman` is a prerequisite,
-not a roll ("IF two Skill-6+ and Craftsman-1"), and one term per prior
-career cannot produce two level-6 skills. Zero Craftsman terms served
-across ~18,000 characters and six chain shapes.
-
-Expect it to move a lot of generated output, and to affect Functionary
-in the opposite direction — its Begin target is Total Terms x3, so a
-short chain makes it easier to enter than intended.
-
-## 4. #95 — Craftsman never reaches 40 Master Points
+## 3. #95 — Craftsman never reaches 40 Master Points
 
 Re-measured after #36b. The original diagnosis was right and #36b
 confirmed it: characters satisfying both `BeginCraftsman` prerequisites
 went from 4.32% to **10.18%**, and those holding two level-6 skills from
 10.7% to 22.5%. Education was the missing mechanism.
 
-Two things still sit in front of the Masterpiece gate. #110 above stops
-the career beginning at all. And even past that, five _distinct_ level-6
-skills remains out of reach: best Master Points seen is 38 against a
-40-point gate, and no character in 6,000 holds more than four qualifying
-skills.
+#110 has since cleared the other blocker: Craftsman served zero terms
+across ~18,000 characters and now serves 62 in 3,000 citizen,craftsman
+chains. The career runs.
 
-Do not measure Masterpieces again until #110 is settled — the career
-cannot run, so the figure would mean nothing.
+What remains is the gate itself, and it is a narrow one. The formula
+needs five _distinct_ skills at level 6+, and no character in 6,000
+holds more than four; the best Master Point total seen is 38 against a
+threshold of 40. So this is now a question about how many high-level
+skills a life produces, not about Craftsman and not about Education.
 
-## 5. #96 — Land Grant scope deferrals
+Worth re-measuring Masterpieces first, since #110 changed the population
+that reaches the career at all — the figure above predates it.
+
+## 4. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
