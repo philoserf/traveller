@@ -229,8 +229,11 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 
 	acc := careerChainAccumulator{skills: slices.Clone(homeworldSkills)}
 
-	// The chain caps every non-final entry at a single term.
-	scoutSeg := resolveScoutSegment(r, upp, 1, chainSegmentContext(&aging, &acc, ""))
+	// Every entry gets the full remaining budget: since #110 a listed
+	// career runs to its own natural end rather than being cut to one
+	// term, so the replay has to hand each segment what the chain does.
+	scoutBudget, _ := segmentBudget(0, aging.age())
+	scoutSeg := resolveScoutSegment(r, upp, scoutBudget, chainSegmentContext(&aging, &acc, ""))
 	acc.addSegment(scoutSeg)
 
 	spacerBudget, _ := segmentBudget(0, aging.age())
@@ -686,22 +689,45 @@ func TestChainRankEmptyWhenNoSegmentEverHeldARank(t *testing.T) {
 
 // A Functionary destination is allowed after a single prior term and,
 // once entered, is necessarily the final career.
-func TestCareerChainTransfersToTerminalFunctionaryAfterOneTerm(t *testing.T) {
+// TestCareerChainTransfersToTerminalFunctionaryAfterAFullCareer is the
+// transfer half of #110: a listed career runs to its own natural end
+// before the next is attempted, rather than being cut to a single term.
+//
+// The name and the assertion both used to say "after one term", which
+// was the chain's own cap talking rather than any rule — see #110 and
+// GenerateCareerChainCharacter's own doc comment.
+func TestCareerChainTransfersToTerminalFunctionaryAfterAFullCareer(t *testing.T) {
 	t.Parallel()
 
-	for seed := uint64(1); seed <= 1000; seed++ {
-		got, ok, err := GenerateCareerChainCharacter(
+	seed := seedFor(t, "a Scholar career followed by a served Functionary term", func(seed uint64) bool {
+		c, ok, err := GenerateCareerChainCharacter(
 			dice.New(rand.NewPCG(seed, seed)), []string{"scholar", "functionary"}, 0)
-		if err == nil && ok && len(got.Careers) == 2 && len(got.Careers[1].Terms) > 0 {
-			if len(got.Careers[0].Terms) != 1 {
-				t.Fatalf("Scholar terms = %d, want 1 before voluntary transfer", len(got.Careers[0].Terms))
-			}
 
-			return
-		}
+		return err == nil && ok && len(c.Careers) == 2 && len(c.Careers[1].Terms) > 0
+	})
+
+	got, _, err := GenerateCareerChainCharacter(
+		dice.New(rand.NewPCG(seed, seed)), []string{"scholar", "functionary"}, 0)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	t.Fatal("no seed in [1,1000] produced a successful Functionary transfer")
+	scholarTerms := len(got.Careers[0].Terms)
+	if scholarTerms == 0 {
+		t.Fatalf("Scholar served no terms, so there was no career to transfer out of")
+	}
+
+	// The transfer happens because Scholar ended, not because the chain
+	// cut it short. A Scholar that ran to the term cap would have left no
+	// budget for Functionary at all.
+	if scholarTerms >= maxCareerTerms {
+		t.Errorf("Scholar served %d terms, the whole cap — Functionary cannot have been a real transfer",
+			scholarTerms)
+	}
+
+	if len(got.Careers[1].Terms) == 0 {
+		t.Error("Functionary served no terms")
+	}
 }
 
 // TestCareerChainFunctionaryBeginCanFailLikeAnyOtherCareer confirms
@@ -814,7 +840,17 @@ func TestCareerChainMergesASkillRepeatedAcrossCareers(t *testing.T) {
 func TestCareerChainCraftsmanBeginFailsWithoutPriorSkills(t *testing.T) {
 	t.Parallel()
 
-	const seed = 1
+	// Precondition: the Citizen career ends early enough that Craftsman is
+	// attempted at all. Since #110 a listed career runs to its own natural
+	// end, so a long first career can consume the whole life budget and
+	// leave the chain with nothing to spend on the second — which is the
+	// rule working, not a failure, but it cannot exercise BeginCraftsman.
+	seed := seedFor(t, "a Citizen career short enough for Craftsman to be attempted", func(seed uint64) bool {
+		c, ok, err := GenerateCareerChainCharacter(
+			dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0)
+
+		return err == nil && ok && len(c.Careers) == 2 && len(c.Careers[0].Terms) > 0
+	})
 
 	got, ok, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0)
 	if err != nil {

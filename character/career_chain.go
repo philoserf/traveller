@@ -619,8 +619,21 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 // cap at all — every segment gets the same maxCareerTerms budget every
 // single-career caller has always used.
 func segmentBudget(ageTarget, currentAge int) (int, bool) {
+	// An unbounded request is not unbounded in fact: maxCareerTerms is
+	// where Book 1 p.89's own account of a life runs out (see its doc
+	// comment), so "no -age target" means "the end of the table", and
+	// that is one budget for the whole life rather than a fresh one per
+	// career.
+	//
+	// Handing each career its own maxCareerTerms was a real defect,
+	// masked until #110 by the chain's one-term cap on non-final careers.
+	// Without the cap it let a chain of two careers run twenty-eight
+	// terms and reach age 130 — past the end of every table this codebase
+	// has. The budget the cap replaced (a017108 dropped a terms-served
+	// parameter when it added the cap) is restored here as the age it was
+	// always really measuring.
 	if ageTarget == 0 {
-		return maxCareerTerms, true
+		ageTarget = AgeFromTermsServed(maxCareerTerms)
 	}
 
 	// Measured from the character's actual age rather than from terms
@@ -699,6 +712,16 @@ func applyCitizenFallback(
 // Automatic") — no such thing as a character who never held any career
 // at all.
 //
+// Each listed career runs to its own natural end — until its Continue
+// roll fails, or Aging, a Disabled result or the term budget stops it —
+// before the next is attempted. The next career is therefore reached
+// only if the previous one ended early enough to leave room, which is
+// often not the case: a five-career chain reaches its last entry 13% of
+// the time. That is the rule working rather than a failure. See #110 for
+// why the previous behaviour — one term per non-final career — had no
+// basis; Book 1's own one-term obligation (p.61) belongs to commissioned
+// academy graduates and will arrive with them.
+//
 // ageTarget (0 = unbounded) stops the chain from attempting any further
 // term or career transition once the character's age would reach or
 // exceed it — a target under 18 (or one reached before any listed
@@ -728,14 +751,10 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	everSucceeded, survived := false, true
 	precedingCareer := ""
 
-	for i, name := range careerNames {
+	for _, name := range careerNames {
 		maxTerms, attemptAllowed := segmentBudget(ageTarget, aging.age())
 		if !attemptAllowed {
 			break
-		}
-
-		if i < len(careerNames)-1 {
-			maxTerms = min(maxTerms, 1)
 		}
 
 		seg := careerChainRegistry[name](r, upp, maxTerms,
