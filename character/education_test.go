@@ -165,7 +165,7 @@ func TestWaiverModCountsEveryAttempt(t *testing.T) {
 	upp := eduUPP(7, 7, 1) // Soc 1: every waiver fails
 
 	for want := 1; want <= 3; want++ {
-		if tryWaiver(dice.New(rand.NewPCG(5, 5)), upp, &edu) {
+		if tryWaiver(dice.New(rand.NewPCG(5, 5)), upp, &edu.Waivers) {
 			t.Fatal("a waiver succeeded against Soc 1")
 		}
 

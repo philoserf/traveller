@@ -168,7 +168,7 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	// one year." A Waiver can still get him in — p.60's own worked
 	// example is exactly that: Eneri is rejected by the College of Regina
 	// on Check Edu, applies for a Waiver, and is admitted.
-	if len(school.ApplyCheck) > 0 && !checkAgainst(r, upp, school.ApplyCheck) && !tryWaiver(r, upp, &edu) {
+	if len(school.ApplyCheck) > 0 && !checkAgainst(r, upp, school.ApplyCheck) && !tryWaiver(r, upp, &edu.Waivers) {
 		return edu, upp
 	}
 
@@ -203,7 +203,7 @@ func runEducationYears(r *dice.Roller, upp UPP, school educationInstitution, edu
 			continue
 		}
 
-		if !tryWaiver(r, upp, edu) {
+		if !tryWaiver(r, upp, &edu.Waivers) {
 			return
 		}
 	}
@@ -317,13 +317,20 @@ func resolveHonors(r *dice.Roller, upp UPP, school educationInstitution, edu *Ed
 //	to Schools and Education (and to the Scholar career, but not other
 //	careers)."
 //
+// Shared with the Scholar career, which p.59 names as the one career
+// entitled to Waivers and which p.76 restates in its own terms: "An
+// adverse die roll or decision (in Position, Promotion, Research,
+// Publication, Tenure, or Continue) may be waived. Check Soc (2D); Mod
+// minus previous waivers (successful or not)." The two statements agree
+// exactly, so one implementation serves both.
+//
 // The Mod counts every waiver rolled rather than every waiver granted,
 // which p.59 says in as many words and p.60's own worked example
 // demonstrates: Eneri's fourth attempt carries Mod -4 having succeeded
 // at only two of the previous three.
-func tryWaiver(r *dice.Roller, upp UPP, edu *Education) bool {
-	mod := -edu.Waivers
-	edu.Waivers++
+func tryWaiver(r *dice.Roller, upp UPP, waivers *int) bool {
+	mod := -*waivers
+	*waivers++
 
 	return succeedsAgainst(r.TwoD6(), int(upp.Characteristics[C6]), mod)
 }
@@ -431,7 +438,84 @@ func resolveMajorMinorSkills(skills []SkillLevel, edu Education) []SkillLevel {
 // separately holds one entry at the summed level, not two.
 func applyEducation(c Character, edu Education) Character {
 	c.Education = edu
-	c.Skills = aggregateSkills(resolveMajorMinorSkills(c.Skills, edu))
+	c.Skills = aggregateSkills(resolveMajorMinorSkills(c.Skills, effectiveMajorMinor(c, edu)))
 
 	return c
+}
+
+// effectiveMajorMinor is the Major and Minor the character's skill cells
+// resolve against: the ones a degree conferred, or failing that the ones
+// a Scholar career declared on its own.
+//
+// The fallback is Book 1 p.76 taken at its word — "Every Scholar has a
+// Major and a Minor. If no degree (and an associated Major and Minor)
+// then select any Skill or Knowledge from the Skills List" — and it is
+// not a corner case: 461 of 3,000 generated Scholars reach the career
+// without a degree, between them drawing 1,830 Major/Minor cells that
+// would otherwise be discarded against a rule that says they have one.
+//
+// Only Scholar declares its own. For every other career the cells stay
+// governed by Book 1's "If the character does not have a Major/Minor
+// this benefit is lost".
+func effectiveMajorMinor(c Character, edu Education) Education {
+	if edu.Major != "" && edu.Minor != "" {
+		return edu
+	}
+
+	for _, career := range c.Careers {
+		if career.Name != ScholarCareerName || len(career.Terms) == 0 {
+			continue
+		}
+
+		if edu.Major == "" {
+			edu.Major = career.Major
+		}
+
+		if edu.Minor == "" {
+			edu.Minor = career.Minor
+		}
+
+		break
+	}
+
+	return edu
+}
+
+// allEducationSubjects is every distinct skill or knowledge p.60's
+// matrix names, which is the closest thing this codebase has to Book 1's
+// own "Skills List". Used where a character selects a subject freely
+// rather than being granted one by a school.
+func allEducationSubjects() []string {
+	names := make([]string, 0, len(educationSkills))
+	seen := make(map[string]bool, len(educationSkills))
+
+	for _, skill := range educationSkills {
+		if seen[skill.Name] {
+			continue
+		}
+
+		seen[skill.Name] = true
+
+		names = append(names, skill.Name)
+	}
+
+	return names
+}
+
+// pickSubjectExcluding draws from pool, avoiding one already-taken
+// subject — p.59's own "they cannot be the same".
+func pickSubjectExcluding(r *dice.Roller, pool []string, exclude string) string {
+	available := make([]string, 0, len(pool))
+
+	for _, name := range pool {
+		if name != exclude {
+			available = append(available, name)
+		}
+	}
+
+	if len(available) == 0 {
+		return ""
+	}
+
+	return available[r.Uniform(len(available))-1]
 }

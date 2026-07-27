@@ -191,12 +191,24 @@ func TestScholarRankTier(t *testing.T) {
 // Term before being pinned here — not assumed from the mechanic alone.
 var upp84 = UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 
+// upp84NoWaiver is upp84 with Soc 0, which is how these fixtures keep
+// testing the roll they are about.
+//
+// Book 1 p.76 lets a Scholar waive an adverse result "in Position,
+// Promotion, Research, Publication, Tenure, or Continue" on a Check Soc,
+// so at Soc 8 a fixture built to fail one of those rolls is liable to be
+// rescued and stop exercising it. A 2D check cannot come in at or below
+// 0, so Soc 0 disables Waivers by construction and leaves the underlying
+// mechanic exposed. The Waiver behaviour itself is tested separately, in
+// scholar_waiver_test.go.
+var upp84NoWaiver = UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 0}}
+
 func TestResolveScholarTermResearchUnharmedPublicationSuccess(t *testing.T) {
 	t.Parallel()
 
 	r := dice.New(rand.NewPCG(2, 2))
 
-	term, _, tier := ResolveScholarTerm(r, upp84, C1, 8, 5, nil)
+	term, _, tier := ResolveScholarTerm(r, upp84, C1, 8, 5, nil, "", new(int))
 
 	if term.RiskResult != Unharmed {
 		t.Fatalf("RiskResult = %v, want Unharmed", term.RiskResult)
@@ -220,7 +232,7 @@ func TestResolveScholarTermPublicationAwardWinning(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(5, 5))
 
-	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, nil)
+	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, nil, "", new(int))
 
 	if term.RiskResult != Unharmed {
 		t.Fatalf("RiskResult = %v, want Unharmed", term.RiskResult)
@@ -240,7 +252,7 @@ func TestResolveScholarTermResearchUnharmedPublicationFailure(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, nil)
+	term, _, _ := ResolveScholarTerm(r, upp84NoWaiver, C1, 8, 5, nil, "", new(int))
 
 	if term.RiskResult != Unharmed {
 		t.Fatalf("RiskResult = %v, want Unharmed", term.RiskResult)
@@ -260,7 +272,7 @@ func TestResolveScholarTermWoundedSkipsPublication(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(23, 23))
 
-	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, nil)
+	term, _, _ := ResolveScholarTerm(r, upp84NoWaiver, C1, 8, 5, nil, "", new(int))
 
 	if term.RiskResult != Wounded {
 		t.Fatalf("RiskResult = %v, want Wounded", term.RiskResult)
@@ -277,7 +289,7 @@ func TestResolveScholarTermDisabledSkipsPublication(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(31, 31))
 
-	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, nil)
+	term, _, _ := ResolveScholarTerm(r, upp84NoWaiver, C1, 8, 5, nil, "", new(int))
 
 	if term.RiskResult != Disabled {
 		t.Fatalf("RiskResult = %v, want Disabled", term.RiskResult)
@@ -293,7 +305,7 @@ func TestResolveScholarTermPromotionBelowTier3(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _, tier := ResolveScholarTerm(r, upp84, C1, 10, 1, nil)
+	term, _, tier := ResolveScholarTerm(r, upp84, C1, 10, 1, nil, "", new(int))
 
 	if !term.Promoted {
 		t.Fatal("Promoted = false, want true")
@@ -319,7 +331,7 @@ func TestResolveScholarTermTenureGrantedAtTier3(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(5, 5))
 
-	term, _, tier := ResolveScholarTerm(r, upp84, C1, 10, 3, nil)
+	term, _, tier := ResolveScholarTerm(r, upp84NoWaiver, C1, 10, 3, nil, "", new(int))
 
 	if !term.TenureGranted {
 		t.Fatal("TenureGranted = false, want true")
@@ -338,7 +350,7 @@ func TestResolveScholarTermPromotionBlockedWithoutTenureAtTier3(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _, tier := ResolveScholarTerm(r, upp84, C1, 10, 3, nil)
+	term, _, tier := ResolveScholarTerm(r, upp84NoWaiver, C1, 10, 3, nil, "", new(int))
 
 	if term.TenureGranted {
 		t.Fatal("TenureGranted = true, want false (this fixture's own Tenure roll fails)")
@@ -362,7 +374,7 @@ func TestResolveScholarTermPromotionUnblockedByPriorTenure(t *testing.T) {
 	r := dice.New(rand.NewPCG(1, 1))
 	priorTerms := []Term{{TenureGranted: true}}
 
-	term, _, tier := ResolveScholarTerm(r, upp84, C1, 10, 3, priorTerms)
+	term, _, tier := ResolveScholarTerm(r, upp84, C1, 10, 3, priorTerms, "", new(int))
 
 	if !term.Promoted {
 		t.Fatal("Promoted = false, want true")
@@ -386,7 +398,7 @@ func TestResolveScholarTermPromotionContinuesPastTier4WithTenure(t *testing.T) {
 	r := dice.New(rand.NewPCG(1, 1))
 	priorTerms := []Term{{TenureGranted: true}}
 
-	term, _, tier := ResolveScholarTerm(r, upp84, C1, 12, 4, priorTerms)
+	term, _, tier := ResolveScholarTerm(r, upp84, C1, 12, 4, priorTerms, "", new(int))
 
 	if !term.Promoted {
 		t.Fatal("Promoted = false, want true (Tenure won in an earlier term must still unblock tier 4->5)")

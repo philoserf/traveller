@@ -233,11 +233,16 @@ func TestCareerChainTwoSegmentsAggregateAcrossBoth(t *testing.T) {
 	// career runs to its own natural end rather than being cut to one
 	// term, so the replay has to hand each segment what the chain does.
 	scoutBudget, _ := segmentBudget(0, aging.age())
-	scoutSeg := resolveScoutSegment(r, upp, scoutBudget, chainSegmentContext(&aging, &acc, ""))
+	scoutSeg := resolveScoutSegment(r, upp, scoutBudget, chainSegmentContext(&aging, &acc, "", education))
 	acc.addSegment(scoutSeg)
 
 	spacerBudget, _ := segmentBudget(0, aging.age())
-	spacerSeg := resolveSpacerSegment(r, scoutSeg.UPP, spacerBudget, chainSegmentContext(&aging, &acc, "scout"))
+	spacerSeg := resolveSpacerSegment(
+		r,
+		scoutSeg.UPP,
+		spacerBudget,
+		chainSegmentContext(&aging, &acc, "scout", education),
+	)
 
 	wantFame := scoutSeg.Fame + spacerSeg.Fame
 	wantCash := scoutSeg.Cash + spacerSeg.Cash

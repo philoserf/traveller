@@ -2,6 +2,7 @@ package character
 
 import (
 	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -14,10 +15,14 @@ import (
 func TestBuildScholarCharacterNeverQualified(t *testing.T) {
 	t.Parallel()
 
-	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 0, 8}}
+	// Soc 0 as well as Edu 0: p.76 lets a Scholar waive an adverse
+	// "Position" result on a Check Soc, so a failed Begin at Soc 8
+	// would simply be waived and the character would qualify after
+	// all. A 2D check cannot come in at or below 0.
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 0, 0}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildScholarCharacter(r, upp, "hw", nil)
+	c, ok := buildScholarCharacter(r, upp, "hw", nil, Education{})
 
 	if ok {
 		t.Error("ok = true, want false (BeginScholar's own roll fails against Edu 0)")
@@ -49,7 +54,7 @@ func TestBuildScholarCharacterQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(9, 9))
 
-	c, ok := buildScholarCharacter(r, upp, "hw", homeworldSkills)
+	c, ok := buildScholarCharacter(r, upp, "hw", homeworldSkills, Education{})
 
 	if !ok {
 		t.Fatal("ok = false, want true")
@@ -63,8 +68,13 @@ func TestBuildScholarCharacterQualified(t *testing.T) {
 		t.Error("Careers[0].HasRank = false, want true")
 	}
 
-	if len(c.Careers[0].Terms) != 1 {
-		t.Fatalf("len(Careers[0].Terms) = %d, want 1", len(c.Careers[0].Terms))
+	// At least one term, not exactly one. This fixture pinned 1 back when
+	// its Continue roll happened to fail immediately; p.76's Waivers now
+	// rescue such a failure on a Check Soc, and #110 lets the career run
+	// to its own natural end besides. The term inspected below is the
+	// first either way.
+	if len(c.Careers[0].Terms) == 0 {
+		t.Fatal("Careers[0].Terms is empty, want at least one term")
 	}
 
 	term := c.Careers[0].Terms[0]
@@ -81,12 +91,19 @@ func TestBuildScholarCharacterQualified(t *testing.T) {
 		t.Error("Terms[0].Promoted = false, want true")
 	}
 
-	if c.Rank != "Instructor" {
-		t.Errorf("Rank = %q, want %q", c.Rank, "Instructor")
+	// Derived, not pinned. p.76's rank titles carry the Scholar's Major
+	// from Lecturer upward — "Assistant Professor of Psychology" — so the
+	// title is the ladder entry the tier reached plus that suffix, and
+	// which tier a seed reaches moves with the dice stream.
+	career := c.Careers[0]
+	if want := lastTermRank(career.Terms); c.Rank != want {
+		t.Errorf("Rank = %q, want the career's own %q", c.Rank, want)
 	}
 
-	if c.Fame != 4 {
-		t.Errorf("Fame = %d, want 4", c.Fame)
+	assertScholarRankNamesTheMajor(t, c.Rank, career)
+
+	if want := resolveFameStacks(scholarSegmentFameAwards(c.UPP, career.Terms)); c.Fame < want {
+		t.Errorf("Fame = %d, want at least %d (Rank plus Publications, before Mustering Out)", c.Fame, want)
 	}
 
 	if len(c.Skills) < len(homeworldSkills) {
@@ -108,7 +125,7 @@ func TestBuildScholarCharacterDiedMidCareer(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{2, 2, 2, 2, 10, 8}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildScholarCharacter(r, upp, "hw", nil)
+	c, ok := buildScholarCharacter(r, upp, "hw", nil, Education{})
 
 	if ok {
 		t.Error("ok = true, want false (the character dies mid-career)")
@@ -149,5 +166,26 @@ func TestGenerateScholarCharacterProducesAHumanCharacter(t *testing.T) {
 
 	if len(c.Careers) != 1 || c.Careers[0].Name != ScholarCareerName {
 		t.Errorf("Careers = %+v, want one Career named %q", c.Careers, ScholarCareerName)
+	}
+}
+
+// assertScholarRankNamesTheMajor checks p.76's own printed titles: every
+// rank from Lecturer upward carries the Scholar's Major, and Amateur —
+// the rank of a character with Edu 7 or less — carries none.
+func assertScholarRankNamesTheMajor(t *testing.T, rank string, career Career) {
+	t.Helper()
+
+	if career.Major == "" {
+		t.Error("Careers[0].Major is empty; p.76 gives every Scholar a Major")
+
+		return
+	}
+
+	if rank == scholarRankNames[0] {
+		return
+	}
+
+	if !strings.HasSuffix(rank, " of "+career.Major) {
+		t.Errorf("Rank = %q, want it to name the Major %q (or be the suffix-less Amateur)", rank, career.Major)
 	}
 }

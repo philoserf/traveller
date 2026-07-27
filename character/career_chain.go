@@ -71,6 +71,12 @@ type segmentContext struct {
 	TermsServedSoFar int
 	SkillsSoFar      []SkillLevel
 	Aging            *agingSimulation
+	// Education is CharGen step C's own result, which Scholar alone reads:
+	// Book 1 p.76 gives every Scholar a Major and a Minor, taken from his
+	// degree if he has one. Every other career's skill tables resolve
+	// their Major/Minor cells at final assembly instead, where the
+	// character is in view.
+	Education Education
 	// PriorCareers are every career already served, in order. Rogue
 	// needs the whole list rather than PrecedingCareer alone, for Book 1
 	// p.84's "may select for his Scheme (rather than roll) any previous
@@ -244,7 +250,7 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxTerms, aging)
+	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxTerms, aging, ctx.Education)
 	if aging.alive() {
 		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
 	}
@@ -659,6 +665,7 @@ func chainSegmentContext(
 	aging *agingSimulation,
 	acc *careerChainAccumulator,
 	precedingCareer string,
+	education Education,
 ) segmentContext {
 	priorCareers := make([]string, 0, len(acc.careers))
 	for _, career := range acc.careers {
@@ -667,6 +674,7 @@ func chainSegmentContext(
 
 	return segmentContext{
 		Aging:            aging,
+		Education:        education,
 		PrecedingCareer:  precedingCareer,
 		TermsServedSoFar: acc.termsServed,
 		SkillsSoFar:      aggregateSkills(acc.skills),
@@ -758,7 +766,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		}
 
 		seg := careerChainRegistry[name](r, upp, maxTerms,
-			chainSegmentContext(&aging, &acc, precedingCareer))
+			chainSegmentContext(&aging, &acc, precedingCareer, education))
 		upp = seg.UPP
 		acc.addSegment(seg)
 

@@ -16,18 +16,31 @@ func continueScholar(r *dice.Roller, edu, mod int) bool {
 // scholarPublicationsTotal needs terms-so-far for both the term
 // resolver's own Promotion/Tenure Mod and the Continue check's own Mod.
 func ResolveScholarCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	return resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, Education{})
 }
 
 // resolveScholarCareerWithBudget is ResolveScholarCareer's own body,
 // with the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveScholarCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
+func resolveScholarCareerWithBudget(
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, education Education,
+) (Career, UPP) {
 	career := Career{Name: ScholarCareerName, HasRank: true}
 
 	edu := int(upp.Characteristics[C5])
 
+	// p.76's Waivers are per-career: "Mod minus previous waivers
+	// (successful or not)", counted across this Scholar career rather
+	// than across the character's whole life. Education keeps its own
+	// separate count for the same reason.
+	waivers := 0
+
 	ok, tier := BeginScholar(r, edu)
+	if !ok {
+		// "Position" is the first of p.76's six waivable events.
+		ok = tryWaiver(r, upp, &waivers)
+	}
+
 	if !ok {
 		// Reaching here means Edu was below 8 and the roll was taken and
 		// lost — Book 1 p.65's own one-year cost. An Edu 8+ Scholar
@@ -36,6 +49,14 @@ func resolveScholarCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging
 
 		return career, upp
 	}
+
+	// Settled after the Begin, not before it. "Every Scholar has a Major
+	// and a Minor" (p.76) is about Scholars, and a character who never
+	// entered the career is not one — so a failed Position must cost no
+	// dice here, the same discipline every conditional roll in this
+	// package follows. Costs none either for a graduate, whose subjects
+	// come from his degree.
+	career.Major, career.Minor = scholarMajorMinor(r, education)
 
 	var priorTerms []Term
 
@@ -46,13 +67,16 @@ func resolveScholarCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging
 				updatedUPP UPP
 			)
 
-			term, updatedUPP, tier = ResolveScholarTerm(r, upp, ccPos, edu, tier, priorTerms)
+			term, updatedUPP, tier = ResolveScholarTerm(r, upp, ccPos, edu, tier, priorTerms,
+				career.Major, &waivers)
 			priorTerms = append(priorTerms, term)
 
 			return term, updatedUPP
 		},
-		func(r *dice.Roller, _ UPP) bool {
-			return continueScholar(r, edu, scholarPublicationsTotal(priorTerms))
+		func(r *dice.Roller, upp UPP) bool {
+			// Continue is the last of p.76's six waivable events.
+			return scholarWaivableRoll(r, upp, &waivers,
+				continueScholar(r, edu, scholarPublicationsTotal(priorTerms)))
 		},
 		maxTerms,
 		aging,

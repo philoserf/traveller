@@ -12,7 +12,7 @@ import (
 func GenerateScholarCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildScholarCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildScholarCharacter(r, upp, homeworld, homeworldSkills, education)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -25,10 +25,12 @@ func GenerateScholarCharacter(r *dice.Roller) (Character, bool) {
 // Scholar's Edu-dependent starting rank tier), which
 // buildRiskCareerCharacter's shared resolveMusterOut signature has no
 // room for (see this slice's own plan-file Context).
-func buildScholarCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
+func buildScholarCharacter(
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, education Education,
+) (Character, bool) {
 	var aging agingSimulation
 
-	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &aging)
+	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &aging, education)
 	if aging.alive() {
 		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
 	}

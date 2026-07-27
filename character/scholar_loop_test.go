@@ -14,7 +14,11 @@ import (
 func TestResolveScholarCareerNeverQualifiedReturnsZeroTermsCareer(t *testing.T) {
 	t.Parallel()
 
-	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 0, 8}}
+	// Soc 0 as well as Edu 0: p.76 lets a Scholar waive an adverse
+	// "Position" result on a Check Soc, so a failed Begin at Soc 8
+	// would simply be waived and the character would qualify after
+	// all. A 2D check cannot come in at or below 0.
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 0, 0}}
 	r := dice.New(rand.NewPCG(1, 1))
 
 	career, _ := ResolveScholarCareer(r, upp)
