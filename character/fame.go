@@ -62,6 +62,23 @@ func sumInts(values []int) int {
 
 // scoutDiscoveryFameAwards is p.91's "Scout: Discoveries x4", one award
 // per Discovery.
+//
+// Book 1 states this twice and the two disagree. p.79's Scout Reward
+// Success box says a Discovery "receives a Land Grant, and Fame +1";
+// p.91's Fame table row reads "Scout | Discoveries | x4". Ruled for
+// p.91, against this codebase's usual "a career's own box beats the
+// generic summary" precedent (the reading behind scoutRiskRewardPositions
+// following p.79's C1 C2 C3 over p.64's four-entry row), because p.91 is
+// not a summary. It is the Fame chapter's own table under a "Mult"
+// column that carries every source's award formula, including the
+// non-multiplier ones — "Scholar =Rank", "Scholar =Publications",
+// "Merchant Ship Owner = 1D", "Craftsman Masterpieces x3", "Craftsman
+// Perfect Masterpieces x5". A column that has to say "=Rank" to mean
+// rank is defining awards, not restating them.
+//
+// Leaving x4 in place also keeps #82's Fame Stacks decomposition intact:
+// the per-award granularity that makes p.91's cap of 20 bind at all was
+// derived against awards of 4.
 func scoutDiscoveryFameAwards(career Career) []int {
 	var awards []int
 

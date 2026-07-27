@@ -1,7 +1,8 @@
 # Character generation plan
 
-Remaining work on **character generation only**. Starship generation is
-out of scope — see "Tabled" below.
+Remaining work on **character generation only**. Starship generation
+(#6) is out of scope: re-plan it on its own terms when chargen closes,
+scoped into a sequence of PRs rather than one issue.
 
 Every entry is checked against
 `reference/Traveller5 Core Rules Book 1 Characters and Combat.txt`, with
@@ -19,6 +20,26 @@ and the comments quote the governing rule directly.
 
 ---
 
+## Rulings
+
+Rules questions this plan has settled. Each is recorded at its
+implementation site with the governing quote; repeated here only so the
+ordering below makes sense.
+
+**#94 Scout Discovery Fame — x4 stands (p.91), against p.79's "+1".**
+p.91 is not a summary: its "Mult" column carries every source's award
+formula, including the non-multiplier ones ("Scholar =Rank", "Merchant
+Ship Owner = 1D"). Settled; no behavior change.
+
+**#93 Noble rank — ladder-tracked, with Soc-derivation as the fallback.**
+p.65 elevates "to the next higher Noble rank and its associated increase
+in Social Standing (if any)" — the "(if any)" only means anything if
+rank leads and Soc follows, since Baronet/Baron, Viscount/Count and the
+two Dukes each share a Soc.
+
+**#93 Land Grants — a Mustering Out Soc increase awards one.** p.85:
+"Each increase in Soc during CharGen awards a Land Grant."
+
 ## 1. #93 — Noble rank and NobleTitle() disagree
 
 A live defect, not a deferral: the two disagree for 25.7% of generated
@@ -29,37 +50,56 @@ Do this first. It is small and self-contained, and it sits underneath
 #36 — the largest remaining change — so leaving it means re-deriving
 Noble fixtures twice.
 
-Carries a rules question: whether noble rank is Soc-derived or
-ladder-tracked, and whether a Mustering Out Soc increase awards a Land
-Grant (p.85: "Each increase in Soc during CharGen awards a Land Grant").
+Both halves are ruled above. Keep Soc-derivation for characters who
+never walked the ladder: that is what makes p.68's Knighthood confer a
+title from any career's Mustering Out.
 
-## 2. #94 — Scout Discovery Fame: +1 or x4
+## 2. #36a — Command College and ANM School
 
-> p.79: a Discovery gives "a Land Grant, and Fame +1."
-> p.91 Fame table: "Scout — Discoveries — x4"
+The in-career half of #36, separable from Education proper and much
+smaller than its own deferral comments assume.
 
-Needs a decision, not research. The code does x4, which #82 rebuilt the
-whole Fame system on. Cheap to settle and worth settling before #36,
-since Education changes how characteristics move.
+> p.61: "A Character must attend Command College in the first year of
+> the term after he is promoted to Officer4, provided he successfully
+> Continues. A character who fails Command College may not Continue in
+> the service. Success at Command College awards two skill levels from
+> the appropriate Military or Naval Academy."
 
-This codebase's own precedent cuts both ways — "a career's own box beats
-the generic summary" favors p.79, but p.91 is the Fame chapter's
-dedicated table with a Mult column, not a summary.
+Both grants are flat +1, so no multi-level machinery is needed yet. The
+term is already four years and p.59's Duration is one year _inside_ it,
+so no partial term is required either — the structural change the
+deferral comments feared does not arise. Touches only Marine, Soldier
+and Spacer, so it perturbs no pre-career dice.
 
-## 3. #36 — Command College and Education
+Needs p.60's AVAILABLE SKILLS matrix transcribed first — five page
+columns interleaved with category labels spliced into data rows, the
+character-offset hazard in its worst form.
+
+## 3. #36b — Education (CharGen step C)
 
 The largest remaining chargen item, and the highest-value one.
 Major/Minor cells are **8.8% of all skill-table cells** across the 13
 careers (48 of 546), and every draw on one is discarded silently today.
-Unresolvable cells total 12.1%.
+Unresolvable cells total 11.9% (65 of 546).
 
-Book 1 has the material despite the issue calling it unresearched: 110
-Education references, 14 for Command College.
+Book 1 has the material despite the issue calling it unresearched.
+Education is CharGen **step C** (p.72's own checklist, between B
+Homeworld and D Select Career), not a characteristic tweak: p.59-61 give
+18 institution rows, Apply / Pass-Fail / Waiver / Honors / Graduation
+machinery, Major/Minor selection, and the skills matrix #36a
+transcribes.
 
-Scope needs a decision at the research stage. Education is not just a
-characteristic — Command College is deferred at O4 in Marine, Soldier
-and Spacer, and "Resolve ANM School as Education" sits in all three
-Operations tables. Settle how far that runs before building.
+Note what the payoff actually is. Book 1's own footnote — "If the
+character does not have a Major/Minor this benefit is lost" — means
+today's silent discard is _correct_ for a character who never attended,
+so the 8.8% is realized only for the educated. "One Science" becomes
+resolvable at the same time (a further 15 cells): the matrix's C-flagged
+Sciences block is the enumerable list this codebase has never had.
+
+Inserting step C shifts the dice stream at the very start of every
+character, so every seed-pinned fixture re-derives. It has to land in
+one PR, at the identical position on both the chain and standalone
+paths.
 
 ## 4. #41 — Scholar Major/Minor selection and Waivers
 
@@ -70,11 +110,17 @@ Depends on #36. The payoff measured above is realized here.
 Zero Masterpieces across 6,000 generated chains, so QREBS and Vintage
 never fire in practice.
 
-Do this after #41, not before: the real question is skill-level
-progression — every grant in this codebase is a flat +1, so a level-6
-skill needs six grants and five of them needs thirty, while Book 1
-casually assumes a Craftsman with 45 Master Points. #36/#41 change what
-grants skills, so measure after they land.
+Measure after #36b; do not implement first. The real question is
+skill-level progression — every grant in this codebase is a flat +1, so
+a level-6 skill needs six grants and five of them needs thirty, while
+Book 1 casually assumes a Craftsman with 45 Master Points.
+
+Education is the missing mechanism. p.59's institution table is where
+Book 1 grants more than one level at a time — "Skill+4", "Major+2",
+"Medic-4", "Pilot-3", "Major+1 per Pass" over four years, Honors
+"Major+1", and Language at double rate. So this resolves as a
+consequence of #36b rather than on its own, and the first move is to
+re-run #95's own 6,000-chain measurement once step C lands.
 
 ## 6. #96 — Land Grant scope deferrals
 
@@ -82,17 +128,6 @@ Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
 Preferred World and hex placement both want a world-selection concept
 that does not exist yet.
-
----
-
-## Tabled
-
-**#6 — shipgen.** A separate subsystem against Book 2, not character
-generation. The `starship` package is types and constants today. Out of
-scope for this plan; re-plan it on its own terms when chargen closes,
-scoped into a sequence of PRs rather than one issue.
-
----
 
 ## Standing checks for every PR
 
