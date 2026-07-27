@@ -53,7 +53,19 @@ their Benefits tables.
 PDF's word bounding boxes and implemented Command College and ANM
 School. #36 stays open for its pre-career half below.
 
-Three things that PR settled are worth carrying forward, because the
+**#103** was filed out of that round and closed without code: it asked
+for standalone Craftsman and Functionary generators so the parity test
+could cover them, but Book 1 forbids either as a first career, so a
+character whose only career is Craftsman is not one the rules allow.
+Both restrictions are printed — p.63's own checklist reads "Begin is
+Automatic (not first career)" in the Craftsman column and "(not a first
+career)" in the Functionary one, and p.87 says it twice more in prose.
+The parity test guards against a career's two implementations drifting
+apart; these two have one implementation each, so there was never a
+risk to cover. Building the generators would have created the
+duplication the test exists to catch.
+
+Three things #36a settled are worth carrying forward, because the
 next item depends on all of them:
 
 - The p.60 matrix exists now (`character/education_skills.go`), so
@@ -66,17 +78,7 @@ next item depends on all of them:
   nothing toward the level-6 threshold #95 needs. That still rests
   entirely on #36b's own `Major+1 per Pass`.
 
-## 1. #103 — standalone Craftsman and Functionary generators
-
-Small, and a prerequisite rather than a nicety.
-`TestCareerChainSingleEntryMatchesLegacyGenerator` is the tripwire for
-the dice-stream contract, and it is blind for two of the thirteen
-careers because neither has a standalone generator to compare against.
-#36b shifts the stream for every character, so the blindness matters
-precisely when it is least affordable. Expect the first run to fail;
-anything it finds is pre-existing.
-
-## 2. #36b — Education (CharGen step C)
+## 1. #36b — Education (CharGen step C)
 
 The largest remaining chargen item, and the highest-value one.
 Major/Minor cells are **8.8% of all skill-table cells** across the 13
@@ -111,11 +113,11 @@ Educational Institution Chart costs a name and a rank die per school
 attended, so deciding it after step C lands means moving the stream
 twice.
 
-## 3. #41 — Scholar Major/Minor selection and Waivers
+## 2. #41 — Scholar Major/Minor selection and Waivers
 
 Depends on #36. The payoff measured above is realized here.
 
-## 4. #95 — Craftsman never reaches 40 Master Points
+## 3. #95 — Craftsman never reaches 40 Master Points
 
 Zero Masterpieces across 6,000 generated chains, so QREBS and Vintage
 never fire in practice.
@@ -132,7 +134,7 @@ Book 1 grants more than one level at a time — "Skill+4", "Major+2",
 consequence of #36b rather than on its own, and the first move is to
 re-run #95's own 6,000-chain measurement once step C lands.
 
-## 5. #96 — Land Grant scope deferrals
+## 4. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
@@ -157,6 +159,13 @@ that does not exist yet.
   and after. That was the signal the granularity was wrong, not that the
   rule was minor. p.91 counts "Fame points _received_", so awards are
   per-instance.
+- **Check whether a rule forbids the thing before building it.** #103
+  asked for standalone Craftsman and Functionary generators to close a
+  test-coverage gap, and the gap was real — but Book 1 forbids either as
+  a first career, so the generators would have produced characters the
+  rules do not allow. The tell was there before any code: the coverage
+  "gap" was the absence of a second implementation, and the test in
+  question exists only to catch two implementations drifting apart.
 - **When a table matters, read the PDF's word coordinates, not the text
   extract.** `pdftotext -bbox-layout` gives every word an x/y box, which
   recovers the real grid outright instead of inferring it. It caught a
