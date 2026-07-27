@@ -143,6 +143,18 @@ const maxCareerTerms = 14
 // a whole life: a multi-career chain passes the same one through every
 // segment, and its own checkpoint after each term is what stops a career
 // when Aging kills the character mid-service.
+// afterContinue is the hook Book 1 p.61's Command College needs: a
+// check that runs after a successful Continue and can still end the
+// career ("A character who fails Command College may not Continue in the
+// service"). Nil for every career that has no such school — only the
+// three Armed Forces careers do.
+//
+// Placed after the Continue roll rather than before it because p.61
+// gates attendance on continuing — "provided he successfully Continues"
+// — so a character who was leaving anyway never attends and never rolls
+// for it.
+type afterContinue func(r *dice.Roller, upp UPP, terms []Term) bool
+
 func resolveCareerLoop(
 	r *dice.Roller,
 	upp UPP,
@@ -151,6 +163,7 @@ func resolveCareerLoop(
 	continueCareer func(r *dice.Roller, upp UPP) bool,
 	maxTerms int,
 	aging *agingSimulation,
+	afterContinueCheck afterContinue,
 ) ([]Term, UPP) {
 	var terms []Term
 
@@ -192,6 +205,10 @@ func resolveCareerLoop(
 		}
 
 		if !continueCareer(r, upp) {
+			break
+		}
+
+		if afterContinueCheck != nil && !afterContinueCheck(r, upp, terms) {
 			break
 		}
 	}
@@ -258,6 +275,7 @@ func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *
 		continueScout,
 		maxTerms,
 		aging,
+		nil,
 	)
 	career.Terms = terms
 

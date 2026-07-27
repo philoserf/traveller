@@ -52,6 +52,7 @@ func resolveFunctionaryCareerWithBudget(
 		func(_ *dice.Roller, _ UPP) bool { return true },
 		maxTerms,
 		aging,
+		nil,
 	)
 	career.Terms = terms
 

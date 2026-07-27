@@ -41,6 +41,7 @@ func resolveCraftsmanCareerWithBudget(
 		},
 		maxTerms,
 		aging,
+		nil,
 	)
 	career.Terms = terms
 

@@ -356,10 +356,13 @@ func TestResolveMarineTermSetsRankEveryTerm(t *testing.T) {
 		t.Errorf("Rank = %q, want %q", term.Rank, "M1 Private")
 	}
 
-	if len(term.SkillsAwarded) != marineSkillsPerTerm {
+	// ANM School's own Knowledge-2 is subtracted: whether this term has
+	// one is decided by its Operations roll, so it is not part of the
+	// fixed per-term allowance being asserted here (anm_school.go).
+	if got := len(term.SkillsAwarded) - anmSchoolAwards(term); got != marineSkillsPerTerm {
 		t.Errorf(
-			"len(SkillsAwarded) = %d, want %d (no Commission/Promotion bonus)",
-			len(term.SkillsAwarded),
+			"len(SkillsAwarded) = %d excluding ANM School, want %d (no Commission/Promotion bonus)",
+			got,
 			marineSkillsPerTerm,
 		)
 	}

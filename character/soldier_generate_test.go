@@ -352,9 +352,26 @@ func TestResolveSoldierTermGrantsCommission(t *testing.T) {
 		t.Errorf("Rank = %q, want %q", term.Rank, "O1 2nd Lieutenant")
 	}
 
-	if len(term.SkillsAwarded) != soldierSkillsPerTerm+1 {
-		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Commission's own +1)",
-			len(term.SkillsAwarded), soldierSkillsPerTerm+1)
+	// An upper bound rather than an equality, and derived rather than
+	// pinned. rollSkillsFromColumns silently drops a draw that lands on a
+	// cell this generator cannot resolve (career_generate.go's own
+	// resolveSkillCell), so the count is "at most" — the old equality on
+	// soldierSkillsPerTerm+1 held only because this seed happened to lose
+	// exactly one draw to an unresolvable cell and so cancelled out the
+	// O1 automatic skill it never counted. ANM School's own Knowledge-2 is
+	// subtracted because the term's Operations decide whether it has one.
+	want := soldierSkillsPerTerm + 1
+	if _, hasAutomatic := soldierRankAutomaticSkill(true, 1); hasAutomatic {
+		want++
+	}
+
+	if got := len(term.SkillsAwarded) - anmSchoolAwards(term); got > want {
+		t.Errorf(
+			"len(SkillsAwarded) = %d excluding ANM School, want at most %d (per-term %d + Commission +1 + automatic)",
+			got,
+			want,
+			soldierSkillsPerTerm,
+		)
 	}
 }
 
@@ -381,9 +398,9 @@ func TestResolveSoldierTermGrantsEnlistedPromotion(t *testing.T) {
 		t.Errorf("Rank = %q, want %q", term.Rank, "S2 Corporal")
 	}
 
-	if len(term.SkillsAwarded) != soldierSkillsPerTerm+1 {
-		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Promotion's own +1)",
-			len(term.SkillsAwarded), soldierSkillsPerTerm+1)
+	if got := len(term.SkillsAwarded) - anmSchoolAwards(term); got != soldierSkillsPerTerm+1 {
+		t.Errorf("len(SkillsAwarded) = %d excluding ANM School, want %d (per-term 4 + Promotion's own +1)",
+			got, soldierSkillsPerTerm+1)
 	}
 }
 
@@ -411,9 +428,9 @@ func TestResolveSoldierTermGrantsOfficerPromotion(t *testing.T) {
 		t.Errorf("Rank = %q, want %q", term.Rank, "O2 1st Lieutenant")
 	}
 
-	if len(term.SkillsAwarded) != soldierSkillsPerTerm+1 {
-		t.Errorf("len(SkillsAwarded) = %d, want %d (per-term 4 + Promotion's own +1)",
-			len(term.SkillsAwarded), soldierSkillsPerTerm+1)
+	if got := len(term.SkillsAwarded) - anmSchoolAwards(term); got != soldierSkillsPerTerm+1 {
+		t.Errorf("len(SkillsAwarded) = %d excluding ANM School, want %d (per-term 4 + Promotion's own +1)",
+			got, soldierSkillsPerTerm+1)
 	}
 }
 

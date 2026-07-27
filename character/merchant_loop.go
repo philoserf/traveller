@@ -60,6 +60,7 @@ func resolveMerchantCareerWithBudget(
 		},
 		maxTerms,
 		aging,
+		nil,
 	)
 	career.Terms = terms
 

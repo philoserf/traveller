@@ -81,12 +81,21 @@ func TestBuildSoldierCharacterDies(t *testing.T) {
 // target C3 (End) — the same characteristic that must also be high for
 // Risk & Reward to survive on all three of Soldier's own CC positions
 // (C1 C3 C4) — so End can't be zeroed without also risking death. This
-// fixture instead sets Str=End=Int=Soc=20: Risk always succeeds on every
-// rotation, Commission succeeds immediately (End=20), and Officer
-// Promotion (targeting Soc, not Int like Marine) then always succeeds
-// too, deterministically reaching O7 General by term 7 and staying
-// capped for the remaining 7 terms — a genuinely different, complementary
-// deterministic path from Marine's own "stays Enlisted" fixture.
+// fixture instead sets Str=End=Int=Soc=20: Commission succeeds
+// immediately (End=20), and Officer Promotion (targeting Soc, not Int
+// like Marine) then always succeeds too, deterministically reaching O7
+// General by term 7 and staying capped for the remaining 7 terms — a
+// genuinely different, complementary deterministic path from Marine's
+// own "stays Enlisted" fixture.
+//
+// What this fixture does NOT guarantee is that Risk always succeeds,
+// though it used to say so. Fourteen terms carry the character to age 74,
+// and Aging erodes those 20s on the way — this seed ends on End 10 — so a
+// late-term Risk roll can and does fail. The old "WoundBadges = 0"
+// assertion only held because the dice stream happened to avoid it, and
+// it broke the moment Command College (command_college.go) added draws in
+// the middle of the career. The wound-badge and medal assertions below are
+// derived from the resolved career for that reason, not pinned.
 func TestBuildSoldierCharacterQualified(t *testing.T) {
 	t.Parallel()
 
@@ -126,8 +135,8 @@ func TestBuildSoldierCharacterQualified(t *testing.T) {
 		t.Errorf("len(Skills) = %d, want at least %d (homeworld skills alone)", len(c.Skills), len(homeworldSkills))
 	}
 
-	if c.WoundBadges != 0 {
-		t.Errorf("WoundBadges = %d, want 0 (fixture guarantees Risk always succeeds)", c.WoundBadges)
+	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+		t.Errorf("WoundBadges = %d, want %d (the career's own wounded terms)", c.WoundBadges, want)
 	}
 
 	// Derived rather than pinned. The Medal mix a seed produces shifts
@@ -144,9 +153,16 @@ func TestBuildSoldierCharacterQualified(t *testing.T) {
 		t.Error("Fame = 0, want some (fixture can't verify Fame propagation at all)")
 	}
 
-	if len(c.Medals) != 28 {
-		t.Errorf("len(Medals) = %d, want 28 (2 medals x 14 terms: flat XS plus a Reward-table medal each)",
-			len(c.Medals))
+	// Every surviving term awards the flat XS plus a Reward-table medal;
+	// a term whose Risk failed awards only the Reward one. Derived from
+	// the terms rather than pinned at 2 x 14, since which terms survive
+	// moves with the dice stream.
+	if want := len(allMedalsFromTerms(c.Careers[0].Terms)); len(c.Medals) != want {
+		t.Errorf("len(Medals) = %d, want %d (the career's own medals)", len(c.Medals), want)
+	}
+
+	if len(c.Medals) < len(c.Careers[0].Terms) {
+		t.Errorf("len(Medals) = %d, want at least one per term (%d)", len(c.Medals), len(c.Careers[0].Terms))
 	}
 
 	// Commission succeeds immediately (End=20), then Officer Promotion

@@ -46,6 +46,7 @@ func resolveAgentCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *
 		},
 		maxTerms,
 		aging,
+		nil,
 	)
 	career.Terms = terms
 

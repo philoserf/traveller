@@ -20,8 +20,9 @@ var spacerOfficerRankNames = [7]string{
 }
 
 // *Command College triggers in Year 1 of the next Term upon reaching O4
-// Lt Commander (if Continue) — not modeled, the same deferral already
-// applied to Marine's own O4 Force Commander and Soldier's own O4 Major.
+// Lt Commander (if Continue). Modeled — see command_college.go. A Spacer
+// draws his two skills from the Naval Academy column, as does a Marine
+// (p.61 commissions Marine officers through the Naval Academy).
 
 // spacerRankName formats a rank state as Book 1's own "R1 Spacehand"/"O4
 // Lt Commander" notation — "R" (Rating) for Enlisted, matching the
