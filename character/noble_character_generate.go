@@ -24,7 +24,7 @@ func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
 	c, ok := buildNobleCharacter(r, upp, homeworld, homeworldSkills)
-	c.Education = education
+	c = applyEducation(c, education)
 
 	return c, ok
 }

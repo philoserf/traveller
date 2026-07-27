@@ -376,3 +376,62 @@ func generateStart(r *dice.Roller) (UPP, string, []SkillLevel, Education) {
 
 	return upp, homeworld, append(skills, edu.Skills...), edu
 }
+
+// Cell names in the thirteen career skill tables that stand for the
+// character's own declared Major and Minor rather than for a skill.
+//
+// Book 1 prints them in 48 of the 546 cells — 8.8% of every career skill
+// table — and footnotes what happens without one: "If the character does
+// not have a Major/Minor this benefit is lost".
+const (
+	majorSkillCell = "Major"
+	minorSkillCell = "Minor"
+)
+
+// resolveMajorMinorSkills replaces the Major and Minor markers a
+// career's skill tables recorded with the subjects this character
+// actually declared in CharGen step C, and drops them for a character
+// who declared none — Book 1's own "this benefit is lost".
+//
+// Done at final assembly rather than at the point the cell is rolled,
+// because the subject belongs to the character while the roll sees only
+// a table. The markers stay on the Term as the career's own record of
+// what it granted, which is accurate: the term awarded "a level of your
+// Major", and which subject that was is a fact about the character.
+func resolveMajorMinorSkills(skills []SkillLevel, edu Education) []SkillLevel {
+	resolved := make([]SkillLevel, 0, len(skills))
+
+	for _, s := range skills {
+		switch s.Name {
+		case majorSkillCell:
+			if edu.Major != "" {
+				s.Name = edu.Major
+
+				resolved = append(resolved, s)
+			}
+		case minorSkillCell:
+			if edu.Minor != "" {
+				s.Name = edu.Minor
+
+				resolved = append(resolved, s)
+			}
+		default:
+			resolved = append(resolved, s)
+		}
+	}
+
+	return resolved
+}
+
+// applyEducation attaches a finished step C result to a finished
+// Character and resolves the Major/Minor markers its careers recorded.
+//
+// Re-aggregates afterwards because resolution can merge: a character
+// whose Major is Psychology and whose career also granted Psychology
+// separately holds one entry at the summed level, not two.
+func applyEducation(c Character, edu Education) Character {
+	c.Education = edu
+	c.Skills = aggregateSkills(resolveMajorMinorSkills(c.Skills, edu))
+
+	return c
+}

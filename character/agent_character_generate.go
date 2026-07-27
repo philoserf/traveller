@@ -27,7 +27,7 @@ func GenerateAgentCharacter(r *dice.Roller) (Character, bool) {
 		func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveAgentCareerWithBudget(r, upp, maxCareerTerms, aging)
 		}, ResolveAgentMusterOut, agentCareerFameAwards)
-	c.Education = education
+	c = applyEducation(c, education)
 
 	return c, ok
 }

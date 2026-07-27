@@ -782,10 +782,12 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 
 	age, lifeStage, notes, survived := finalizeAging(&aging, survived)
 
-	return assembleChainCharacter(r, chainAssembly{
+	c := assembleChainCharacter(r, chainAssembly{
 		upp: upp, homeworld: homeworld, education: education, acc: &acc,
 		age: age, lifeStage: lifeStage, notes: notes,
-	}), survived, nil
+	})
+
+	return applyEducation(c, education), survived, nil
 }
 
 // chainAssembly is everything the final Character needs that is not
@@ -816,15 +818,17 @@ func assembleChainCharacter(r *dice.Roller, a chainAssembly) Character {
 		LifeStage:      a.lifeStage,
 		Notes:          a.notes,
 		Education:      a.education,
-		Rank:           chainRank(acc.careers),
-		Fame:           resolveFameStacks(acc.fameAwards),
-		Cash:           acc.cash,
-		WoundBadges:    acc.woundBadges,
-		Careers:        acc.careers,
-		Skills:         aggregateSkills(acc.skills),
-		Medals:         acc.medals,
-		Equipment:      acc.equipment,
-		Masterpieces:   acc.masterpieces,
-		LandGrants:     acc.landGrants,
+		// Skills below are resolved through applyEducation by the caller
+		// rather than here, so both paths use one implementation.
+		Rank:         chainRank(acc.careers),
+		Fame:         resolveFameStacks(acc.fameAwards),
+		Cash:         acc.cash,
+		WoundBadges:  acc.woundBadges,
+		Careers:      acc.careers,
+		Skills:       aggregateSkills(acc.skills),
+		Medals:       acc.medals,
+		Equipment:    acc.equipment,
+		Masterpieces: acc.masterpieces,
+		LandGrants:   acc.landGrants,
 	}
 }

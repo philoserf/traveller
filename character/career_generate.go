@@ -323,7 +323,18 @@ func resolveSkillCell(r *dice.Roller, table [7][6]string, column, row int) (Skil
 	}
 
 	switch name {
-	case "Major", "Minor", "One Science", "Capital", "Any Knowledge":
+	case majorSkillCell, minorSkillCell:
+		// Recorded as the cell's own name and resolved against the
+		// character's declared Major or Minor at final assembly
+		// (education.go's own resolveMajorMinorSkills). It cannot be
+		// resolved here: the subject is a property of the whole
+		// character, chosen in CharGen step C, and this function sees
+		// only a table and a roller.
+		//
+		// Costs no dice either way, which is what lets the 48 cells start
+		// paying out without moving any character's dice stream.
+		return skillLevel1(name, Skill), true
+	case "One Science", "Capital", "Any Knowledge":
 		return SkillLevel{}, false
 	case "Any Skill":
 		if drawn, ok := rollCitizenTableEName(r); ok {
