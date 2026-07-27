@@ -40,42 +40,43 @@ two Dukes each share a Soc.
 **#93 Land Grants — a Mustering Out Soc increase awards one.** p.85:
 "Each increase in Soc during CharGen awards a Land Grant."
 
-## 1. #93 — Noble rank and NobleTitle() disagree
+## Shipped since this plan was written
 
-A live defect, not a deferral: the two disagree for 25.7% of generated
-Nobles, because Mustering Out raises Soc after the career ends and the
-Soc-derived title outruns the ladder the career walked.
+**#94** (PR #97) recorded the Fame ruling; no behavior change.
 
-Do this first. It is small and self-contained, and it sits underneath
-#36 — the largest remaining change — so leaving it means re-deriving
-Noble fixtures twice.
+**#93** (PR #98) put NobleTitle on the ladder and awarded fiefs for
+Mustering Out Soc increases. Ten of thirteen careers could not hold a
+Land Grant at all before it, despite Knighthood sitting on every one of
+their Benefits tables.
 
-Both halves are ruled above. Keep Soc-derivation for characters who
-never walked the ladder: that is what makes p.68's Knighthood confer a
-title from any career's Mustering Out.
+**#36a** (PR #99) transcribed p.60's AVAILABLE SKILLS matrix from the
+PDF's word bounding boxes and implemented Command College and ANM
+School. #36 stays open for its pre-career half below.
 
-## 2. #36a — Command College and ANM School
+Three things that PR settled are worth carrying forward, because the
+next item depends on all of them:
 
-The in-career half of #36, separable from Education proper and much
-smaller than its own deferral comments assume.
+- The p.60 matrix exists now (`character/education_skills.go`), so
+  #36b inherits the skill lists rather than transcribing them.
+- Its C-flagged Sciences block is the enumerable science list this
+  codebase has never had, which makes "One Science" resolvable — 15
+  cells beyond the 48 Major/Minor ones.
+- ANM School moved level-6 skill counts barely at all (marine
+  1031 → 1024). It grants distinct knowledges, not repeats, so it pushes
+  nothing toward the level-6 threshold #95 needs. That still rests
+  entirely on #36b's own `Major+1 per Pass`.
 
-> p.61: "A Character must attend Command College in the first year of
-> the term after he is promoted to Officer4, provided he successfully
-> Continues. A character who fails Command College may not Continue in
-> the service. Success at Command College awards two skill levels from
-> the appropriate Military or Naval Academy."
+## 1. #103 — standalone Craftsman and Functionary generators
 
-Both grants are flat +1, so no multi-level machinery is needed yet. The
-term is already four years and p.59's Duration is one year _inside_ it,
-so no partial term is required either — the structural change the
-deferral comments feared does not arise. Touches only Marine, Soldier
-and Spacer, so it perturbs no pre-career dice.
+Small, and a prerequisite rather than a nicety.
+`TestCareerChainSingleEntryMatchesLegacyGenerator` is the tripwire for
+the dice-stream contract, and it is blind for two of the thirteen
+careers because neither has a standalone generator to compare against.
+#36b shifts the stream for every character, so the blindness matters
+precisely when it is least affordable. Expect the first run to fail;
+anything it finds is pre-existing.
 
-Needs p.60's AVAILABLE SKILLS matrix transcribed first — five page
-columns interleaved with category labels spliced into data rows, the
-character-offset hazard in its worst form.
-
-## 3. #36b — Education (CharGen step C)
+## 2. #36b — Education (CharGen step C)
 
 The largest remaining chargen item, and the highest-value one.
 Major/Minor cells are **8.8% of all skill-table cells** across the 13
@@ -101,11 +102,20 @@ character, so every seed-pinned fixture re-derives. It has to land in
 one PR, at the identical position on both the chain and standalone
 paths.
 
-## 4. #41 — Scholar Major/Minor selection and Waivers
+Two findings out of #36a bear on it directly. #100: p.60 marks
+knowledge-only entries in bold and boldness survives no extraction
+route tried so far, so every "Skill or Knowledge" grant on p.59 —
+Apprenticeship's "Skill+4 or Knowledge+4", the Training Course, the
+Major/Minor grants — currently cannot tell the two apart. #102: the
+Educational Institution Chart costs a name and a rank die per school
+attended, so deciding it after step C lands means moving the stream
+twice.
+
+## 3. #41 — Scholar Major/Minor selection and Waivers
 
 Depends on #36. The payoff measured above is realized here.
 
-## 5. #95 — Craftsman never reaches 40 Master Points
+## 4. #95 — Craftsman never reaches 40 Master Points
 
 Zero Masterpieces across 6,000 generated chains, so QREBS and Vintage
 never fire in practice.
@@ -122,7 +132,7 @@ Book 1 grants more than one level at a time — "Skill+4", "Major+2",
 consequence of #36b rather than on its own, and the first move is to
 re-run #95's own 6,000-chain measurement once step C lands.
 
-## 6. #96 — Land Grant scope deferrals
+## 5. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
@@ -147,13 +157,30 @@ that does not exist yet.
   and after. That was the signal the granularity was wrong, not that the
   rule was minor. p.91 counts "Fame points _received_", so awards are
   per-instance.
+- **When a table matters, read the PDF's word coordinates, not the text
+  extract.** `pdftotext -bbox-layout` gives every word an x/y box, which
+  recovers the real grid outright instead of inferring it. It caught a
+  live misreading in p.60/p.61: extract line 4547 reads "Command College
+  | Begin vs Edu or Tra | (may not transfer to Citizen)" as one row, but
+  by coordinate those are three different page columns and the middle
+  phrase is the Scholar career's Begin check. It also resolved p.61's
+  legend defining A, N and M twice — the column an M sits in is what
+  distinguishes Medical School from Marine School. Cost about ten minutes
+  and would have been a silently wrong transcription otherwise.
 - **The book contradicts itself; printed tables settle it.** Masterpiece
   value is "over 40" on p.75 and "over 39" in the QREBS chapter — the
   printed value table proves 40. Marine ranks read "Coronel" where
   Soldier reads "Colonel", consistently, three times.
 - **Check whether a mechanic can actually fire.** Craftsman QREBS is
   fully implemented and never once triggered in 6,000 characters.
-- **A fixture that passes can still be wrong.** Two Marine assertions
-  passed only by luck — one omitted an automatic skill and was saved by
-  an unresolvable cell; another rested on a premise (C3 stays 0) that a
-  later change quietly broke.
+- **A fixture that passes can still be wrong.** Four instances now, and
+  every one surfaced only when an unrelated change moved the dice stream.
+  Two Marine assertions passed by luck — one omitted an automatic skill
+  and was saved by an unresolvable cell; another rested on a premise (C3
+  stays 0) a later change quietly broke. Then Soldier's "fixture
+  guarantees Risk always succeeds" turned out false, because fourteen
+  terms reach age 74 and Aging erodes the fixture's 20s to End 10. And a
+  Soldier skill-count equality held only because that seed lost exactly
+  one draw to an unresolvable cell, cancelling out an automatic skill the
+  assertion never counted. The pattern is always the same: an equality
+  that happens to balance two errors. Prefer a derived bound.
