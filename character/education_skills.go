@@ -668,3 +668,24 @@ func skillsForSchool(school schoolSet, knowledgesOnly bool) []string {
 
 	return names
 }
+
+// educationSciences are p.60's own Sciences block — the entries its
+// matrix flags for College and nothing else, and what Book 1 p.61 means
+// by "other Knowledges are stand-alone sciences (Archeology is ...)".
+//
+// This is the enumerable science list whose absence made the "One
+// Science" cell unresolvable in every career skill table that prints it.
+var educationSciences = func() []string {
+	var names []string
+
+	for _, skill := range educationSkills {
+		if skill.Parent == educationSciencesParent {
+			names = append(names, skill.Name)
+		}
+	}
+
+	return names
+}()
+
+// educationSciencesParent is the grouping p.60 prints those rows under.
+const educationSciencesParent = "Sciences"

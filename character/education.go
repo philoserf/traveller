@@ -438,7 +438,10 @@ func resolveMajorMinorSkills(skills []SkillLevel, edu Education) []SkillLevel {
 // separately holds one entry at the summed level, not two.
 func applyEducation(c Character, edu Education) Character {
 	c.Education = edu
-	c.Skills = aggregateSkills(resolveMajorMinorSkills(c.Skills, effectiveMajorMinor(c, edu)))
+	c.Skills = aggregateSkills(
+		resolveCapitalSkills(
+			resolveMajorMinorSkills(c.Skills, effectiveMajorMinor(c, edu)),
+			c.LandGrants))
 
 	return c
 }

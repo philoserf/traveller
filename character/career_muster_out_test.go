@@ -206,26 +206,52 @@ func TestResolveScoutMusterOutAccumulatesFameIntoDM(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{9, 9, 9, 12, 12, 0}}
-	r := dice.New(rand.NewPCG(2579, 2579))
+
+	// Precondition: a long Scout career with Discoveries, which is what
+	// makes p.79's "DM +Terms +Fame/2" large enough to observe. The old
+	// fixture pinned seed 2579 and the exact benefit and money lists it
+	// rolled; those move with the dice stream, while the property does
+	// not.
+	seed := seedFor(t, "a long Scout career with Discoveries", func(seed uint64) bool {
+		career, _ := ResolveScoutCareer(dice.New(rand.NewPCG(seed, seed)), upp)
+
+		return len(career.Terms) >= 6 && len(scoutDiscoveryFameAwards(career)) >= 2
+	})
+
+	r := dice.New(rand.NewPCG(seed, seed))
 
 	career, _ := ResolveScoutCareer(r, upp)
-	if len(career.Terms) != 6 {
-		t.Fatalf("seed 2579: len(Terms) = %d, want 6 (fixture assumption broke)", len(career.Terms))
-	}
-
 	out := ResolveScoutMusterOut(r, career)
 
-	wantBenefits := []string{
-		"Fame +2", "Fame +2", "Knighthood",
-		"Knighthood", "Knighthood", "Knighthood",
-	}
-	if !slices.Equal(out.Benefits, wantBenefits) {
-		t.Fatalf("Benefits = %v, want %v", out.Benefits, wantBenefits)
+	if len(out.Benefits)+len(out.Money) == 0 {
+		t.Fatal("Mustering Out produced no rolls at all")
 	}
 
-	wantMoney := []string{"Cr80,000", "Cr70,000", "Cr80,000", "Cr80,000", "Cr80,000", "Cr80,000"}
-	if !slices.Equal(out.Money, wantMoney) {
-		t.Fatalf("Money = %v, want %v", out.Money, wantMoney)
+	// The observable consequence of the DM accumulating: it saturates.
+	// Scout's own table has 12 rows and the DM is uncapped, so terms plus
+	// Fame/2 pushes nearly every roll to the top rows via p.68's "if the
+	// roll is greater than the maximum value on the table, use the
+	// maximum value instead". A DM that ignored Fame would scatter these
+	// across the table instead of clustering them at the end of it.
+	top := scoutMusterOutBenefits[len(scoutMusterOutBenefits)-1]
+
+	atTop := 0
+
+	for _, b := range out.Benefits {
+		if b == top {
+			atTop++
+		}
+	}
+
+	if atTop*2 <= len(out.Benefits) {
+		t.Errorf("only %d of %d Benefits reached %q; a saturating +Terms +Fame/2 DM should cluster there: %v",
+			atTop, len(out.Benefits), top, out.Benefits)
+	}
+
+	// Money saturates the same way, at the table's own largest award.
+	topMoney := scoutMusterOutMoney[len(scoutMusterOutMoney)-1]
+	if len(out.Money) > 0 && !slices.Contains(out.Money, topMoney) {
+		t.Errorf("no Money roll reached %q despite a saturating DM: %v", topMoney, out.Money)
 	}
 }
 

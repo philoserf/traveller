@@ -558,3 +558,88 @@ func TestMusterOutLandGrantDrawsNoDiceWhenNoGrantIsDue(t *testing.T) {
 		t.Error("ApplyMusteringOut consumed dice for a Soc increase that earned no Land Grant")
 	}
 }
+
+// TestCapitalResolvesAgainstTheHighestNobleGrant is Book 1 p.85's own
+// footnote: "Capital= World Knowledge (of world of highest held noble
+// Land Grant) (value= 1D)".
+//
+// "Highest" is precedence on p.88's table, not income: an Archduke
+// outranks a Duke whatever their fiefs earn. Discovery grants are
+// excluded outright, the footnote saying noble.
+func TestCapitalResolvesAgainstTheHighestNobleGrant(t *testing.T) {
+	t.Parallel()
+
+	grants := []LandGrant{
+		{Source: "Knight", World: "A100000-A"},
+		{Source: "Discovery", World: "B222222-B"},
+		{Source: "Marquis", World: "C333333-C"},
+		{Source: "Baronet", World: "D444444-D"},
+	}
+
+	got, ok := highestNobleLandGrant(grants)
+	if !ok || got.Source != "Marquis" {
+		t.Errorf("highest = %+v (ok=%v), want the Marquis grant", got, ok)
+	}
+
+	// A Discovery alone is not a noble grant, so Capital is lost.
+	if _, ok := highestNobleLandGrant([]LandGrant{{Source: "Discovery"}}); ok {
+		t.Error("a Discovery grant was treated as a noble one")
+	}
+
+	skills := []SkillLevel{
+		{Name: "Admin", Level: 1, Kind: Skill},
+		{Name: capitalSkillCell, Level: 4, Kind: Knowledge},
+	}
+
+	resolved := resolveCapitalSkills(skills, grants)
+	if len(resolved) != 2 {
+		t.Fatalf("resolved = %+v, want both skills", resolved)
+	}
+
+	if want := "World: C333333-C"; resolved[1].Name != want {
+		t.Errorf("Capital resolved to %q, want %q", resolved[1].Name, want)
+	}
+
+	// The 1D level is drawn where the cell is rolled and must survive
+	// resolution untouched.
+	if resolved[1].Level != 4 {
+		t.Errorf("Capital level = %d, want the 4 it was rolled at", resolved[1].Level)
+	}
+
+	// Book 1's own "this benefit is lost" for a character holding none.
+	if lost := resolveCapitalSkills(skills, nil); len(lost) != 1 || lost[0].Name != "Admin" {
+		t.Errorf("without a noble grant, resolved = %+v, want the Capital dropped", lost)
+	}
+}
+
+// TestCapitalLevelIsOneDie is the "(value= 1D)" half of that footnote —
+// the only skill-table cell in Book 1 whose level is rolled rather than
+// fixed at 1.
+func TestCapitalLevelIsOneDie(t *testing.T) {
+	t.Parallel()
+
+	seen := map[int]bool{}
+
+	r := dice.New(rand.NewPCG(9, 9))
+	for range 300 {
+		// nobleSkillTable[5][0] is the "Capital" cell (noble_generate.go).
+		skill, ok := resolveSkillCell(r, nobleSkillTable, 5, 0)
+		if !ok {
+			t.Fatal("the Capital cell reported itself unresolvable")
+		}
+
+		if skill.Name != capitalSkillCell {
+			t.Fatalf("cell resolved to %q, want the Capital marker", skill.Name)
+		}
+
+		if skill.Level < 1 || skill.Level > 6 {
+			t.Fatalf("Capital level = %d, want 1D", skill.Level)
+		}
+
+		seen[skill.Level] = true
+	}
+
+	if len(seen) < 6 {
+		t.Errorf("Capital produced only levels %v across 300 rolls, want the full 1D range", seen)
+	}
+}

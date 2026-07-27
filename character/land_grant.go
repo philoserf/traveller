@@ -310,3 +310,67 @@ func scoutDiscoveryLandGrants(r *dice.Roller, career Career) []LandGrant {
 
 	return grants
 }
+
+// Cell names that stand for something only the finished character can
+// supply, resolved at final assembly the same way Major and Minor are.
+const (
+	oneScienceCell   = "One Science"
+	capitalSkillCell = "Capital"
+)
+
+// highestNobleLandGrant is p.85's own "world of highest held noble Land
+// Grant" — the grant belonging to the most senior title the character
+// holds.
+//
+// Ranked by position in p.88's own table rather than by income or hex
+// count, since "highest" there is a statement about precedence: an
+// Archduke outranks a Duke whatever their respective fiefs happen to
+// earn. Discovery grants are excluded outright — p.85 says noble.
+func highestNobleLandGrant(grants []LandGrant) (LandGrant, bool) {
+	best, found := LandGrant{}, false
+	bestRank := -1
+
+	for _, grant := range grants {
+		for i, rank := range nobleRanks {
+			if rank.Title == grant.Source && i > bestRank {
+				best, bestRank, found = grant, i, true
+			}
+		}
+	}
+
+	return best, found
+}
+
+// resolveCapitalSkills replaces p.85's Capital markers with a World
+// Knowledge of the world the character's highest noble fief sits on, and
+// drops them for a character holding no noble grant at all — the same
+// "this benefit is lost" convention every other unresolvable cell
+// follows.
+//
+// Worlds are named by their UWP, which is the only identity this
+// codebase gives them: world.Generate leaves world.World.Name
+// zero-valued, and Character.Homeworld is a UWP string for the same
+// reason. Book 1 p.134 writes a World Knowledge as "World: Egareva-6",
+// so the shape here is "World: <UWP>".
+func resolveCapitalSkills(skills []SkillLevel, grants []LandGrant) []SkillLevel {
+	grant, ok := highestNobleLandGrant(grants)
+
+	resolved := make([]SkillLevel, 0, len(skills))
+
+	for _, s := range skills {
+		if s.Name != capitalSkillCell {
+			resolved = append(resolved, s)
+
+			continue
+		}
+
+		if !ok {
+			continue
+		}
+
+		s.Name = "World: " + grant.World
+		resolved = append(resolved, s)
+	}
+
+	return resolved
+}
