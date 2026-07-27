@@ -27,6 +27,11 @@ type Character struct {
 	// created — QREBS allocation, Master Points and creation age.
 	// Equipment above still carries the same items as display strings.
 	Masterpieces []Masterpiece
+	// Education is what CharGen step C (Book 1 p.72) did to this
+	// character before any career began — which school was attended, the
+	// Major and Minor declared there, and whether a degree was earned.
+	// Zero-valued for a character who attended nothing.
+	Education Education
 	// LandGrants are p.88's own awards of territory, retained at
 	// Mustering Out per p.68. Cumulative: a Noble holds one per Soc
 	// increase, a Scout one per Discovery.

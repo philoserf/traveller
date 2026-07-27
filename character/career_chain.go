@@ -635,11 +635,8 @@ func segmentBudget(ageTarget, currentAge int) (int, bool) {
 	return min(maxCareerTerms, remaining), true
 }
 
-func generateCareerChainStart(r *dice.Roller) (UPP, string, []SkillLevel) {
-	upp := GenerateUPP(r)
-	homeworld, skills := GenerateHomeworldSkills(r)
-
-	return upp, homeworld, skills
+func generateCareerChainStart(r *dice.Roller) (UPP, string, []SkillLevel, Education) {
+	return generateStart(r)
 }
 
 // chainSegmentContext builds the per-segment context from the chain's
@@ -720,7 +717,7 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		return Character{}, false, err
 	}
 
-	upp, homeworld, homeworldSkills := generateCareerChainStart(r)
+	upp, homeworld, homeworldSkills, education := generateCareerChainStart(r)
 
 	acc := careerChainAccumulator{skills: slices.Clone(homeworldSkills)}
 
@@ -784,18 +781,41 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 	resolveCitizenPensionReplacement(acc.careers)
 
 	age, lifeStage, notes, survived := finalizeAging(&aging, survived)
-	birthdate := GenerateBirthdate(r, age)
+
+	return assembleChainCharacter(r, chainAssembly{
+		upp: upp, homeworld: homeworld, education: education, acc: &acc,
+		age: age, lifeStage: lifeStage, notes: notes,
+	}), survived, nil
+}
+
+// chainAssembly is everything the final Character needs that is not
+// already in the accumulator — split out only so
+// GenerateCareerChainCharacter's own body stays inside the length the
+// linter allows, once step C added a line to it.
+type chainAssembly struct {
+	upp            UPP
+	homeworld      string
+	education      Education
+	acc            *careerChainAccumulator
+	age, lifeStage int
+	notes          string
+}
+
+func assembleChainCharacter(r *dice.Roller, a chainAssembly) Character {
+	acc := a.acc
+	birthdate := GenerateBirthdate(r, a.age)
 
 	return Character{
 		Species:        "Human",
 		GeneticProfile: humanGeneticProfile,
-		UPP:            upp,
-		Homeworld:      homeworld,
-		Birthworld:     homeworld,
+		UPP:            a.upp,
+		Homeworld:      a.homeworld,
+		Birthworld:     a.homeworld,
 		Birthdate:      birthdate,
-		Age:            age,
-		LifeStage:      lifeStage,
-		Notes:          notes,
+		Age:            a.age,
+		LifeStage:      a.lifeStage,
+		Notes:          a.notes,
+		Education:      a.education,
 		Rank:           chainRank(acc.careers),
 		Fame:           resolveFameStacks(acc.fameAwards),
 		Cash:           acc.cash,
@@ -806,5 +826,5 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		Equipment:      acc.equipment,
 		Masterpieces:   acc.masterpieces,
 		LandGrants:     acc.landGrants,
-	}, survived, nil
+	}
 }

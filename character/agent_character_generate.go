@@ -21,11 +21,13 @@ func agentCareerFameAwards(career Career) []int {
 // parameters the shared signature has no room for, unlike Scholar's own
 // Edu or Merchant's own isOfficer/tier.
 func GenerateAgentCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills,
+	c, ok := buildRiskCareerCharacter(r, upp, homeworld, homeworldSkills,
 		func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveAgentCareerWithBudget(r, upp, maxCareerTerms, aging)
 		}, ResolveAgentMusterOut, agentCareerFameAwards)
+	c.Education = education
+
+	return c, ok
 }

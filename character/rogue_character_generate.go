@@ -17,10 +17,12 @@ import (
 // characteristic reduction), the same reasoning buildNobleCharacter's
 // own doc comment already gives for its own identical shape.
 func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildRogueCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildRogueCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildRogueCharacter assembles a Character from an already-rolled upp,

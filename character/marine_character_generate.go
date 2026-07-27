@@ -12,10 +12,12 @@ import "github.com/philoserf/traveller/dice"
 // can fail) and a real death outcome (RiskResult == Dead), the same two
 // reasons Scout's own ok needs both checks.
 func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
-	upp := GenerateUPP(r)
-	homeworld, homeworldSkills := GenerateHomeworldSkills(r)
+	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	return buildMarineCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildMarineCharacter(r, upp, homeworld, homeworldSkills)
+	c.Education = education
+
+	return c, ok
 }
 
 // buildMarineCharacter assembles a Character from an already-rolled upp,
