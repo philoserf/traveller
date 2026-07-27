@@ -111,7 +111,7 @@ func resolveCommandCollege(r *dice.Roller, upp UPP, careerName string) ([]SkillL
 		return nil, false
 	}
 
-	pool := skillsForSchool(school)
+	pool := skillsForSchool(school, false)
 	if len(pool) == 0 {
 		return nil, true
 	}

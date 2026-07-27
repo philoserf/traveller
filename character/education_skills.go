@@ -599,6 +599,45 @@ var educationSkills = []educationSkill{
 	}, // G4 .ANM.
 }
 
+// isKnowledge reports whether an entry is a Knowledge rather than a
+// plain skill, which Book 1 p.61 defines structurally rather than by a
+// marking on p.60:
+//
+//	"Some skills (Animals, Driver, Engineer, Fighter, Flyer, Gunner,
+//	Heavy Weapons, Pilot, Seafarer) include within them several
+//	Knowledges. Education or Training can only impart the Knowledges;
+//	the Skills themselves are not obtainable in Education or Training."
+//
+// and, on the stand-alone ones:
+//
+//	"Some Knowledges are subsets of a Skill ... other Knowledges are
+//	stand-alone sciences (Archeology is ...)."
+//
+// So a Knowledge is either a specialty printed under one of those parent
+// skills or one of the Sciences — exactly the entries this table records
+// a Parent for. p.61 enumerates every parent's list, and those counts
+// match this transcription's groups row for row: Animals 3, Driver 7,
+// Engineer 4, Fighter 7, Flyer 6, Gunner 5, Heavy Weapons 4, Pilot 3,
+// Seafarer 5, plus the 13 Sciences.
+//
+// The parents themselves are the entries p.60 sets in bold, per its own
+// "Bold= Knowledge-Only skill." legend — which is recoverable after all,
+// from the PDF's font subsets, though not from any text extract. Two
+// things about that marking are worth recording:
+//
+//   - p.61's prose names nine parents, but its own table prints a tenth,
+//     Musician, with Instrument and Other Instrument under it. Musician
+//     is not treated as a parent here, following the prose.
+//   - Three bold parents carry school flags on p.60 anyway — Gunner .N..,
+//     Fighter ..M., Hvy Wpns ..M. — while Engineer and Pilot carry none.
+//     Verified against the rendered page, so it is the book contradicting
+//     itself rather than a transcription slip. p.61's rule is followed
+//     over p.60's flags: it is a stated rule, where the flags are an
+//     unexplained inconsistency in three rows out of nine.
+func (s educationSkill) isKnowledge() bool {
+	return s.Parent != ""
+}
+
 // skillsForSchool is every skill p.60 marks as available at one
 // institution, deduplicated by name and in printed order.
 //
@@ -607,7 +646,7 @@ var educationSkills = []educationSkill{
 // the same flags in every column, so a pool that listed each row
 // separately would draw Grav three times as often as anything else
 // without the page saying so.
-func skillsForSchool(school schoolSet) []string {
+func skillsForSchool(school schoolSet, knowledgesOnly bool) []string {
 	var (
 		names []string
 		seen  = make(map[string]bool, len(educationSkills))
@@ -615,6 +654,10 @@ func skillsForSchool(school schoolSet) []string {
 
 	for _, skill := range educationSkills {
 		if skill.Schools&school == 0 || seen[skill.Name] {
+			continue
+		}
+
+		if knowledgesOnly && !skill.isKnowledge() {
 			continue
 		}
 

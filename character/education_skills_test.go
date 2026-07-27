@@ -121,7 +121,7 @@ func TestGravIsTheOnlyRepeatedSkillName(t *testing.T) {
 
 	// The three Grav rows must agree, or collapsing them would change
 	// which schools teach it.
-	pool := skillsForSchool(schoolNavalAcademy)
+	pool := skillsForSchool(schoolNavalAcademy, false)
 	gravs := 0
 
 	for _, name := range pool {
@@ -132,5 +132,111 @@ func TestGravIsTheOnlyRepeatedSkillName(t *testing.T) {
 
 	if gravs != 1 {
 		t.Errorf("Naval pool contains Grav %d times, want exactly 1", gravs)
+	}
+}
+
+// TestKnowledgeGroupsMatchPage61 pins the Parent column against Book 1
+// p.61's own "THE KNOWLEDGES-ONLY SKILLS" lists, which enumerate every
+// parent skill and the Knowledges under it.
+//
+// This is a genuinely independent check on the p.60 transcription. The
+// Parent values were derived from p.60's gutter labels and the row runs
+// beneath them; p.61 states the same groupings in prose on a different
+// page. Agreement between the two means the specialty blocks were
+// segmented correctly, which nothing else verifies.
+func TestKnowledgeGroupsMatchPage61(t *testing.T) {
+	t.Parallel()
+
+	// p.61: "Some skills (Animals, Driver, Engineer, Fighter, Flyer,
+	// Gunner, Heavy Weapons, Pilot, Seafarer) include within them several
+	// Knowledges." Sciences are the stand-alone Knowledges of the same
+	// page's "other Knowledges are stand-alone sciences".
+	want := map[string]int{
+		"Animals":  3,  // Rider, Teamster, Trainer
+		"Driver":   7,  // ACV, Automotive, Grav, Legged, Mole, Tracked, Wheeled
+		"Engineer": 4,  // Jump Drives, Life Support, Maneuver Drive, Power Systems
+		"Fighter":  7,  // Battle Dress, Beams, Blades, Exotics, Slug Throwers, Sprays, Unarmed
+		"Flyer":    6,  // Aeronautics, Flapper, Grav, LTA, Rotor, Winged
+		"Gunner":   5,  // Bay Weapons, Ortillery, Screens, Spines, Turrets
+		"Hvy Wpns": 4,  // Artillery, Launcher, Ordnance, WMD
+		"Pilot":    3,  // Small Craft, Spacecraft ACS, Spacecraft BCS
+		"Seafarer": 5,  // Aquanautics, Grav, Boat, Ship, Sub
+		"Sciences": 13, // Archeology through Sophontology
+	}
+
+	got := make(map[string]int, len(want))
+
+	for _, skill := range educationSkills {
+		if skill.Parent != "" {
+			got[skill.Parent]++
+		}
+	}
+
+	for parent, n := range want {
+		if got[parent] != n {
+			t.Errorf("%s has %d Knowledges, want %d (p.61's own list)", parent, got[parent], n)
+		}
+	}
+
+	for parent := range got {
+		if _, ok := want[parent]; !ok {
+			t.Errorf("unexpected parent %q — p.61 names nine parents plus the Sciences", parent)
+		}
+	}
+}
+
+// TestANMSchoolPoolIsKnowledgesOnly is p.59's "Knowledge-2 from
+// School=ANM", against the Training Course row one line away that reads
+// "Skill-2 or Knowledge-2" — the book distinguishes the two, so the pool
+// has to as well.
+//
+// The Army column is the corroboration worth pinning: every entry it
+// flags is already a Knowledge, which is unlikely to be a coincidence
+// and is what makes the restriction a reading of the page rather than an
+// imposition on it.
+func TestANMSchoolPoolIsKnowledgesOnly(t *testing.T) {
+	t.Parallel()
+
+	byName := make(map[string]educationSkill, len(educationSkills))
+	for _, skill := range educationSkills {
+		byName[skill.Name] = skill
+	}
+
+	for _, school := range []schoolSet{schoolMilitaryAcademy, schoolNavalAcademy, schoolMarine} {
+		for _, name := range skillsForSchool(school, true) {
+			if !byName[name].isKnowledge() {
+				t.Errorf("%q is in an ANM School pool but is not a Knowledge", name)
+			}
+		}
+	}
+
+	// The Army column needs no restricting at all.
+	all := skillsForSchool(schoolMilitaryAcademy, false)
+	knowledges := skillsForSchool(schoolMilitaryAcademy, true)
+
+	if len(all) != len(knowledges) {
+		t.Errorf("Army column: %d flagged, %d of them Knowledges — want every one a Knowledge",
+			len(all), len(knowledges))
+	}
+
+	// The other two do get restricted, or this rule would be inert.
+	for _, school := range []schoolSet{schoolNavalAcademy, schoolMarine} {
+		if len(skillsForSchool(school, true)) >= len(skillsForSchool(school, false)) {
+			t.Error("the Knowledge restriction dropped nothing from a column that carries plain skills")
+		}
+	}
+
+	// The Knowledge-Only parents themselves must never be drawable: p.61
+	// says "the Skills themselves are not obtainable in Education or
+	// Training", which is what excludes Gunner, Fighter and Hvy Wpns
+	// despite p.60 flagging all three.
+	for _, parent := range []string{"Gunner", "Fighter", "Hvy Wpns", "Engineer", "Pilot"} {
+		for _, school := range []schoolSet{schoolMilitaryAcademy, schoolNavalAcademy, schoolMarine} {
+			for _, name := range skillsForSchool(school, true) {
+				if name == parent {
+					t.Errorf("%q is a Knowledge-Only skill and must not be obtainable in Education", parent)
+				}
+			}
+		}
 	}
 }

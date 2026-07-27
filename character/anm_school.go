@@ -23,14 +23,18 @@ import "github.com/philoserf/traveller/dice"
 // "Resolve ANM School as Education", had no Education to resolve
 // against. It does now.
 //
-// One limitation is recorded rather than papered over. p.60 marks
-// knowledge-only entries in bold ("Bold= Knowledge-Only skill."), and
-// boldness does not survive into the text extract or the bounding-box
-// output, so the pool here is every skill the column flags rather than
-// only the knowledges among them. The level and the source column are
-// right; the Knowledge/Skill split within the pool is not yet
-// recoverable, and the grant is recorded as a Knowledge because that is
-// what p.59's Provides column says it awards.
+// The pool is restricted to Knowledges, which is what p.59's Provides
+// column asks for. The book distinguishes the two deliberately one row
+// away: the Training Course row reads "Skill-2 or Knowledge-2 from
+// School=S" where this one reads only "Knowledge-2". See
+// educationSkill.isKnowledge for how p.61 defines the category.
+//
+// Corroboration that the columns were built with that split in mind: the
+// Army column flags 31 entries and every one of them is a Knowledge. The
+// Naval and Marine columns each flag a dozen plain skills besides
+// (Astrogator, Leader, Medic, Tactics and the like), which this rule
+// excludes from ANM School while leaving them available to Command
+// College, whose own row asks for "2x Skill-1" instead.
 
 // anmSchoolOperation is the Operations-table result that sends a
 // character to school. It has to match the three careers' own tables
@@ -69,7 +73,7 @@ func resolveANMSchool(r *dice.Roller, upp UPP, careerName string, received []str
 		return nil
 	}
 
-	pool := skillsForSchool(school)
+	pool := skillsForSchool(school, true)
 	if len(pool) == 0 {
 		return nil
 	}

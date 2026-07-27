@@ -63,7 +63,7 @@ func TestCommandCollegeAwardsTwoSkillsOnSuccess(t *testing.T) {
 			t.Fatalf("awarded %d skills, want %d", len(skills), commandCollegeSkillGrants)
 		}
 
-		naval := skillsForSchool(schoolNavalAcademy)
+		naval := skillsForSchool(schoolNavalAcademy, false)
 
 		for _, s := range skills {
 			if s.Level != 1 {
