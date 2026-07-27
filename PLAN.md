@@ -51,7 +51,35 @@ their Benefits tables.
 
 **#36a** (PR #99) transcribed p.60's AVAILABLE SKILLS matrix from the
 PDF's word bounding boxes and implemented Command College and ANM
-School. #36 stays open for its pre-career half below.
+School.
+
+**#100** (PR #106) established that p.60's "Bold= Knowledge-Only skill"
+marking _is_ recoverable — from the PDF's font subsets, though from no
+text extract — and that it marks nine parent skills rather than any
+entry, which p.61 explains: "Education or Training can only impart the
+Knowledges; the Skills themselves are not obtainable." p.61 also
+enumerates each parent's Knowledges independently of p.60, and those
+counts match the transcription row for row, which is the only
+independent check the specialty blocks have.
+
+**#36b** shipped in two stages. PR #108 built CharGen step C — the
+academic spine, ED5 through University, with Apply / Pass-Fail / Waiver
+/ Graduation and Major/Minor selection — inserted through a shared
+`generateStart` so all twelve entry points draw it identically. PR #109
+then resolved the 48 Major/Minor career-table cells, at final assembly
+rather than where they are rolled, which costs no dice at all.
+
+Their combined effect is larger than either alone, and that is worth
+keeping: a Major leaves Education at 4 or 5, and it is the career cells
+that then push it past 6, because they grant the same subject again
+rather than a random one. Level-6 skill entries roughly doubled for
+Scout and Merchant. Measuring step C by itself showed only +8% and was
+misleading.
+
+#36 stays open for what both stages deferred: Service Academy, OTC and
+NOTC (they confer Commissions and oblige service), the degree-chained
+schools (Masters, Professors, Medical, Law), Flight School, and the Tra
+path.
 
 **#103** was filed out of that round and closed without code: it asked
 for standalone Craftsman and Functionary generators so the parity test
@@ -78,63 +106,72 @@ next item depends on all of them:
   nothing toward the level-6 threshold #95 needs. That still rests
   entirely on #36b's own `Major+1 per Pass`.
 
-## 1. #36b — Education (CharGen step C)
+## 1. #36 — the rest of Education
 
-The largest remaining chargen item, and the highest-value one.
-Major/Minor cells are **8.8% of all skill-table cells** across the 13
-careers (48 of 546), and every draw on one is discarded silently today.
-Unresolvable cells total 11.9% (65 of 546).
+The academic spine shipped (see above). What is left, each deferred
+because it pulls in a mechanic of its own rather than more of Education:
 
-Book 1 has the material despite the issue calling it unresearched.
-Education is CharGen **step C** (p.72's own checklist, between B
-Homeworld and D Select Career), not a characteristic tweak: p.59-61 give
-18 institution rows, Apply / Pass-Fail / Waiver / Honors / Graduation
-machinery, Major/Minor selection, and the skills matrix #36a
-transcribes.
+- **Service Academy, OTC, NOTC.** They confer an Army, Navy or Marine
+  Commission and oblige a term of service — "The character is required
+  to serve one term in the service... he is in the Reserves" — which is
+  a career interaction. Read alongside #110, which is about exactly that
+  sentence being applied too widely.
+- **Masters, Professors, Medical School, Law School.** These gate on the
+  degree step C now produces (BA, MA, Honors BA), so they chain off it.
+  Masters shares the "Minor+1 per 2 Passes" cell already implemented.
+- **Flight School.** Gates on an Honors BA, grants Pilot-3 and a Flight
+  Branch.
+- **The Tra path** — Apprenticeship, Mentor, Training Course. p.59 puts
+  Sophonts with Tra there and lets Humans use Training Courses at Edu/2.
+  `GenerateUPP` produces only Humans, whose C5 is always Edu, so none
+  has a caller yet; this is really a "generate non-Humans" item wearing
+  an Education hat.
 
-Note what the payoff actually is. Book 1's own footnote — "If the
-character does not have a Major/Minor this benefit is lost" — means
-today's silent discard is _correct_ for a character who never attended,
-so the 8.8% is realized only for the educated. "One Science" becomes
-resolvable at the same time (a further 15 cells): the matrix's C-flagged
-Sciences block is the enumerable list this codebase has never had.
-
-Inserting step C shifts the dice stream at the very start of every
-character, so every seed-pinned fixture re-derives. It has to land in
-one PR, at the identical position on both the chain and standalone
-paths.
-
-Two findings out of #36a bear on it directly. #100: p.60 marks
-knowledge-only entries in bold and boldness survives no extraction
-route tried so far, so every "Skill or Knowledge" grant on p.59 —
-Apprenticeship's "Skill+4 or Knowledge+4", the Training Course, the
-Major/Minor grants — currently cannot tell the two apart. #102: the
-Educational Institution Chart costs a name and a rank die per school
-attended, so deciding it after step C lands means moving the stream
-twice.
+Two smaller cells are also still unresolved and are cheap now.
+"One Science" has an enumerable list at last — p.60's C-flagged Sciences
+block — worth 15 cells. "Capital" is #101. Both draw a die, so both move
+every character's stream; do them together and measure once.
 
 ## 2. #41 — Scholar Major/Minor selection and Waivers
 
 Depends on #36. The payoff measured above is realized here.
 
-## 3. #95 — Craftsman never reaches 40 Master Points
+## 3. #110 — career chains cap every non-final career at one term
 
-Zero Masterpieces across 6,000 generated chains, so QREBS and Vintage
-never fire in practice.
+Found while re-measuring #95, and now in front of it.
 
-Measure after #36b; do not implement first. The real question is
-skill-level progression — every grant in this codebase is a flat +1, so
-a level-6 skill needs six grants and five of them needs thirty, while
-Book 1 casually assumes a Craftsman with 45 Master Points.
+`GenerateCareerChainCharacter` gives every career but the last a single
+term. Book 1 has a one-term obligation but p.61 scopes it to
+commissioned academy graduates — "The character is required to serve one
+term in the service" — not to every career a player lists. The cap has
+no other rules basis I could find and no recorded rationale.
 
-Education is the missing mechanism. p.59's institution table is where
-Book 1 grants more than one level at a time — "Skill+4", "Major+2",
-"Medic-4", "Pilot-3", "Major+1 per Pass" over four years, Honors
-"Major+1", and Language at double rate. So this resolves as a
-consequence of #36b rather than on its own, and the first move is to
-re-run #95's own 6,000-chain measurement once step C lands.
+It is why Craftsman is unreachable: `BeginCraftsman` is a prerequisite,
+not a roll ("IF two Skill-6+ and Craftsman-1"), and one term per prior
+career cannot produce two level-6 skills. Zero Craftsman terms served
+across ~18,000 characters and six chain shapes.
 
-## 4. #96 — Land Grant scope deferrals
+Expect it to move a lot of generated output, and to affect Functionary
+in the opposite direction — its Begin target is Total Terms x3, so a
+short chain makes it easier to enter than intended.
+
+## 4. #95 — Craftsman never reaches 40 Master Points
+
+Re-measured after #36b. The original diagnosis was right and #36b
+confirmed it: characters satisfying both `BeginCraftsman` prerequisites
+went from 4.32% to **10.18%**, and those holding two level-6 skills from
+10.7% to 22.5%. Education was the missing mechanism.
+
+Two things still sit in front of the Masterpiece gate. #110 above stops
+the career beginning at all. And even past that, five _distinct_ level-6
+skills remains out of reach: best Master Points seen is 38 against a
+40-point gate, and no character in 6,000 holds more than four qualifying
+skills.
+
+Do not measure Masterpieces again until #110 is settled — the career
+cannot run, so the figure would mean nothing.
+
+## 5. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
@@ -159,6 +196,13 @@ that does not exist yet.
   and after. That was the signal the granularity was wrong, not that the
   rule was minor. p.91 counts "Fame points _received_", so awards are
   per-instance.
+- **Measure the halves together when they compound.** Step C on its own
+  moved level-6 skill counts by 8%, which read as a disappointment and
+  was reported as one. Resolving the Major/Minor career cells then moved
+  them by 39-125%. Neither number is wrong; the mechanism is that
+  Education leaves a Major at 4 or 5 and the career cells grant the same
+  subject again. A staged change measured only stage by stage will
+  understate itself.
 - **Check whether a rule forbids the thing before building it.** #103
   asked for standalone Craftsman and Functionary generators to close a
   test-coverage gap, and the gap was real — but Book 1 forbids either as
