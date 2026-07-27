@@ -1,6 +1,9 @@
 package character
 
-import "github.com/philoserf/traveller/dice"
+import (
+	"github.com/philoserf/traveller/dice"
+	"github.com/philoserf/traveller/ehex"
+)
 
 // ScholarCareerName is Scholar's own Career.Name value — exported and
 // shared, matching every other career's own CareerName rationale.
@@ -69,8 +72,32 @@ func BeginScholar(r *dice.Roller, edu int) (bool, int) {
 	return rollAgainstTarget(r, edu, 0), scholarStartTier(edu)
 }
 
-func scholarRankName(tier int) string {
-	return scholarRankNames[tier]
+// scholarRankName is p.76's own "Table Of Scholar Ranks", whose printed
+// titles carry the character's Major from Lecturer upward:
+//
+//	0 Amateur
+//	1 Lecturer <of Major>
+//	2 Instructor <of Major>
+//	3 Assistant Professor <of Major>
+//	4 Associate Professor <of Major>
+//	5 Professor of <Major>
+//	6 Distinguished Professor <of Major>
+//
+// Level 5 encloses a different span than the rest — "Professor of
+// <Major>" where its neighbours read "<of Major>" — but both render the
+// same way, so the suffix is applied uniformly. Amateur takes none: the
+// printed table gives it no suffix, and it is the rank of a character
+// with Edu 7 or less, who p.76 says "can resolve Risk and Reward, but
+// cannot be Promoted".
+//
+// Falls back to the bare title when no Major is known, which is how this
+// read before CharGen step C existed to supply one.
+func scholarRankName(tier int, major string) string {
+	if tier == 0 || major == "" {
+		return scholarRankNames[tier]
+	}
+
+	return scholarRankNames[tier] + " of " + major
 }
 
 // rollScholarTenure is Book 1 p.76's own "Tenure Pub x3" — no separate
@@ -141,27 +168,18 @@ func scholarRankTier(terms []Term, startTier int) int {
 // "Reward rolled unless Dead" pattern: the box's own Reward row is
 // nested under "If Research Complete, roll for Publication," with no
 // equivalent step on a Wounded/Disabled/Dead term.
-func ResolveScholarTerm(r *dice.Roller, upp UPP, ccPos Position, edu, tier int, priorTerms []Term) (Term, UPP, int) {
+func ResolveScholarTerm(
+	r *dice.Roller, upp UPP, ccPos Position, edu, tier int, priorTerms []Term, major string, waivers *int,
+) (Term, UPP, int) {
 	term := Term{Length: 4, ControllingCharacteristic: ccPos}
 
 	cc := upp.Characteristics[ccPos]
-	riskResult, reducedCC := resolveRisk(r, cc, 0)
-	term.RiskResult = riskResult
-	upp.Characteristics[ccPos] = reducedCC
-
-	if riskResult == Unharmed {
-		succeeded, roll := resolveReward(r, cc, 0)
-		term.PublicationSucceeded = succeeded
-
-		if succeeded && roll <= int(cc)-4 {
-			term.AwardWinning = true
-		}
-	}
+	upp.Characteristics[ccPos] = resolveScholarResearch(r, upp, cc, &term, waivers)
 
 	pubs := scholarPublicationsTotal(append(priorTerms, term))
 
 	if tier == 3 && edu >= 10 && !hasTenure(priorTerms) {
-		term.TenureGranted = rollScholarTenure(r, pubs)
+		term.TenureGranted = scholarWaivableRoll(r, upp, waivers, rollScholarTenure(r, pubs))
 	}
 
 	// Tenure only ever needs to be won once — "Promotion beyond Scholar3
@@ -172,24 +190,117 @@ func ResolveScholarTerm(r *dice.Roller, upp UPP, ccPos Position, edu, tier int, 
 	// gate checking tier == 3 specifically, which silently capped every
 	// tenured Scholar at Associate Professor (tier 4) forever.
 	if edu >= 8 && (tier < 3 || term.TenureGranted || hasTenure(priorTerms)) {
-		if rollAgainstTarget(r, int(upp.Characteristics[C4]), pubs) {
+		if scholarWaivableRoll(r, upp, waivers, rollAgainstTarget(r, int(upp.Characteristics[C4]), pubs)) {
 			term.Promoted = true
 			tier = min(tier+1, len(scholarRankNames)-1)
 		}
 	}
 
-	term.Rank = scholarRankName(tier)
+	term.Rank = scholarRankName(tier, major)
 
 	skillCount := scholarSkillsPerTerm
 	if term.Promoted {
 		skillCount++
 	}
 
-	if riskResult == Unharmed {
+	if term.RiskResult == Unharmed {
 		skillCount += scholarResearchSuccessSkillBonus
 	}
 
 	term.SkillsAwarded = rollSkillsFromTable(r, scholarSkillTable, skillCount)
 
 	return term, upp, tier
+}
+
+// Book 1 p.76's own account of what a Scholar studies:
+//
+//	"The Scholar's Major. A Scholar has an area of interest and expertise
+//	called his Major, accompanied by a companion area of knowledge called
+//	his Minor. Every Scholar has a Major and a Minor. If no degree (and
+//	an associated Major and Minor) then select any Skill or Knowledge
+//	from the Skills List."
+//
+// So a Scholar is the one career that always has a Major, whether or not
+// CharGen step C gave him a degree. A graduate brings the subjects he
+// declared at College or University; anyone else declares them on
+// entering the career.
+//
+// This is why the Major/Minor cells of scholarSkillTable always resolve
+// for a Scholar, where in the other twelve careers they are lost to
+// Book 1's own "If the character does not have a Major/Minor this
+// benefit is lost".
+func scholarMajorMinor(r *dice.Roller, edu Education) (string, string) {
+	if edu.Major != "" && edu.Minor != "" {
+		return edu.Major, edu.Minor
+	}
+
+	// "select any Skill or Knowledge from the Skills List" — resolved
+	// against p.60's own matrix, which is the enumerated Skill and
+	// Knowledge list this codebase has. A free selection rather than an
+	// Education grant, so it is not restricted to any school's column.
+	pool := allEducationSubjects()
+
+	major := edu.Major
+	if major == "" {
+		major = pool[r.Uniform(len(pool))-1]
+	}
+
+	minor := edu.Minor
+	if minor == "" {
+		minor = pickSubjectExcluding(r, pool, major)
+	}
+
+	return major, minor
+}
+
+// scholarWaivableRoll runs one of p.76's own waivable Scholar checks:
+//
+//	"Waivers. An adverse die roll or decision (in Position, Promotion,
+//	Research, Publication, Tenure, or Continue) may be waived. Check Soc
+//	(2D); Mod minus previous waivers (successful or not)."
+//
+// Six named events and no others — a Scholar cannot waive, say, an
+// injury from a failed Research roll, only the failure itself. The
+// Waiver machinery is Education's (education.go's own tryWaiver), which
+// p.59 says applies "to Schools and Education (and to the Scholar
+// career, but not other careers)"; the two statements of the rule agree
+// exactly, down to the Mod counting attempts rather than successes.
+func scholarWaivableRoll(r *dice.Roller, upp UPP, waivers *int, succeeded bool) bool {
+	if succeeded {
+		return true
+	}
+
+	return tryWaiver(r, upp, waivers)
+}
+
+// resolveScholarResearch runs p.76's own Research and Publication rolls
+// — Scholar's names for Risk and Reward — and returns the Controlling
+// Characteristic they leave behind.
+//
+// Both are on p.76's waivable list. A waived Research failure spares the
+// characteristic reduction the failure would otherwise inflict: the
+// adverse roll is set aside, not merely its consequences. A waived
+// Publication rejection is an ordinary success rather than a
+// distinguished one, since Award-Winning needs the roll itself to have
+// come in 4 under the characteristic.
+func resolveScholarResearch(r *dice.Roller, upp UPP, cc ehex.Value, term *Term, waivers *int) ehex.Value {
+	riskResult, reducedCC := resolveRisk(r, cc, 0)
+	if riskResult != Unharmed && tryWaiver(r, upp, waivers) {
+		riskResult, reducedCC = Unharmed, cc
+	}
+
+	term.RiskResult = riskResult
+
+	if riskResult != Unharmed {
+		return reducedCC
+	}
+
+	succeeded, roll := resolveReward(r, cc, 0)
+	term.PublicationSucceeded = scholarWaivableRoll(r, upp, waivers, succeeded)
+
+	if succeeded && roll <= int(cc)-4 {
+		term.AwardWinning = true
+	}
+
+	return reducedCC
 }

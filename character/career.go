@@ -103,11 +103,18 @@ type MusteringOut struct {
 
 // Career is a full career history within a single career track.
 type Career struct {
-	Name         string
-	HasRank      bool
-	JobSkill     string // Citizen only
-	HobbySkill   string // Citizen only
-	Specialty    string // Entertainer only: Artist/Actor/Author/Dancer/Musician/Chef
+	Name       string
+	HasRank    bool
+	JobSkill   string // Citizen only
+	HobbySkill string // Citizen only
+	Specialty  string // Entertainer only: Artist/Actor/Author/Dancer/Musician/Chef
+	// Major and Minor are Scholar only. Book 1 p.76: "A Scholar has an
+	// area of interest and expertise called his Major, accompanied by a
+	// companion area of knowledge called his Minor. Every Scholar has a
+	// Major and a Minor." A Scholar who arrives with a degree brings its
+	// subjects; one who does not declares them on entering the career, so
+	// they are recorded here rather than on Education.
+	Major, Minor string
 	Terms        []Term
 	MusteringOut MusteringOut
 }
