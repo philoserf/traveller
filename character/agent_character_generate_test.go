@@ -45,9 +45,16 @@ func TestAgentCareerFame(t *testing.T) {
 func TestGenerateAgentCharacterQualified(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(8, 8))
+	// Precondition: an Agent who qualified and served. The old fixture
+	// pinned seed 8 and with it a one-term career and Cash of exactly 0,
+	// neither of which this test is about.
+	seed := seedFor(t, "an Agent who qualified and served a term", func(seed uint64) bool {
+		c, ok := GenerateAgentCharacter(dice.New(rand.NewPCG(seed, seed)))
 
-	c, ok := GenerateAgentCharacter(r)
+		return ok && len(c.Careers) == 1 && len(c.Careers[0].Terms) > 0
+	})
+
+	c, ok := GenerateAgentCharacter(dice.New(rand.NewPCG(seed, seed)))
 
 	if !ok {
 		t.Fatal("ok = false, want true")
@@ -65,8 +72,8 @@ func TestGenerateAgentCharacterQualified(t *testing.T) {
 		t.Error("Careers[0].HasRank = true, want false (Agent has no Rank concept)")
 	}
 
-	if len(c.Careers[0].Terms) != 1 {
-		t.Fatalf("len(Careers[0].Terms) = %d, want 1", len(c.Careers[0].Terms))
+	if len(c.Careers[0].Terms) == 0 {
+		t.Fatal("Careers[0].Terms is empty, want at least one term")
 	}
 
 	// Book 1 p.91: "Agent =Number of Commendations". Asserted as that
@@ -76,8 +83,12 @@ func TestGenerateAgentCharacterQualified(t *testing.T) {
 		t.Errorf("Fame = %d, want %d (one per Commendation)", c.Fame, want)
 	}
 
-	if c.Cash != 0 {
-		t.Errorf("Cash = %d, want 0", c.Cash)
+	// Derived, not pinned at 0: Cash is whatever the career's own
+	// Mustering Out Money entries came to, and which entries a seed rolls
+	// moves with the dice stream. What is being checked is that the sum
+	// propagates onto the Character at all.
+	if want := musterOutCash(c.Careers[0]); c.Cash != want {
+		t.Errorf("Cash = %d, want %d (the career's own Mustering Out Money)", c.Cash, want)
 	}
 
 	assertBirthdateFormat(t, c.Birthdate, c.Age)

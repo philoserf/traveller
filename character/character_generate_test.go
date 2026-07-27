@@ -550,20 +550,35 @@ func TestGenerateScoutCharacterManySeedsInvariants(t *testing.T) {
 func TestBuildScoutCharacterAgingDeathKeepsCareerFame(t *testing.T) {
 	t.Parallel()
 
-	c, ok := GenerateScoutCharacter(dice.New(rand.NewPCG(4972, 4972)))
+	// Precondition only: a character who finished real terms and then
+	// died of Aging afterwards. The behaviour under test — that the
+	// completed career's Fame survives the later death — is asserted
+	// below, never searched for.
+	seed := seedFor(t, "a Scout who earned Fame, completed terms, then died of Aging", func(seed uint64) bool {
+		c, _ := GenerateScoutCharacter(dice.New(rand.NewPCG(seed, seed)))
+		if !strings.Contains(c.Notes, "died of natural causes") || len(c.Careers) == 0 {
+			return false
+		}
 
-	if !strings.Contains(c.Notes, "died of natural causes") {
-		t.Fatalf("Notes = %q, want an Aging death (fixture assumption broke)", c.Notes)
-	}
+		terms := c.Careers[0].Terms
+		if len(terms) == 0 || terms[len(terms)-1].RiskResult == Dead {
+			return false
+		}
+
+		// The career has to have earned Fame in the first place, or
+		// "Fame is retained despite the death" is not observable. Read
+		// from the career's own Discoveries rather than from the finished
+		// Character, whose Fame is the very thing under test.
+		return len(scoutDiscoveryFameAwards(c.Careers[0])) > 0
+	})
+
+	c, ok := GenerateScoutCharacter(dice.New(rand.NewPCG(seed, seed)))
 
 	if ok {
 		t.Error("ok = true, want false (an Aging death is not a surviving character)")
 	}
 
 	terms := c.Careers[0].Terms
-	if terms[len(terms)-1].RiskResult == Dead {
-		t.Fatal("last term is Dead, want a completed career (fixture assumption broke)")
-	}
 
 	if c.Fame == 0 {
 		t.Error("Fame = 0, want the completed career's own Fame retained despite the later Aging death")

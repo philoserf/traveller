@@ -494,10 +494,28 @@ func TestFailedBeginAttemptsCostAYear(t *testing.T) {
 func TestFailedBeginYearsAccumulateAcrossAChain(t *testing.T) {
 	t.Parallel()
 
-	// Zero UPP: marine, spacer and soldier all fail their Begin rolls,
-	// then Citizen (automatic, no roll) provides the fallback career.
-	got, _, err := GenerateCareerChainCharacter(
-		dice.New(rand.NewPCG(1, 1)), []string{"marine", "spacer", "soldier"}, 0)
+	// Precondition: at least one listed career fails its Begin roll, so
+	// there is a charged year to accumulate. Searched rather than pinned
+	// to a seed — the old fixture relied on seed 1 happening to fail all
+	// three Begins, which is only true until the dice stream moves.
+	chain := []string{"marine", "spacer", "soldier"}
+
+	seed := seedFor(t, "a chain where at least one career fails to Begin", func(seed uint64) bool {
+		c, _, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), chain, 0)
+		if err != nil {
+			return false
+		}
+
+		for _, career := range c.Careers {
+			if len(career.Terms) == 0 {
+				return true
+			}
+		}
+
+		return false
+	})
+
+	got, _, err := GenerateCareerChainCharacter(dice.New(rand.NewPCG(seed, seed)), chain, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,10 +526,6 @@ func TestFailedBeginYearsAccumulateAcrossAChain(t *testing.T) {
 		if len(career.Terms) == 0 {
 			failed++
 		}
-	}
-
-	if failed == 0 {
-		t.Fatal("no career failed to Begin — the fixture can't exercise accumulation")
 	}
 
 	termsServed := 0
