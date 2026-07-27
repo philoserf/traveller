@@ -372,3 +372,117 @@ func TestCraftsmanTermsRecordStructuredMasterpieces(t *testing.T) {
 		t.Log("note: no failed creation in 300 terms, so the nil-record path went unchecked")
 	}
 }
+
+// TestAMasterpieceIsActuallyReachable is #95 made executable.
+//
+// That issue was filed because QREBS allocation and Vintage appreciation
+// were fully implemented, unit-tested, and had never once fired in
+// generated output — no Craftsman in 6,000 chains reached the 40 Master
+// Points p.75 requires, because no Craftsman ran at all. #110 fixed the
+// cause (career chains were capping every non-final career at one term,
+// so nobody arrived with the skills BeginCraftsman demands).
+//
+// A unit test on allocateQREBS cannot catch that class of defect: the
+// code was correct and simply unreachable. This walks the whole path
+// instead — generate characters until one creates a Masterpiece, then
+// check the record it produced is complete.
+//
+// It is deliberately expensive and deliberately broad. A Masterpiece is
+// rare by the rules' own design: a Craftsman must already hold
+// Craftsman-1 and two skills at level 6+ merely to Begin, and then reach
+// 40 Master Points from his Controlling Characteristic, his Craftsman
+// skill and his best five qualifying skills.
+func TestAMasterpieceIsActuallyReachable(t *testing.T) {
+	t.Parallel()
+
+	const chainSeeds = 6000
+
+	holder, craftsmen, attempted := searchForAMasterpiece(chainSeeds)
+
+	if craftsmen == 0 {
+		t.Fatalf("no Craftsman served a term in %d chains — the career is unreachable again, which is #95's "+
+			"original complaint and #110's own regression", chainSeeds)
+	}
+
+	if len(holder.Masterpieces) == 0 {
+		t.Fatalf("%d Craftsmen served %d terms without creating a Masterpiece; QREBS and Vintage are "+
+			"unreachable in generated output again (#95)", craftsmen, attempted)
+	}
+
+	found := holder.Masterpieces[0]
+
+	// The record has to be complete, not merely present — every field
+	// below is one the issue said had never been exercised.
+	if found.MasterPoints < craftsmanMinMasterPoints {
+		t.Errorf("MasterPoints = %d, want at least %d (p.75's own gate)",
+			found.MasterPoints, craftsmanMinMasterPoints)
+	}
+
+	// The allocation ran and spent the Master Points, rather than leaving
+	// every dimension at its floor: qrebsMinTotal is what the five
+	// minimums cost, so a Masterpiece past the 40-point gate must have
+	// had points left to distribute.
+	spent := 0
+
+	for _, v := range found.QREBS.Values() {
+		if v < qrebsMin {
+			t.Errorf("QREBS %+v has a dimension below the %d floor", found.QREBS, qrebsMin)
+		}
+
+		spent += v + qrebsPointOffset
+	}
+
+	if spent <= qrebsMinTotal {
+		t.Errorf("QREBS %+v spent %d points, want more than the %d the five minimums cost — "+
+			"the allocation never ran", found.QREBS, spent, qrebsMinTotal)
+	}
+
+	if found.BaseValue <= 0 {
+		t.Errorf("BaseValue = %d, want a sale price", found.BaseValue)
+	}
+
+	if found.CreatedAtAge <= 0 {
+		t.Error("CreatedAtAge is unset, so Vintage appreciation has no time reference")
+	}
+
+	// Vintage appreciates with age, so a Masterpiece made before the
+	// character finished aging must now be worth more than it was.
+	if holder.Age > found.CreatedAtAge && holder.MasterpieceValue() <= found.BaseValue {
+		t.Errorf("MasterpieceValue = %d at age %d, want more than the Cr%d it sold for at %d "+
+			"(Vintage appreciation never applied)",
+			holder.MasterpieceValue(), holder.Age, found.BaseValue, found.CreatedAtAge)
+	}
+}
+
+// searchForAMasterpiece walks generated citizen,craftsman chains until
+// one produces a Masterpiece, returning that character alongside how
+// many Craftsmen served and how many terms they served between them —
+// the two numbers that tell a "never created one" failure apart from a
+// "never entered the career" one.
+func searchForAMasterpiece(seeds uint64) (Character, int, int) {
+	var (
+		holder               Character
+		craftsmen, attempted int
+	)
+
+	for seed := uint64(1); seed <= seeds; seed++ {
+		c, ok, err := GenerateCareerChainCharacter(
+			dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0)
+		if err != nil || !ok {
+			continue
+		}
+
+		for _, career := range c.Careers {
+			if career.Name == CraftsmanCareerName && len(career.Terms) > 0 {
+				craftsmen++
+				attempted += len(career.Terms)
+			}
+		}
+
+		if len(c.Masterpieces) > 0 && len(holder.Masterpieces) == 0 {
+			holder = c
+		}
+	}
+
+	return holder, craftsmen, attempted
+}
