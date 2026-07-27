@@ -1,10 +1,12 @@
 package character
 
 import (
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/ehex"
 )
 
@@ -145,7 +147,7 @@ func TestApplyMusteringOut(t *testing.T) {
 	}}
 	upp := UPP{Characteristics: [6]ehex.Value{5, 5, 5, 5, 5, 5}}
 
-	gotUPP, gotBonuses := ApplyMusteringOut(career, upp)
+	gotUPP, gotBonuses := ApplyMusteringOut(dice.New(rand.NewPCG(1, 1)), career, upp)
 
 	if gotBonuses.Cash != 50000 {
 		t.Errorf("cash = %d, want 50000", gotBonuses.Cash)
@@ -193,6 +195,7 @@ func TestApplyMusteringOutRespectsTheHumanCharacteristicCap(t *testing.T) {
 			t.Parallel()
 
 			got, _ := ApplyMusteringOut(
+				dice.New(rand.NewPCG(1, 1)),
 				Career{Name: "Scout", MusteringOut: MusteringOut{Benefits: []string{"Str +1"}}},
 				UPP{Characteristics: [6]ehex.Value{c.start, 0, 0, 0, 0, 0}},
 			)
@@ -223,7 +226,8 @@ func TestApplyKnighthood(t *testing.T) {
 			MusteringOut: MusteringOut{Benefits: []string{"Knighthood"}},
 		}
 
-		got, _ := ApplyMusteringOut(career, UPP{Characteristics: [6]ehex.Value{0, 0, 0, 0, 0, soc}})
+		got, _ := ApplyMusteringOut(
+			dice.New(rand.NewPCG(1, 1)), career, UPP{Characteristics: [6]ehex.Value{0, 0, 0, 0, 0, soc}})
 
 		return got.Characteristics[C6]
 	}
@@ -301,7 +305,7 @@ func TestApplyForbiddenKnowledge(t *testing.T) {
 		Benefits: []string{"Forbidden Knowledge", "Forbidden Knowledge"},
 	}}
 
-	_, bonuses := ApplyMusteringOut(career, UPP{})
+	_, bonuses := ApplyMusteringOut(dice.New(rand.NewPCG(1, 1)), career, UPP{})
 
 	want := []SkillLevel{
 		{Name: forbiddenKnowledgeSkill, Level: 1, Kind: Skill},

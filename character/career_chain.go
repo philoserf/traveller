@@ -134,7 +134,7 @@ func resolveRiskCareerSegment(
 		career.MusteringOut = resolveMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
@@ -154,7 +154,7 @@ func resolveRiskCareerSegment(
 	}
 
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: landGrants,
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
@@ -212,7 +212,7 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	ok := len(career.Terms) > 0
 
@@ -235,6 +235,7 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		FameAwards: fameAwards,
 		Cash:       cash,
 		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		LandGrants: bonuses.LandGrants,
 	}
 }
 
@@ -248,7 +249,7 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
@@ -269,7 +270,7 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 	}
 
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: landGrants,
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
@@ -290,14 +291,14 @@ func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	ok := len(career.Terms) > 0
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok,
 		Fame: fame + bonuses.Fame, FameAwards: append(bonuses.FameAwards, fame), Cash: bonuses.Cash,
-		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), LandGrants: bonuses.LandGrants,
 	}
 }
 
@@ -315,7 +316,7 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 		career.MusteringOut = ResolveMerchantMusterOut(r, career, isOfficer, tier)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
@@ -335,7 +336,7 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 	}
 
 	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: landGrants,
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
@@ -353,12 +354,12 @@ func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 		career.MusteringOut = ResolveCitizenMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
 		Fame: bonuses.Fame, FameAwards: bonuses.FameAwards, Cash: bonuses.Cash,
-		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), LandGrants: bonuses.LandGrants,
 	}
 }
 
@@ -379,12 +380,12 @@ func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 		career.MusteringOut = ResolveFunctionaryMusterOut(r, career, finalTier)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
 		Fame: bonuses.Fame, FameAwards: bonuses.FameAwards, Cash: bonuses.Cash,
-		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), LandGrants: bonuses.LandGrants,
 	}
 }
 
@@ -404,7 +405,7 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 		career.MusteringOut = ResolveCraftsmanMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	var equipment []string
 
@@ -419,7 +420,7 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 		Fame:       bonuses.Fame + craftsmanCareerFame(career.Terms),
 		FameAwards: append(bonuses.FameAwards, craftsmanCareerFame(career.Terms)), Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Equipment: equipment,
-		Masterpieces: masterpiecesFromTerms(career.Terms),
+		Masterpieces: masterpiecesFromTerms(career.Terms), LandGrants: bonuses.LandGrants,
 	}
 }
 
@@ -431,7 +432,7 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 	ok := len(career.Terms) > 0
 
 	fameAwards := bonuses.FameAwards
@@ -455,7 +456,7 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		FameAwards: fameAwards,
 		Cash:       bonuses.Cash,
 		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
-		LandGrants: landGrants,
+		LandGrants: append(landGrants, bonuses.LandGrants...),
 	}
 }
 

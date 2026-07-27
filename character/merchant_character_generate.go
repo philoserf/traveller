@@ -122,7 +122,7 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	// pass caught an earlier version using upp here, silently reverting
 	// that reduction (the same class of bug caught for Scholar last
 	// slice).
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
@@ -167,5 +167,6 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
+		LandGrants:     bonuses.LandGrants,
 	}, ok
 }

@@ -238,7 +238,7 @@ func buildRiskCareerCharacter(
 		career.MusteringOut = resolveMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, updatedUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, updatedUPP)
 
 	// Clone before appending: appending onto the caller's own
 	// homeworldSkills slice in place could silently corrupt an earlier
@@ -298,6 +298,6 @@ func buildRiskCareerCharacter(
 		Skills:         aggregateSkills(skills),
 		Medals:         allMedalsFromTerms(career.Terms),
 		WoundBadges:    scoutWoundBadges(career),
-		LandGrants:     landGrants,
+		LandGrants:     append(landGrants, bonuses.LandGrants...),
 	}, ok
 }

@@ -46,7 +46,7 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
 	}
 
-	boostedUPP, bonuses := ApplyMusteringOut(career, careerUPP)
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
 
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
@@ -82,6 +82,7 @@ func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 		Cash:           cash,
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
+		LandGrants:     bonuses.LandGrants,
 	}, ok
 }
 

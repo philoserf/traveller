@@ -4,7 +4,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/ehex"
+	"github.com/philoserf/traveller/world"
 )
 
 // musterOutCharacteristicNames maps every characteristic-boost token this
@@ -94,6 +96,12 @@ type MusterOutBonuses struct {
 	// rather than applied, since this function has no Character to apply
 	// them to; callers fold them in beside the career's own term skills.
 	Skills []SkillLevel
+	// LandGrants are the fiefs Book 1 p.85 awards for the Soc increases
+	// this Mustering Out produced — "Each increase in Soc during CharGen
+	// awards a Land Grant". Returned rather than applied for the same
+	// reason as Skills, and folded in beside whatever grants the career
+	// itself earned (a Noble's elevations, a Scout's Discoveries).
+	LandGrants []LandGrant
 }
 
 // ApplyMusteringOut applies m's mechanical effects onto upp: Fame and
@@ -108,7 +116,7 @@ type MusterOutBonuses struct {
 // yet; it stays recorded only in MusteringOut's own []string fields, the
 // exact gap ResolveScoutMusterOut's own doc comment already flagged as
 // deferred, not silently dropped.
-func ApplyMusteringOut(career Career, upp UPP) (UPP, MusterOutBonuses) {
+func ApplyMusteringOut(r *dice.Roller, career Career, upp UPP) (UPP, MusterOutBonuses) {
 	var bonuses MusterOutBonuses
 
 	for _, entry := range career.MusteringOut.Money {
@@ -126,20 +134,76 @@ func ApplyMusteringOut(career Career, upp UPP) (UPP, MusterOutBonuses) {
 		}
 
 		if p, amount, ok := musterOutCharacteristicBoost(entry); ok {
+			before := upp.Characteristics[p]
 			upp.Characteristics[p] = awardCharacteristic(upp.Characteristics[p], amount)
+
+			if p == C6 {
+				bonuses.LandGrants = appendSocLandGrant(r, bonuses.LandGrants, before, upp.Characteristics[p])
+			}
 
 			continue
 		}
 
 		switch entry {
 		case knighthoodBenefit:
-			upp.Characteristics[C6] = applyKnighthood(upp.Characteristics[C6], career)
+			before := upp.Characteristics[C6]
+			upp.Characteristics[C6] = applyKnighthood(before, career)
+			bonuses.LandGrants = appendSocLandGrant(r, bonuses.LandGrants, before, upp.Characteristics[C6])
 		case forbiddenKnowledgeBenefit:
 			bonuses.Skills = append(bonuses.Skills, skillLevel1(forbiddenKnowledgeSkill, Skill))
 		}
 	}
 
 	return upp, bonuses
+}
+
+// appendSocLandGrant applies Book 1 p.85's "Land Grants. Each increase in
+// Soc during CharGen awards a Land Grant" to a single Mustering Out
+// benefit that moved Soc from before to after.
+//
+// A Mustering Out Soc award is an increase during CharGen as plainly as
+// an in-career elevation is, so it earns a fief on the same rule the
+// Noble career loop already applies. Awarded even though the title
+// itself does not move (see Character.NobleTitle): p.85 keys the grant
+// on Soc, while p.65 keys the rank on the ladder, and the two are
+// deliberately separable in both directions.
+//
+// One grant per benefit, not one per point of Soc, because p.88 counts
+// titles rather than characteristic points — "Land Grants Are
+// Cumulative. Each title confers its own Land Grant: a Knight raised to
+// Baronet receives it in addition to his Knighthood." A Knighthood that
+// lifts Soc 7 straight to B confers exactly one title, Knight, and so
+// exactly one fief; it does not confer the Gentleman fief of the Soc A
+// row it passed over, because the character was never a Gentleman.
+//
+// Nothing is awarded when the rank row does not change, which is what
+// keeps a Soc increase below the p.88 table's own floor — anything under
+// Soc A is no noble rank at all — from conferring a fief.
+//
+// The world is generated only when a grant is actually due, so a benefit
+// that moves no title costs no dice. That matters to the reproducibility
+// contract: an unconditional draw here would shift the stream for every
+// character who musters out, not just the ennobled ones.
+func appendSocLandGrant(r *dice.Roller, grants []LandGrant, before, after ehex.Value) []LandGrant {
+	if after <= before {
+		return grants
+	}
+
+	afterIndex, hasRank := nobleRankIndexForSoc(after)
+	if !hasRank {
+		return grants
+	}
+
+	if beforeIndex, hadRank := nobleRankIndexForSoc(before); hadRank && beforeIndex == afterIndex {
+		return grants
+	}
+
+	grant, ok := newNobleLandGrant(after, world.Generate(r))
+	if !ok {
+		return grants
+	}
+
+	return append(grants, grant)
 }
 
 // Benefit strings this function resolves mechanically rather than

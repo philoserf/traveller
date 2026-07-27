@@ -33,16 +33,41 @@ type Character struct {
 	LandGrants []LandGrant
 }
 
-// NobleTitle is Book 1 p.88's own Soc-to-title mapping — "Gentleman" at
-// Soc A through "Archduke" at G — and empty below Soc A, which is no
-// noble rank at all.
+// NobleTitle is the noble title this character holds: the rank the
+// Noble career actually walked to if it walked one, otherwise Book 1
+// p.88's Soc-to-title mapping — "Gentleman" at Soc A through "Archduke"
+// at G, and empty below Soc A, which is no noble rank at all.
 //
-// Derived from Soc rather than stored, so it cannot disagree with the
-// characteristic it comes from, and so it applies to every career
-// without each builder having to remember: p.68's Knighthood raises Soc
-// to B from any career's Mustering Out, and that is a Knight whether or
-// not the character ever entered the Noble career.
+// Rank leads and Soc follows, which is why the career's tracked ladder
+// position wins wherever one exists:
+//
+//	p.65: "Elevation is Roll High (roll Soc or greater to be Elevated
+//	to the next higher Noble rank) and its associated increase in
+//	Social Standing (if any)."
+//
+// The "(if any)" is load-bearing. Three pairs of p.88 rows share a Soc —
+// c Baronet and C Baron at 12, e Viscount and E Count at 14, f and F
+// Duke at 15 — so a Soc value cannot name a rank on its own, and a
+// Baronet elevated to Baron has genuinely advanced without any
+// characteristic moving. Deriving the title from Soc alone reported a
+// rank the character was never elevated to for 25.7% of generated Nobles
+// (63 of 245 over 3,000 seeds), in both directions: ahead of the ladder
+// where Mustering Out raised Soc after the career ended, behind it where
+// an elevation raised no Soc.
+//
+// The Soc fallback is not a leftover. It is what makes p.68's Knighthood
+// confer a title out of any career's Mustering Out — "A Knighthood
+// raises any value of Soc to B" — for a character who never entered the
+// Noble career and so has no ladder position to read.
+//
+// Note that a Mustering Out Soc increase still awards its Land Grant per
+// p.85 even when it moves no title here; a fief follows Soc, a title
+// follows the ladder. See ApplyMusteringOut.
 func (c Character) NobleTitle() string {
+	if title, ok := c.nobleLadderRank(); ok {
+		return title
+	}
+
 	return NobleTitleForSoc(c.UPP.Characteristics[C6])
 }
 
@@ -66,4 +91,20 @@ func (c Character) MasterpieceValue() int {
 // storing it would let it drift from the grants it summarizes.
 func (c Character) LandGrantIncome() int {
 	return totalLandGrantIncome(c.LandGrants)
+}
+
+// nobleLadderRank is the rank the Noble career walked to, if this
+// character served one that reached a rank at all.
+func (c Character) nobleLadderRank() (string, bool) {
+	for _, career := range c.Careers {
+		if career.Name != NobleCareerName {
+			continue
+		}
+
+		if rank := lastTermRank(career.Terms); rank != "" {
+			return rank, true
+		}
+	}
+
+	return "", false
 }

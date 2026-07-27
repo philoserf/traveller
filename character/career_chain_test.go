@@ -97,6 +97,15 @@ func TestCareerChainSingleEntryMatchesLegacyGenerator(t *testing.T) {
 		{"merchant", GenerateMerchantCharacter},
 		{"entertainer", GenerateEntertainerCharacter},
 		{"citizen", GenerateCitizenCharacter},
+		// Noble joined this battery once buildNobleCharacter started
+		// recording Character.Rank, which it had never set: every
+		// standalone Noble reported an empty Rank while the identical
+		// chain-generated Noble reported the p.88 title its ladder had
+		// reached, so the two could not have agreed here before.
+		// Craftsman and Functionary are still absent for a different
+		// reason — neither has a standalone Generate*Character to compare
+		// against at all.
+		{"noble", GenerateNobleCharacter},
 	}
 
 	for _, c := range cases {
