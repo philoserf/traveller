@@ -177,8 +177,13 @@ func TestBuildScoutCharacterFullTermSurvivor(t *testing.T) {
 		t.Errorf("len(Terms) = %d, want %d", got, maxCareerTerms)
 	}
 
-	if c.WoundBadges != 0 {
-		t.Errorf("WoundBadges = %d, want 0 (Risk can never fail against target 12)", c.WoundBadges)
+	// Derived, not pinned at 0. The fixture's all-12 UPP makes Risk
+	// unfailable at the start, but fourteen terms carry the character to
+	// age 74 and Aging erodes those 12s on the way, so a late-term Risk
+	// roll can fail — the same fragility a Soldier fixture had. What has
+	// to hold is that the badges match the career that produced them.
+	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+		t.Errorf("WoundBadges = %d, want %d (the career's own wounded terms)", c.WoundBadges, want)
 	}
 }
 
@@ -245,21 +250,41 @@ func TestBuildScoutCharacterSkillsIncludeHomeworldSkills(t *testing.T) {
 	}
 
 	// Qualified path: homeworld skills still lead, career skills follow.
-	// Seed 1 confirmed by direct inspection to re-grant "Vacc Suit"
-	// during the (immortal, 14-term) career itself, so aggregateSkills
-	// merging is actually exercised — pinning the exact merged Level
-	// (not just ">= 1") means a regression that stops calling
-	// aggregateSkills (character_generate.go's own buildRiskCareerCharacter)
-	// would leave Skills[0] at Level 1 and fail this assertion, rather
-	// than passing trivially.
+	//
+	// The precondition is a career that re-grants "Vacc Suit", so
+	// aggregateSkills merging is actually exercised — a regression that
+	// stopped calling it would leave Skills[0] at Level 1. Searched
+	// rather than pinned: seed 1 happened to re-grant it once, and
+	// stopped doing so the moment the dice stream moved.
 	upp := UPP{Characteristics: [6]ehex.Value{12, 12, 12, 12, 12, 0}}
-	r2 := dice.New(rand.NewPCG(1, 1))
 
-	qualified, _ := buildScoutCharacter(r2, upp, "hw", homeworldSkills)
+	seed := seedFor(t, "a Scout career that re-grants a homeworld skill", func(seed uint64) bool {
+		c, ok := buildScoutCharacter(dice.New(rand.NewPCG(seed, seed)), upp, "hw", homeworldSkills)
+		if !ok || len(c.Skills) == 0 {
+			return false
+		}
 
-	want := SkillLevel{Name: "Vacc Suit", Level: 3, Kind: Skill}
-	if len(qualified.Skills) == 0 || qualified.Skills[0] != want {
-		t.Errorf("qualified Skills[0] = %+v, want %+v (merged with a later in-career grant)", qualified.Skills[0], want)
+		return c.Skills[0].Name == "Vacc Suit" && c.Skills[0].Level > 1
+	})
+
+	qualified, _ := buildScoutCharacter(dice.New(rand.NewPCG(seed, seed)), upp, "hw", homeworldSkills)
+
+	// The point is that merging happened at all, not the exact level a
+	// seed reached: how many later Vacc Suit grants a career rolls moves
+	// with the dice stream. A regression that stopped calling
+	// aggregateSkills would leave this at Level 1, which is what the
+	// assertion catches.
+	if len(qualified.Skills) == 0 {
+		t.Fatal("qualified character has no skills")
+	}
+
+	got := qualified.Skills[0]
+	if got.Name != "Vacc Suit" || got.Kind != Skill {
+		t.Errorf("qualified Skills[0] = %+v, want the homeworld's own Vacc Suit first", got)
+	}
+
+	if got.Level < 2 {
+		t.Errorf("Vacc Suit = level %d, want more than 1 (merged with a later in-career grant)", got.Level)
 	}
 }
 
@@ -420,19 +445,41 @@ func TestBuildScoutCharacterAppliesMusteringOutFameAndCash(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
-	r := dice.New(rand.NewPCG(46, 46))
 
-	c, ok := buildScoutCharacter(r, upp, "hw", nil)
+	// Precondition: a Scout whose Mustering Out produced both Fame and
+	// Cash, and whose career also earned Fame of its own. The old fixture
+	// pinned seed 46 and the values 12 and Cr140,000 that it happened to
+	// roll — the property being tested is that both sources are summed
+	// into the Character, not either particular total.
+	seed := seedFor(t, "a Scout with both career and Mustering Out Fame, and Cash", func(seed uint64) bool {
+		c, ok := buildScoutCharacter(dice.New(rand.NewPCG(seed, seed)), upp, "hw", nil)
+		if !ok || len(c.Careers) == 0 {
+			return false
+		}
+
+		_, bonuses := ApplyMusteringOut(dice.New(rand.NewPCG(seed, seed)), c.Careers[0], upp)
+
+		return bonuses.Cash > 0 && len(bonuses.FameAwards) > 0 &&
+			len(scoutDiscoveryFameAwards(c.Careers[0])) > 0
+	})
+
+	c, ok := buildScoutCharacter(dice.New(rand.NewPCG(seed, seed)), upp, "hw", nil)
 	if !ok {
-		t.Fatalf("seed 46: buildScoutCharacter unexpectedly failed (fixture assumption broke)")
+		t.Fatal("buildScoutCharacter unexpectedly failed")
 	}
 
-	if c.Fame != 12 {
-		t.Errorf("Fame = %d, want 12 (8 from two Discoveries + 4 from Mustering Out)", c.Fame)
+	// Career Fame alone would be less than the total, which is what
+	// catches a regression that summed only bonuses.Fame and dropped the
+	// Discoveries — the defect this test was written for.
+	careerOnly := resolveFameStacks(scoutDiscoveryFameAwards(c.Careers[0]))
+	if c.Fame <= careerOnly {
+		t.Errorf("Fame = %d, want more than the %d the career alone earned (Mustering Out Fame not summed in)",
+			c.Fame, careerOnly)
 	}
 
-	if c.Cash != 140000 {
-		t.Errorf("Cash = %d, want 140000", c.Cash)
+	if c.Cash != musterOutCash(c.Careers[0]) {
+		t.Errorf("Cash = %d, want the career's own Mustering Out Money total %d",
+			c.Cash, musterOutCash(c.Careers[0]))
 	}
 }
 

@@ -214,6 +214,18 @@ func TestRollAgentUndercoverSkillAlwaysReturnsASkill(t *testing.T) {
 				t.Fatalf("rollAgentUndercoverSkill(%q) returned an unnamed skill", career)
 			}
 
+			// Level 1 for every cell except Noble's own "Capital", which
+			// Book 1 p.85 footnotes as "value= 1D" — the one skill-table
+			// entry whose level is rolled rather than fixed.
+			if skill.Name == capitalSkillCell {
+				if skill.Level < 1 || skill.Level > 6 {
+					t.Errorf("rollAgentUndercoverSkill(%q) returned Capital at level %d, want 1D",
+						career, skill.Level)
+				}
+
+				continue
+			}
+
 			if skill.Level != 1 {
 				t.Errorf("rollAgentUndercoverSkill(%q) returned level %d, want 1", career, skill.Level)
 			}

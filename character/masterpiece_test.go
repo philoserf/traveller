@@ -395,7 +395,14 @@ func TestCraftsmanTermsRecordStructuredMasterpieces(t *testing.T) {
 func TestAMasterpieceIsActuallyReachable(t *testing.T) {
 	t.Parallel()
 
-	const chainSeeds = 6000
+	// Wide on purpose. A Masterpiece is rare by the rules' own design —
+	// measured at roughly one per 10,000 chains, six in 60,000 with the
+	// first at seed 6,694 — so a budget close to the rate will fail on
+	// any dice-stream shift that moves the first hit, which is what
+	// happened at 6,000 the first time this ran against a changed stream.
+	// The same lesson as seedSearchLimit: clear the worst case, not the
+	// typical one.
+	const chainSeeds = 100_000
 
 	holder, craftsmen, attempted := searchForAMasterpiece(chainSeeds)
 
@@ -405,8 +412,9 @@ func TestAMasterpieceIsActuallyReachable(t *testing.T) {
 	}
 
 	if len(holder.Masterpieces) == 0 {
-		t.Fatalf("%d Craftsmen served %d terms without creating a Masterpiece; QREBS and Vintage are "+
-			"unreachable in generated output again (#95)", craftsmen, attempted)
+		t.Fatalf("%d Craftsmen served %d terms across %d chains without creating a Masterpiece; QREBS and "+
+			"Vintage are unreachable in generated output again (#95). Expected roughly one per 10,000 chains",
+			craftsmen, attempted, chainSeeds)
 	}
 
 	found := holder.Masterpieces[0]

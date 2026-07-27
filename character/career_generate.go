@@ -334,7 +334,20 @@ func resolveSkillCell(r *dice.Roller, table [7][6]string, column, row int) (Skil
 		// Costs no dice either way, which is what lets the 48 cells start
 		// paying out without moving any character's dice stream.
 		return skillLevel1(name, Skill), true
-	case "One Science", "Capital", "Any Knowledge":
+	case oneScienceCell:
+		// Resolvable since p.60's own matrix was transcribed (#36a): its
+		// C-flagged Sciences block is the enumerable science list whose
+		// absence was the whole reason this cell was lost. p.61 calls
+		// them "stand-alone sciences" and counts them as Knowledges, so
+		// that is the Kind they are granted at.
+		return SkillLevel{Name: rollChoice(r, educationSciences), Level: 1, Kind: Knowledge}, true
+	case capitalSkillCell:
+		// Book 1 p.85's own footnote: "Capital= World Knowledge (of world
+		// of highest held noble Land Grant) (value= 1D)". The 1D is drawn
+		// here, where the roller is; which world it names is settled at
+		// final assembly, where the character's Land Grants are in view.
+		return SkillLevel{Name: capitalSkillCell, Level: r.D6(), Kind: Knowledge}, true
+	case "Any Knowledge":
 		return SkillLevel{}, false
 	case "Any Skill":
 		if drawn, ok := rollCitizenTableEName(r); ok {
