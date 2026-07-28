@@ -41,16 +41,25 @@ func continueMarine(r *dice.Roller, upp UPP) bool {
 // list — and Term.Rank is now genuinely populated every term
 // (marineRankName), not a deferred gap.
 func ResolveMarineCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
 }
 
 // resolveMarineCareerWithBudget is ResolveMarineCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
+//
+// commissioned is true for a Service Academy/OTC/NOTC Commission (#113,
+// commissionAppliesTo in career_chain.go) — p.61's own "provide graduates
+// an Army or Navy Commission (a Naval Academy graduate may choose a
+// Marine Commission instead)" substitutes for BeginMarine's own roll, the
+// same "no attempt to fail" treatment automatic-entry careers already
+// get.
+func resolveMarineCareerWithBudget(
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool,
+) (Career, UPP) {
 	career := Career{Name: MarineCareerName, HasRank: true}
 
-	if !BeginMarine(r, int(upp.Characteristics[C1])) {
+	if !commissioned && !BeginMarine(r, int(upp.Characteristics[C1])) {
 		// Book 1 p.65: a failed Begin roll costs a year. Careers whose
 		// Begin is a prerequisite rather than a roll (Noble's Soc B+,
 		// Craftsman's held skills, Citizen's automatic entry) charge
@@ -85,10 +94,17 @@ func resolveMarineCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging 
 
 	grantBranchSkillToFirstTerm(r, &career, branch)
 
-	// No grantStartingRankAutoSkillToFirstTerm call: unlike Soldier's own
-	// S1 Private and Spacer's own R1 Spacehand, M1 Private has no
-	// automatic skill at all (marineRankAutomaticSkill's own doc
-	// comment) — there is nothing to grant.
+	// A plain (uncommissioned) entry gets no
+	// grantStartingRankAutoSkillToFirstTerm call: unlike Soldier's own S1
+	// Private and Spacer's own R1 Spacehand, M1 Private has no automatic
+	// skill at all (marineRankAutomaticSkill's own doc comment) — there
+	// is nothing to grant. A Commissioned entry starts Officer1 instead,
+	// which does grant one ("Leader").
+	if commissioned && len(career.Terms) > 0 {
+		career.Terms[0].Commissioned = true
+	}
+
+	grantStartingRankAutoSkillToFirstTerm(&career, commissioned, marineRankAutomaticSkill)
 
 	return career, finalUPP
 }

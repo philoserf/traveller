@@ -31,6 +31,62 @@ func TestCareerChainRegistryCoversExpectedCareers(t *testing.T) {
 	}
 }
 
+// TestCommissionAppliesTo is #113's own "consumed once" rule: a
+// Commission (Education.CommissionCareers) covering more than one career
+// — NOTC's own "Navy Officer1 or Marine Officer1" — must not
+// auto-commission a second chain entry once the first has used it.
+func TestCommissionAppliesTo(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name                      string
+		commissionCareers, priors []string
+		careerName                string
+		want                      bool
+	}{
+		{
+			"eligible career with no prior consumption",
+			[]string{SoldierCareerName, SpacerCareerName, MarineCareerName},
+			nil,
+			MarineCareerName, true,
+		},
+		{
+			"career not covered by the Commission at all",
+			[]string{SoldierCareerName},
+			nil,
+			MarineCareerName, false,
+		},
+		{
+			"a different eligible career already consumed it",
+			[]string{SpacerCareerName, MarineCareerName},
+			[]string{SpacerCareerName},
+			MarineCareerName, false,
+		},
+		{
+			"a prior career outside the Commission's own list doesn't consume it",
+			[]string{MarineCareerName},
+			[]string{ScholarCareerName},
+			MarineCareerName, true,
+		},
+		{
+			"no Commission at all",
+			nil, nil,
+			MarineCareerName, false,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := commissionAppliesTo(c.commissionCareers, c.priors, c.careerName); got != c.want {
+				t.Errorf("commissionAppliesTo(%v, %v, %q) = %v, want %v",
+					c.commissionCareers, c.priors, c.careerName, got, c.want)
+			}
+		})
+	}
+}
+
 func TestValidateCareerChain(t *testing.T) {
 	t.Parallel()
 

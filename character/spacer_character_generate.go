@@ -1,6 +1,10 @@
 package character
 
-import "github.com/philoserf/traveller/dice"
+import (
+	"slices"
+
+	"github.com/philoserf/traveller/dice"
+)
 
 // GenerateSpacerCharacter generates a full Human Spacer Character end to
 // end: a UPP, a homeworld and its background skills, a full multi-term
@@ -13,7 +17,9 @@ import "github.com/philoserf/traveller/dice"
 func GenerateSpacerCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildSpacerCharacter(r, upp, homeworld, homeworldSkills)
+	commissioned := slices.Contains(education.CommissionCareers, SpacerCareerName)
+
+	c, ok := buildSpacerCharacter(r, upp, homeworld, homeworldSkills, commissioned)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -24,10 +30,15 @@ func GenerateSpacerCharacter(r *dice.Roller) (Character, bool) {
 // split for testability. Delegates to buildRiskCareerCharacter
 // (character_generate.go) — Spacer shares Marine's/Soldier's own shape
 // exactly.
-func buildSpacerCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
+//
+// commissioned is #113's Service Academy/NOTC Commission — see
+// resolveSpacerCareerWithBudget's own doc comment (spacer_loop.go).
+func buildSpacerCharacter(
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned bool,
+) (Character, bool) {
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
-			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging)
+			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned)
 		}, ResolveSpacerMusterOut, spacerCareerFameAwards)
 }
 

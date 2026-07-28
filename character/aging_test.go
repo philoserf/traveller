@@ -447,7 +447,7 @@ func TestFailedBeginAttemptsCostAYear(t *testing.T) {
 	t.Run("one failed roll costs one year", func(t *testing.T) {
 		t.Parallel()
 
-		c, ok := buildMarineCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil)
+		c, ok := buildMarineCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil, false)
 		if ok || len(c.Careers[0].Terms) != 0 {
 			t.Fatal("fixture qualified, want a failed Begin")
 		}
@@ -569,7 +569,13 @@ func TestAgingDeathDuringAFailedBeginStopsGeneration(t *testing.T) {
 
 		for seed := range uint64(200) {
 			aging := almostGone()
-			_, _ = resolveMarineCareerWithBudget(dice.New(rand.NewPCG(seed+1, seed+1)), frail, maxCareerTerms, aging)
+			_, _ = resolveMarineCareerWithBudget(
+				dice.New(rand.NewPCG(seed+1, seed+1)),
+				frail,
+				maxCareerTerms,
+				aging,
+				false,
+			)
 
 			if !aging.alive() {
 				killed = true
@@ -592,7 +598,7 @@ func TestAgingDeathDuringAFailedBeginStopsGeneration(t *testing.T) {
 
 		dead := &agingSimulation{termsServed: 5, diedAtAge: 38, notes: []string{"Age 38: died of natural causes (x)"}}
 
-		career, _ := resolveMarineCareerWithBudget(dice.New(rand.NewPCG(1, 1)), frail, maxCareerTerms, dead)
+		career, _ := resolveMarineCareerWithBudget(dice.New(rand.NewPCG(1, 1)), frail, maxCareerTerms, dead, false)
 		if len(career.Terms) != 0 {
 			t.Errorf("terms served = %d, want 0", len(career.Terms))
 		}

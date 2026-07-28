@@ -54,6 +54,53 @@ func TestResolveMarineCareerNeverQualifiedReturnsZeroTermsCareer(t *testing.T) {
 	}
 }
 
+// TestResolveMarineCareerWithBudgetCommissionBypassesBegin is #113's own
+// regression: a Service Academy/OTC/NOTC Commission substitutes for
+// BeginMarine's own roll, so even a zero UPP — which
+// TestResolveMarineCareerNeverQualifiedReturnsZeroTermsCareer proves
+// always fails plain Begin — still enters and starts term 1 already
+// Commissioned at Officer1, granting Marine's own O1 auto skill
+// ("Leader," marine_promotion.go).
+func TestResolveMarineCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginMarine")
+	}
+
+	if !career.Terms[0].Commissioned {
+		t.Error("career.Terms[0].Commissioned = false, want true")
+	}
+
+	want := SkillLevel{Name: "Leader", Level: 1, Kind: Skill}
+	if !slices.Contains(career.Terms[0].SkillsAwarded, want) {
+		t.Errorf("career.Terms[0].SkillsAwarded = %+v, want to contain %+v (Marine Officer1 auto skill)",
+			career.Terms[0].SkillsAwarded, want)
+	}
+}
+
+// TestResolveMarineCareerWithBudgetUncommissionedStillRequiresBegin
+// verifies commissioned=false leaves BeginMarine's own gate intact —
+// the regression this guards is accidentally bypassing Begin for every
+// entry, not just Commissioned ones.
+func TestResolveMarineCareerWithBudgetUncommissionedStillRequiresBegin(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
+
+	if len(career.Terms) != 0 {
+		t.Errorf("career.Terms = %v, want empty (Begin against Str=0 always fails)", career.Terms)
+	}
+}
+
 // TestResolveMarineCareerRespectsMaxTermsCap uses a provably immortal
 // fixture: Str=Int=20, high enough that even the worst-case combined Mod
 // (Branch's own max 2 + Operations' own max 3 = 5, subtracted from the

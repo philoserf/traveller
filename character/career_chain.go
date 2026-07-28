@@ -97,6 +97,27 @@ func (c segmentContext) aging() *agingSimulation {
 	return c.Aging
 }
 
+// commissionAppliesTo is #113's "consumed once" rule for a Service
+// Academy/OTC/NOTC Commission: careerName is eligible only if it's one of
+// commissionCareers (Education.CommissionCareers) and none of the
+// character's priorCareers already consumed one — a Commission covering
+// both Spacer and Marine (NOTC) must not auto-commission a second chain
+// entry once the first has used it. No new mutable state is needed:
+// segmentContext.PriorCareers already records every career served so far.
+func commissionAppliesTo(commissionCareers, priorCareers []string, careerName string) bool {
+	if !slices.Contains(commissionCareers, careerName) {
+		return false
+	}
+
+	for _, prior := range priorCareers {
+		if slices.Contains(commissionCareers, prior) {
+			return false
+		}
+	}
+
+	return true
+}
+
 type careerSegmentResolver func(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment
 
 // careerChainRegistry is every career resolvable as a link in a
@@ -178,19 +199,69 @@ func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 	)
 }
 
+// resolveCommissionableCareerSegment mirrors resolveRiskCareerSegment's
+// own body for the three careers a Service Academy/OTC/NOTC Commission
+// (#113) can enter — Marine, Soldier, Spacer. It can't reuse that generic
+// helper directly: resolveCareer here takes a commissioned bool the
+// shared signature has no room for, computed once via
+// commissionAppliesTo before the roll.
+func resolveCommissionableCareerSegment(
+	r *dice.Roller,
+	upp UPP,
+	maxTerms int,
+	ctx segmentContext,
+	careerName string,
+	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool) (Career, UPP),
+	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
+	careerFameAwards func(career Career) []int,
+) careerSegment {
+	aging := ctx.aging()
+	commissioned := commissionAppliesTo(ctx.Education.CommissionCareers, ctx.PriorCareers, careerName)
+
+	career, careerUPP := resolveCareer(r, upp, maxTerms, aging, commissioned)
+	if aging.alive() {
+		career.MusteringOut = resolveMusterOut(r, career)
+	}
+
+	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
+
+	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
+
+	fameAwards := bonuses.FameAwards
+	if ok {
+		fameAwards = append(fameAwards, careerFameAwards(career)...)
+	}
+
+	fame := sumInts(fameAwards)
+
+	var landGrants []LandGrant
+	if ok {
+		landGrants = scoutDiscoveryLandGrants(r, career)
+	}
+
+	return careerSegment{
+		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
+	}
+}
+
 func resolveMarineSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	return resolveRiskCareerSegment(
-		r, upp, maxTerms, ctx, resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFameAwards)
+	return resolveCommissionableCareerSegment(
+		r, upp, maxTerms, ctx, MarineCareerName,
+		resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFameAwards)
 }
 
 func resolveSoldierSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	return resolveRiskCareerSegment(
-		r, upp, maxTerms, ctx, resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFameAwards)
+	return resolveCommissionableCareerSegment(
+		r, upp, maxTerms, ctx, SoldierCareerName,
+		resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFameAwards)
 }
 
 func resolveSpacerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	return resolveRiskCareerSegment(
-		r, upp, maxTerms, ctx, resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFameAwards)
+	return resolveCommissionableCareerSegment(
+		r, upp, maxTerms, ctx, SpacerCareerName,
+		resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFameAwards)
 }
 
 func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
