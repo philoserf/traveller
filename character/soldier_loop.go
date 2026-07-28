@@ -25,16 +25,23 @@ func continueSoldier(r *dice.Roller, upp UPP) bool {
 // accumulated via closure capture, branchAutomaticSkill applied to term
 // 1 after the loop completes.
 func ResolveSoldierCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
 }
 
 // resolveSoldierCareerWithBudget is ResolveSoldierCareer's own body,
 // with the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveSoldierCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
+//
+// commissioned is true for a Service Academy/OTC Commission (#113,
+// commissionAppliesTo in career_chain.go) — p.61's "Success confers a
+// Commission (OTC= Army Officer1...)" substitutes for BeginSoldier's own
+// roll.
+func resolveSoldierCareerWithBudget(
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool,
+) (Career, UPP) {
 	career := Career{Name: SoldierCareerName, HasRank: true}
 
-	if !BeginSoldier(r, int(upp.Characteristics[C1])) {
+	if !commissioned && !BeginSoldier(r, int(upp.Characteristics[C1])) {
 		// Book 1 p.65: a failed Begin roll costs a year. Careers whose
 		// Begin is a prerequisite rather than a roll (Noble's Soc B+,
 		// Craftsman's held skills, Citizen's automatic entry) charge
@@ -68,7 +75,12 @@ func resolveSoldierCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging
 	career.Terms = terms
 
 	grantBranchSkillToFirstTerm(r, &career, branch)
-	grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
+
+	if commissioned && len(career.Terms) > 0 {
+		career.Terms[0].Commissioned = true
+	}
+
+	grantStartingRankAutoSkillToFirstTerm(&career, commissioned, soldierRankAutomaticSkill)
 
 	return career, finalUPP
 }

@@ -140,7 +140,7 @@ func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
 		t.Parallel()
 
 		career := Career{}
-		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
+		grantStartingRankAutoSkillToFirstTerm(&career, false, soldierRankAutomaticSkill)
 
 		if career.Terms != nil {
 			t.Errorf("career.Terms = %v, want nil (unchanged)", career.Terms)
@@ -151,7 +151,7 @@ func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
 		t.Parallel()
 
 		career := Career{Terms: []Term{{}, {}}}
-		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
+		grantStartingRankAutoSkillToFirstTerm(&career, false, soldierRankAutomaticSkill)
 
 		if want := []SkillLevel{{Name: "Fighter", Level: 1, Kind: Skill}}; !slices.Equal(
 			career.Terms[0].SkillsAwarded, want,
@@ -169,11 +169,25 @@ func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
 		t.Parallel()
 
 		career := Career{Terms: []Term{{}}}
-		grantStartingRankAutoSkillToFirstTerm(&career, marineRankAutomaticSkill)
+		grantStartingRankAutoSkillToFirstTerm(&career, false, marineRankAutomaticSkill)
 
 		if len(career.Terms[0].SkillsAwarded) != 0 {
 			t.Errorf("career.Terms[0].SkillsAwarded = %+v, want empty (M1 Private has no Auto Skill)",
 				career.Terms[0].SkillsAwarded)
+		}
+	})
+
+	t.Run("startAsOfficer grants the Officer1 entry instead of Enlisted tier 1", func(t *testing.T) {
+		t.Parallel()
+
+		career := Career{Terms: []Term{{}}}
+		grantStartingRankAutoSkillToFirstTerm(&career, true, marineRankAutomaticSkill)
+
+		if want := []SkillLevel{{Name: "Leader", Level: 1, Kind: Skill}}; !slices.Equal(
+			career.Terms[0].SkillsAwarded, want,
+		) {
+			t.Errorf("career.Terms[0].SkillsAwarded = %+v, want %+v (Marine Officer1 grants Leader)",
+				career.Terms[0].SkillsAwarded, want)
 		}
 	})
 }

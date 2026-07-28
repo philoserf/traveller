@@ -54,6 +54,34 @@ func TestResolveSoldierCareerNeverQualifiedReturnsZeroTermsCareer(t *testing.T) 
 	}
 }
 
+// TestResolveSoldierCareerWithBudgetCommissionBypassesBegin mirrors
+// TestResolveMarineCareerWithBudgetCommissionBypassesBegin (#113): a
+// Commission substitutes for BeginSoldier's own roll, entering term 1
+// already Commissioned at Officer1 and granting Soldier's own O1 auto
+// skill ("Leader," soldier_promotion.go).
+func TestResolveSoldierCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSoldier")
+	}
+
+	if !career.Terms[0].Commissioned {
+		t.Error("career.Terms[0].Commissioned = false, want true")
+	}
+
+	want := SkillLevel{Name: "Leader", Level: 1, Kind: Skill}
+	if !slices.Contains(career.Terms[0].SkillsAwarded, want) {
+		t.Errorf("career.Terms[0].SkillsAwarded = %+v, want to contain %+v (Soldier Officer1 auto skill)",
+			career.Terms[0].SkillsAwarded, want)
+	}
+}
+
 // TestResolveSoldierCareerRespectsMaxTermsCap uses a provably immortal
 // fixture: Str=End=Int=20 (all three of Soldier's own Risk & Reward
 // positions), high enough that even the worst-case combined Mod

@@ -1,6 +1,8 @@
 package character
 
 import (
+	"slices"
+
 	"github.com/philoserf/traveller/dice"
 	"github.com/philoserf/traveller/ehex"
 )
@@ -23,12 +25,17 @@ import (
 // Apply / Pass-Fail / Waiver / Graduation machinery they share, and
 // Major and Minor selection.
 //
+// This also carries Service Academy and OTC/NOTC (#113), which confer a
+// military Commission — Marine/Soldier/Spacer entry sees this through
+// Education.CommissionCareers and commissionAppliesTo (career_chain.go).
+// The one-term-of-service obligation both describe needs no enforcement
+// code of its own: #110 already makes every chain career run to its own
+// natural end, so a Commissioned entry serves at least one term as a
+// structural consequence of that, not a rule this package tracks.
+//
 // What is deliberately not here yet, because each pulls in a mechanic of
 // its own rather than more of this one:
 //
-//   - Service Academy, OTC and NOTC confer a military Commission and
-//     oblige a term of service, which is a career interaction rather
-//     than a schooling one.
 //   - Masters, Professors, Medical School and Law School gate on a
 //     degree this step now produces (BA, MA, Honors BA), so they chain
 //     off it rather than sitting beside it.
@@ -74,6 +81,20 @@ type educationInstitution struct {
 	GrantsMajorMinor bool
 	// MajorBonus is Trade School's own flat "Major+2" instead.
 	MajorBonus int
+	// CommissionCareers are the careers Graduation confers a Commission
+	// into — p.60's own "Officer1" Provides entries. Empty for every row
+	// but Service Academy.
+	CommissionCareers []string
+	// ChartName is the p.92-93 Educational Institution Chart key to roll
+	// a school name against (rollInstitution), if different from Name.
+	// p.61: "Service Academies (Military Academy and Naval Academy)" —
+	// the chart itself only has those two named entries, no "Service
+	// Academy" row, and this codebase doesn't simulate which of the two a
+	// graduate attended (CommissionCareers already spans all three
+	// careers a Naval Academy graduate's own "may choose a Marine
+	// Commission instead" reaches). "Naval Academy" is the closer match
+	// of the two — Military Academy only ever leads to Soldier.
+	ChartName string
 }
 
 // educationInstitutions are the rows this step can send a character to,
@@ -91,11 +112,35 @@ type educationInstitution struct {
 // gap in it. A player who wanted Trade School's flat "Major+2" over
 // College's "Major+1 per Pass" across four years would be choosing the
 // smaller award, since four passes beat two.
+//
+// Service Academy sits between University and College for the same
+// reason: against College it is a strict improvement at equal cost (Edu
+// 6+ instead of 5+, same checks and years, a BA either way, plus a
+// Commission), but University's Edu=9 against Service Academy's Edu=8 is
+// a real tradeoff — a higher Edu against a forced one-term military
+// obligation (#113) — so a character who qualifies for both is read here
+// as preferring University's own outcome.
 var educationInstitutions = []educationInstitution{
 	{
 		Name: "University", MinEdu: 7,
 		ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 4,
 		GraduationEdu: 9, Degree: educationDegreeBachelors, GrantsMajorMinor: true,
+	},
+	{
+		// p.61: "Service Academies (Military Academy and Naval Academy)
+		// are Colleges for the armed forces: in addition to a degree,
+		// they provide graduates an Army or Navy Commission (a Naval
+		// Academy graduate may choose a Marine Commission instead)." This
+		// codebase doesn't simulate a Military-vs-Naval-Academy choice —
+		// career choice is already fully external (the caller's own
+		// careerNames list) — so eligibility spans all three and is
+		// consumed by whichever the chain attempts first; see
+		// commissionAppliesTo in career_chain.go.
+		Name: "Service Academy", MinEdu: 6,
+		ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 4,
+		GraduationEdu: 8, Degree: educationDegreeBachelors, GrantsMajorMinor: true,
+		CommissionCareers: []string{SoldierCareerName, SpacerCareerName, MarineCareerName},
+		ChartName:         "Naval Academy",
 	},
 	{
 		Name: "College", MinEdu: 5,
@@ -160,6 +205,13 @@ type Education struct {
 	Waivers int
 	// Skills are the levels the process awarded, already merged.
 	Skills []SkillLevel
+	// CommissionCareers are the careers this character may enter already
+	// Commissioned at Officer1 — p.61's own "Army or Navy Commission (a
+	// Naval Academy graduate may choose a Marine Commission instead)" for
+	// Service Academy, and OTC/NOTC's own narrower grants. Consumed by
+	// whichever the caller's career chain attempts first; see
+	// commissionAppliesTo in career_chain.go.
+	CommissionCareers []string
 }
 
 // Attended reports whether this character went to school at all.
@@ -194,6 +246,13 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	runEducationYears(r, upp, school, &edu)
 
+	// p.61: "A character attending College or University may also
+	// volunteer to participate in OTC ... or NOTC." Resolved regardless of
+	// whether the primary program itself Graduates — p.60's own worked
+	// example has Eneri volunteer for NOTC mid-College, well before his
+	// eventual graduation.
+	resolveOfficerTrainingCorps(r, upp, &edu)
+
 	if !edu.Graduated {
 		return edu, upp
 	}
@@ -201,15 +260,71 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	upp = applyGraduation(upp, school, &edu)
 	resolveHonors(r, upp, school, &edu)
 
+	if len(school.CommissionCareers) > 0 {
+		edu.CommissionCareers = mergeCommissionCareers(edu.CommissionCareers, school.CommissionCareers)
+	}
+
 	// p.72's own "For Each School Attended: Note School Name and Rank",
 	// rolled after the schooling itself so a character who was refused
 	// admission never gets a school name. <Skill> resolves against the
 	// Major, which is what a Trade School taught.
-	edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = rollInstitution(r, school.Name, edu.Major)
+	chartName := school.ChartName
+	if chartName == "" {
+		chartName = school.Name
+	}
+
+	edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = rollInstitution(r, chartName, edu.Major)
 
 	edu.Skills = aggregateSkills(edu.Skills)
 
 	return edu, upp
+}
+
+// resolveOfficerTrainingCorps is p.61's OTC/NOTC: "A character attending
+// College or University may also volunteer to participate in OTC (Officer
+// Training Corps) or NOTC (Naval Officer Training Corps) ... Success
+// confers a Commission (OTC= Army Officer1; NOTC= Navy Officer1 or Marine
+// Officer1). The character is required to serve one term in the service.
+// At the end of that term, the character may try to continue, or may
+// attempt any other career available. He is in the Reserves." The
+// one-term-then-Reserves obligation needs no code here — #110 already
+// runs every chain career to its own natural end, so a Commissioned
+// entry serves at least one term structurally.
+//
+// "OTC ... or NOTC" is read as the open choice between the two p.60 rows
+// it plainly is — one program, not both — resolved the same way every
+// other open choice in this package already is (chooseInstitution,
+// nextCC): toward the better outcome rather than a uniform pick. NOTC
+// strictly dominates here: its own Commission spans two careers (Navy or
+// Marine) against OTC's one (Army), for an identical roll and skill
+// grant, so this always volunteers for NOTC.
+//
+// The single Pass/Fail check is Waiver-eligible like any other Education
+// roll — p.59's Waiver clause carves out no exception for it.
+func resolveOfficerTrainingCorps(r *dice.Roller, upp UPP, edu *Education) {
+	if edu.School != "College" && edu.School != "University" {
+		return
+	}
+
+	if !checkAgainst(r, upp, []Position{C4, C5}) && !tryWaiver(r, upp, &edu.Waivers) {
+		return
+	}
+
+	edu.Skills = append(edu.Skills, skillLevel1("Starship Skill", Skill))
+	edu.CommissionCareers = mergeCommissionCareers(edu.CommissionCareers, []string{SpacerCareerName, MarineCareerName})
+}
+
+// mergeCommissionCareers merges newCareers into existing, deduplicated —
+// a character could in principle qualify through more than one path (e.g.
+// both OTC and NOTC), and Education.CommissionCareers records the union.
+func mergeCommissionCareers(existing, newCareers []string) []string {
+	for _, career := range newCareers {
+		if !slices.Contains(existing, career) {
+			existing = append(existing, career)
+		}
+	}
+
+	return existing
 }
 
 // runEducationYears is p.59's own per-year Pass/Fail loop: "A character

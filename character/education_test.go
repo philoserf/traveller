@@ -2,6 +2,7 @@ package character
 
 import (
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -15,9 +16,13 @@ func eduUPP(intChar, edu, soc ehex.Value) UPP {
 }
 
 // TestInstitutionChoiceFollowsThePrerequisites is p.60's Pre-Requisites
-// column — "Edu 5+" for College, "Edu 7+" for University, "Edu 4 -" for
-// ED5 — and this codebase's resolution of the open choice between them:
-// the most demanding school the character qualifies for.
+// column — "Edu 5+" for College, "Edu 6+" for Service Academy, "Edu 7+"
+// for University, "Edu 4 -" for ED5 — and this codebase's resolution of
+// the open choice between them: the most demanding school the character
+// qualifies for. Service Academy outranks College once Edu 6+ is met
+// (same cost, plus a Commission — see educationInstitutions's own doc
+// comment) but not University, whose higher Edu=9 is read as preferred
+// over Service Academy's forced one-term military obligation (#113).
 func TestInstitutionChoiceFollowsThePrerequisites(t *testing.T) {
 	t.Parallel()
 
@@ -28,7 +33,7 @@ func TestInstitutionChoiceFollowsThePrerequisites(t *testing.T) {
 		{0, "ED5"},
 		{4, "ED5"},
 		{5, "College"},
-		{6, "College"},
+		{6, "Service Academy"},
 		{7, "University"},
 		{12, "University"},
 	}
@@ -215,5 +220,114 @@ func TestEducationReachesEveryGeneratedCharacter(t *testing.T) {
 
 	if attended != total {
 		t.Errorf("%d of %d characters attended an institution, want all of them", attended, total)
+	}
+}
+
+// TestServiceAcademyGrantsCommissionOnGraduation is #113's own p.61:
+// "Service Academies ... provide graduates an Army or Navy Commission (a
+// Naval Academy graduate may choose a Marine Commission instead)." Edu 6
+// (above College's Edu 5+ floor, below University's Edu 7+) isolates
+// Service Academy per the preference-order ruling recorded in
+// educationInstitutions's own doc comment.
+func TestServiceAcademyGrantsCommissionOnGraduation(t *testing.T) {
+	t.Parallel()
+
+	// Int and Edu of 20 pass every check, so all four years are Passes.
+	edu, upp := resolveEducation(dice.New(rand.NewPCG(6, 6)), eduUPP(20, 6, 20))
+
+	if edu.School != "Service Academy" {
+		t.Fatalf("School = %q, want Service Academy", edu.School)
+	}
+
+	// Degree is "Honors BA" rather than plain "BA" here: an unfailable
+	// fixture also clears the optional Honors roll (resolveHonors), the
+	// same non-determinism TestDegreeProgramGrantsMajorPerPassAndMinorPerTwo
+	// already accounts for.
+	if !edu.Graduated || (edu.Degree != educationDegreeBachelors && edu.Degree != educationDegreeHonours) {
+		t.Fatalf("Graduated = %v Degree = %q, want a BA or Honors BA", edu.Graduated, edu.Degree)
+	}
+
+	if upp.Characteristics[C5] < 8 {
+		t.Errorf("Edu = %v after graduation, want at least 8", upp.Characteristics[C5])
+	}
+
+	want := []string{SoldierCareerName, SpacerCareerName, MarineCareerName}
+	for _, career := range want {
+		if !slices.Contains(edu.CommissionCareers, career) {
+			t.Errorf("CommissionCareers = %v, want it to contain %q", edu.CommissionCareers, career)
+		}
+	}
+}
+
+// TestServiceAcademyNoCommissionWithoutGraduation is the failure-path
+// counterpart: p.61's Commission is a Graduation benefit, so a character
+// refused Admission (and refused a Waiver) must not carry one — the same
+// "no attempt, no award" shape every other Graduation benefit already has.
+func TestServiceAcademyNoCommissionWithoutGraduation(t *testing.T) {
+	t.Parallel()
+
+	// Int 1 fails Apply (2D6<=1 is impossible); Soc 1 fails the Waiver too.
+	edu, _ := resolveEducation(dice.New(rand.NewPCG(6, 6)), eduUPP(1, 6, 1))
+
+	if edu.Graduated {
+		t.Fatal("edu.Graduated = true, want Admission to have failed")
+	}
+
+	if len(edu.CommissionCareers) != 0 {
+		t.Errorf("CommissionCareers = %v, want empty without Graduation", edu.CommissionCareers)
+	}
+}
+
+// TestOfficerTrainingCorpsGrantsCommissionsAtCollege is p.61's own OTC/
+// NOTC: "A character attending College or University may also volunteer
+// to participate in OTC ... or NOTC ... Success confers a Commission
+// (OTC= Army Officer1; NOTC= Navy Officer1 or Marine Officer1)." Edu 5
+// isolates College (below Service Academy's Edu 6+ floor). This codebase
+// always volunteers for NOTC over OTC (resolveOfficerTrainingCorps's own
+// doc comment), so an unfailable fixture earns NOTC's own Navy-or-Marine
+// Commission and "Ship Skill-1" grant.
+func TestOfficerTrainingCorpsGrantsCommissionsAtCollege(t *testing.T) {
+	t.Parallel()
+
+	edu, _ := resolveEducation(dice.New(rand.NewPCG(9, 9)), eduUPP(20, 5, 20))
+
+	if edu.School != "College" {
+		t.Fatalf("School = %q, want College", edu.School)
+	}
+
+	for _, career := range []string{SpacerCareerName, MarineCareerName} {
+		if !slices.Contains(edu.CommissionCareers, career) {
+			t.Errorf("CommissionCareers = %v, want it to contain %q (NOTC)", edu.CommissionCareers, career)
+		}
+	}
+
+	if slices.Contains(edu.CommissionCareers, SoldierCareerName) {
+		t.Errorf("CommissionCareers = %v, want no Soldier — NOTC is preferred over OTC", edu.CommissionCareers)
+	}
+
+	names := map[string]bool{}
+	for _, s := range edu.Skills {
+		names[s.Name] = true
+	}
+
+	if !names["Starship Skill"] {
+		t.Error("edu.Skills has no \"Starship Skill\" grant, want NOTC's own p.60 \"Ship Skill-1\" Provides entry")
+	}
+}
+
+// TestOfficerTrainingCorpsRequiresCollegeOrUniversity guards p.61's own
+// gate — "A character attending College or University" — against ED5,
+// which draws no dice at all today (TestNoDiceAreDrawnWithoutAnInstitution)
+// and must not start doing so once OTC/NOTC exist.
+func TestOfficerTrainingCorpsRequiresCollegeOrUniversity(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "ED5"}
+	before := dice.New(rand.NewPCG(1, 1))
+
+	resolveOfficerTrainingCorps(before, eduUPP(20, 20, 20), &edu)
+
+	if len(edu.CommissionCareers) != 0 || len(edu.Skills) != 0 {
+		t.Errorf("edu = %+v, want unchanged — OTC/NOTC only apply at College or University", edu)
 	}
 }

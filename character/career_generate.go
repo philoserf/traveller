@@ -96,15 +96,22 @@ func grantBranchSkillToFirstTerm(r *dice.Roller, career *Career, branch string) 
 // (marineRankAutomaticSkill/soldierRankAutomaticSkill/
 // spacerRankAutomaticSkill). A no-op if career never qualified (no
 // terms at all).
+//
+// startAsOfficer is true for a Service Academy/OTC/NOTC Commission
+// (#113), which enters a career already Officer1 rather than Enlisted
+// tier 1 — p.61's own worked example has Eneri "commissioned O1 Ensign
+// ... receives the Automatic Officer Skill Astrogation-1", the exact
+// autoSkill(true, 1) case this generalizes to reach.
 func grantStartingRankAutoSkillToFirstTerm(
 	career *Career,
+	startAsOfficer bool,
 	autoSkill func(isOfficer bool, tier int) (SkillLevel, bool),
 ) {
 	if len(career.Terms) == 0 {
 		return
 	}
 
-	if skill, ok := autoSkill(false, 1); ok {
+	if skill, ok := autoSkill(startAsOfficer, 1); ok {
 		career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
 	}
 }

@@ -28,16 +28,24 @@ func continueSpacer(r *dice.Roller, upp UPP) bool {
 // row's own Enlisted name (spacerBranchEnlistedNames[branchRow]) — the
 // character is definitionally still Enlisted at that point.
 func ResolveSpacerCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
 }
 
 // resolveSpacerCareerWithBudget is ResolveSpacerCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
 // resolveCareerLoop's own doc comment for why.
-func resolveSpacerCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
+//
+// commissioned is true for a Service Academy/NOTC Commission (#113,
+// commissionAppliesTo in career_chain.go) — p.61's "Success confers a
+// Commission (... NOTC= Navy Officer1 or Marine Officer1)" substitutes
+// for BeginSpacer's own roll. p.61's own worked example is exactly this
+// path: Eneri is "commissioned O1 Ensign in the Imperial Navy" via NOTC.
+func resolveSpacerCareerWithBudget(
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool,
+) (Career, UPP) {
 	career := Career{Name: SpacerCareerName, HasRank: true}
 
-	if !BeginSpacer(r, int(upp.Characteristics[C4])) {
+	if !commissioned && !BeginSpacer(r, int(upp.Characteristics[C4])) {
 		// Book 1 p.65: a failed Begin roll costs a year. Careers whose
 		// Begin is a prerequisite rather than a roll (Noble's Soc B+,
 		// Craftsman's held skills, Citizen's automatic entry) charge
@@ -71,7 +79,12 @@ func resolveSpacerCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging 
 	career.Terms = terms
 
 	grantBranchSkillToFirstTerm(r, &career, spacerBranchEnlistedNames[branchRow])
-	grantStartingRankAutoSkillToFirstTerm(&career, spacerRankAutomaticSkill)
+
+	if commissioned && len(career.Terms) > 0 {
+		career.Terms[0].Commissioned = true
+	}
+
+	grantStartingRankAutoSkillToFirstTerm(&career, commissioned, spacerRankAutomaticSkill)
 
 	return career, finalUPP
 }

@@ -54,6 +54,35 @@ func TestResolveSpacerCareerNeverQualifiedReturnsZeroTermsCareer(t *testing.T) {
 	}
 }
 
+// TestResolveSpacerCareerWithBudgetCommissionBypassesBegin mirrors
+// TestResolveMarineCareerWithBudgetCommissionBypassesBegin (#113): a
+// Commission substitutes for BeginSpacer's own roll, entering term 1
+// already Commissioned at Officer1 and granting Spacer's own O1 auto
+// skill ("Astrogator," spacer_promotion.go) — the same skill p.61's own
+// worked example has Eneri receive on his NOTC Commission.
+func TestResolveSpacerCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSpacer")
+	}
+
+	if !career.Terms[0].Commissioned {
+		t.Error("career.Terms[0].Commissioned = false, want true")
+	}
+
+	want := SkillLevel{Name: "Astrogator", Level: 1, Kind: Skill}
+	if !slices.Contains(career.Terms[0].SkillsAwarded, want) {
+		t.Errorf("career.Terms[0].SkillsAwarded = %+v, want to contain %+v (Spacer Officer1 auto skill)",
+			career.Terms[0].SkillsAwarded, want)
+	}
+}
+
 // TestResolveSpacerCareerRespectsMaxTermsCap uses a provably immortal
 // fixture: Str=Dex=Int=20 (all three of Spacer's own Risk & Reward
 // positions), high enough that even the worst-case combined Mod

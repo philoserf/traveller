@@ -1,6 +1,10 @@
 package character
 
-import "github.com/philoserf/traveller/dice"
+import (
+	"slices"
+
+	"github.com/philoserf/traveller/dice"
+)
 
 // GenerateMarineCharacter generates a full Human Marine Character end to
 // end: a UPP, a homeworld and its background skills, a full multi-term
@@ -14,7 +18,9 @@ import "github.com/philoserf/traveller/dice"
 func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildMarineCharacter(r, upp, homeworld, homeworldSkills)
+	commissioned := slices.Contains(education.CommissionCareers, MarineCareerName)
+
+	c, ok := buildMarineCharacter(r, upp, homeworld, homeworldSkills, commissioned)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -27,10 +33,15 @@ func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 // (byte-identical, per golangci-lint's own dupl check), including reuse
 // of scoutWoundBadges and musterOutRollCount (already generic,
 // nothing Scout-specific in either body).
-func buildMarineCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
+//
+// commissioned is #113's Service Academy/OTC/NOTC Commission — see
+// resolveMarineCareerWithBudget's own doc comment (marine_loop.go).
+func buildMarineCharacter(
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned bool,
+) (Character, bool) {
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
-			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging)
+			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned)
 		}, ResolveMarineMusterOut, marineCareerFameAwards)
 }
 

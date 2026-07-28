@@ -16,7 +16,7 @@ func TestBuildSoldierCharacterNeverQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildSoldierCharacter(r, upp, "A000000-0", homeworldSkills)
+	c, ok := buildSoldierCharacter(r, upp, "A000000-0", homeworldSkills, false)
 
 	if ok {
 		t.Error("ok = true, want false (never qualified)")
@@ -52,7 +52,7 @@ func TestBuildSoldierCharacterDies(t *testing.T) {
 	sawDeath := false
 
 	for range 200 {
-		c, ok := buildSoldierCharacter(r, upp, "hw", nil)
+		c, ok := buildSoldierCharacter(r, upp, "hw", nil, false)
 
 		terms := c.Careers[0].Terms
 		if len(terms) == 0 {
@@ -103,7 +103,7 @@ func TestBuildSoldierCharacterQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildSoldierCharacter(r, upp, "hw", homeworldSkills)
+	c, ok := buildSoldierCharacter(r, upp, "hw", homeworldSkills, false)
 
 	if !ok {
 		t.Fatal("ok = false, want true (fixture guarantees survival)")
