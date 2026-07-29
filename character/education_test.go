@@ -331,3 +331,239 @@ func TestOfficerTrainingCorpsRequiresCollegeOrUniversity(t *testing.T) {
 		t.Errorf("edu = %+v, want unchanged — OTC/NOTC only apply at College or University", edu)
 	}
 }
+
+// TestHoldsDegree covers holdsDegree's own Honors-satisfies-plain-BA
+// rule (#113): an Honors graduate has "a Bachelors" too, just a better
+// one, which is why Masters's own BA prerequisite must not reject them.
+func TestHoldsDegree(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		have string
+		want string
+		ok   bool
+	}{
+		{"plain BA satisfies BA", educationDegreeBachelors, educationDegreeBachelors, true},
+		{"Honors BA satisfies BA", educationDegreeHonours, educationDegreeBachelors, true},
+		{"plain BA does not satisfy Honors BA", educationDegreeBachelors, educationDegreeHonours, false},
+		{"MA satisfies MA", educationDegreeMasters, educationDegreeMasters, true},
+		{"no degree satisfies nothing", "", educationDegreeBachelors, false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := holdsDegree(Education{Degree: c.have}, c.want); got != c.ok {
+				t.Errorf("holdsDegree(Degree=%q, %q) = %v, want %v", c.have, c.want, got, c.ok)
+			}
+		})
+	}
+}
+
+// TestResolveGraduateEducationOnlyAppliesToUniversity guards #113's own
+// gate — "A University Masters Program"/"Often associated with a
+// University" both name University specifically, unlike OTC/NOTC's
+// "College or University." A College graduate, even an Honors one,
+// must not reach Medical School.
+func TestResolveGraduateEducationOnlyAppliesToUniversity(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "College", Degree: educationDegreeHonours}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	resolveGraduateEducation(r, eduUPP(20, 9, 20), &edu)
+
+	if edu.Graduate != nil {
+		t.Errorf("edu.Graduate = %+v, want nil — only University feeds the graduate tier", edu.Graduate)
+	}
+}
+
+// TestResolveGraduateEducationReachesHonorsTierWithHonors is #113's own
+// ruling that Medical School and Law School are a genuine open choice
+// (educationHonorsTierPrograms's own doc comment) — an Honors BA holder
+// reaches one of the two (picked at random), not Masters, even though
+// Masters's own weaker BA prerequisite is also satisfied. Runs many
+// seeds to confirm both ever fire, guarding the exact "content that
+// can't fire" mistake a first ordered-preference draft actually made
+// (see educationHonorsTierPrograms's own doc comment) — measurement
+// caught Law School reached in only 12 of 6,000 trials before this was
+// fixed to a random pick.
+func TestResolveGraduateEducationReachesHonorsTierWithHonors(t *testing.T) {
+	t.Parallel()
+
+	sawMedical, sawLaw := false, false
+
+	for seed := uint64(1); seed <= 200; seed++ {
+		edu := Education{School: "University", Degree: educationDegreeHonours, Minor: "Robotics"}
+		r := dice.New(rand.NewPCG(seed, seed))
+
+		upp := resolveGraduateEducation(r, eduUPP(20, 9, 20), &edu)
+
+		if edu.Graduate == nil {
+			t.Fatalf("seed %d: edu.Graduate is nil, want Medical or Law School", seed)
+		}
+
+		switch edu.Graduate.School {
+		case "Medical School":
+			sawMedical = true
+
+			if edu.Graduate.Degree != educationDegreeDoctor {
+				t.Errorf("seed %d: Degree = %q, want %q", seed, edu.Graduate.Degree, educationDegreeDoctor)
+			}
+		case "Law School":
+			sawLaw = true
+
+			if edu.Graduate.Degree != educationDegreeAttorney {
+				t.Errorf("seed %d: Degree = %q, want %q", seed, edu.Graduate.Degree, educationDegreeAttorney)
+			}
+		default:
+			t.Fatalf("seed %d: School = %q, want Medical or Law School", seed, edu.Graduate.School)
+		}
+
+		if !edu.Graduate.Graduated {
+			t.Errorf("seed %d: Graduate.Graduated = false, want true (unfailable fixture)", seed)
+		}
+
+		if upp.Characteristics[C5] < 10 {
+			t.Errorf("seed %d: Edu = %v after graduation, want at least 10", seed, upp.Characteristics[C5])
+		}
+	}
+
+	if !sawMedical || !sawLaw {
+		t.Errorf("sawMedical=%v sawLaw=%v across 200 seeds, want both to fire", sawMedical, sawLaw)
+	}
+}
+
+// TestMedicalSchoolGrantsMedicPerPass isolates Medical School's own
+// "Medic-4" Provides cell directly (bypassing the Medical-vs-Law random
+// pick) to prove it's a +1-per-pass grant across its own 4 rolls,
+// matching its own roll count exactly — the same "+1 Major per Pass"
+// accumulation shape College/University/Service Academy already use,
+// just naming a fixed skill instead of the character's own Major.
+func TestMedicalSchoolGrantsMedicPerPass(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "University", Degree: educationDegreeHonours}
+
+	var grad GraduateProgram
+
+	r := dice.New(rand.NewPCG(1, 1))
+	resolveOneGraduateProgram(r, eduUPP(20, 9, 20), educationHonorsTierPrograms[0], &edu, &grad)
+
+	if !grad.Graduated || grad.Degree != educationDegreeDoctor {
+		t.Fatalf("grad = %+v, want a graduated Doctor (unfailable fixture)", grad)
+	}
+
+	medicLevel := 0
+
+	for _, s := range edu.Skills {
+		if s.Name == "Medic" {
+			medicLevel += s.Level
+		}
+	}
+
+	if medicLevel != 4 {
+		t.Errorf("Medic level = %d, want 4 (4 passes, +1 Medic each)", medicLevel)
+	}
+}
+
+// TestResolveGraduateEducationFallsBackToMastersWithoutHonors covers
+// the plain-BA path: Soc 1 makes Medical/Law School's own Waiver into
+// their unmet Honors-BA prerequisite impossible (2D6<=1), so the loop
+// falls through to Masters, whose own BA prerequisite is already held.
+// Masters's own "Minor+1 per 2 Passes" advances the Minor University
+// already declared — 2 passes yields exactly one grant, no fresh
+// subject and no Major grant at all.
+func TestResolveGraduateEducationFallsBackToMastersWithoutHonors(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "University", Major: "Psychology", Degree: educationDegreeBachelors, Minor: "Robotics"}
+	r := dice.New(rand.NewPCG(3, 3))
+
+	upp := resolveGraduateEducation(r, eduUPP(20, 9, 1), &edu)
+
+	if edu.Graduate == nil || edu.Graduate.School != "Masters" {
+		t.Fatalf("Graduate = %+v, want School=Masters", edu.Graduate)
+	}
+
+	if edu.Graduate.Degree != educationDegreeMasters || !edu.Graduate.Graduated {
+		t.Errorf("Graduate = %+v, want Degree=MA Graduated=true (unfailable fixture)", edu.Graduate)
+	}
+
+	if upp.Characteristics[C5] < 9 {
+		t.Errorf("Edu = %v after graduation, want at least 9", upp.Characteristics[C5])
+	}
+
+	names := map[string]int{}
+	for _, s := range edu.Skills {
+		names[s.Name] += s.Level
+	}
+
+	if names["Robotics"] != 1 {
+		t.Errorf("Robotics (Minor) level = %d, want 1 (2 Masters passes, Minor+1 per 2 Passes)", names["Robotics"])
+	}
+
+	if names["Psychology"] != 0 {
+		t.Errorf("Psychology (Major) level = %d, want 0 — Masters grants no Major skill", names["Psychology"])
+	}
+}
+
+// TestResolveGraduateEducationWaivesIntoHonorsTierWithoutHonors is
+// p.59's own Waiver clause naming "Prerequisite" as one of exactly four
+// waivable adverse decisions, restated in the Masters/Professors/
+// Medical/Law paragraph as "(all of these requirements can be
+// waived)". Soc 20 makes the Waiver into an unmet Honors-BA
+// prerequisite unfailable, reaching Medical or Law School despite only
+// holding a plain BA.
+func TestResolveGraduateEducationWaivesIntoHonorsTierWithoutHonors(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "University", Degree: educationDegreeBachelors}
+	r := dice.New(rand.NewPCG(4, 4))
+
+	resolveGraduateEducation(r, eduUPP(20, 9, 20), &edu)
+
+	if edu.Graduate == nil || (edu.Graduate.School != "Medical School" && edu.Graduate.School != "Law School") {
+		t.Fatalf("Graduate = %+v, want Medical or Law School (waived into its own Honors-BA prerequisite)",
+			edu.Graduate)
+	}
+
+	if edu.Waivers == 0 {
+		t.Error("edu.Waivers = 0, want at least one recorded waiver attempt")
+	}
+}
+
+// TestResolveGraduateEducationChainsProfessorsAfterMasters is p.61's
+// own "A Professors Program requires a Masters" — reachable only once
+// Masters itself graduates with Degree MA, recorded as
+// Graduate.Next rather than replacing Graduate.
+func TestResolveGraduateEducationChainsProfessorsAfterMasters(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "University", Degree: educationDegreeBachelors, Minor: "Robotics"}
+	r := dice.New(rand.NewPCG(3, 3))
+
+	upp := resolveGraduateEducation(r, eduUPP(20, 9, 1), &edu)
+
+	if edu.Graduate == nil || edu.Graduate.School != "Masters" || !edu.Graduate.Graduated {
+		t.Fatalf("Graduate = %+v, want a graduated Masters", edu.Graduate)
+	}
+
+	if edu.Graduate.Next == nil {
+		t.Fatal("Graduate.Next is nil, want a chained Professors attempt")
+	}
+
+	if edu.Graduate.Next.School != "Professors" || edu.Graduate.Next.Degree != educationDegreeProfessor {
+		t.Errorf("Graduate.Next = %+v, want School=Professors Degree=Professor", edu.Graduate.Next)
+	}
+
+	if !edu.Graduate.Next.Graduated {
+		t.Error("Graduate.Next.Graduated = false, want true (unfailable fixture)")
+	}
+
+	if upp.Characteristics[C5] < 12 {
+		t.Errorf("Edu = %v after Professors graduation, want at least 12", upp.Characteristics[C5])
+	}
+}
