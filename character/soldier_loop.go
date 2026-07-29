@@ -25,7 +25,7 @@ func continueSoldier(r *dice.Roller, upp UPP) bool {
 // accumulated via closure capture, branchAutomaticSkill applied to term
 // 1 after the loop completes.
 func ResolveSoldierCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
+	return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false, false)
 }
 
 // resolveSoldierCareerWithBudget is ResolveSoldierCareer's own body,
@@ -35,9 +35,12 @@ func ResolveSoldierCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 // commissioned is true for a Service Academy/OTC Commission (#113,
 // commissionAppliesTo in career_chain.go) — p.61's "Success confers a
 // Commission (OTC= Army Officer1...)" substitutes for BeginSoldier's own
-// roll.
+// roll. flightSchool (only ever true alongside commissioned) is p.61's
+// Flight School — see resolveMarineCareerWithBudget's own doc comment
+// for the full shape; Soldier's own branch table has no Flight row
+// either, same documented gap, Mod 0.
 func resolveSoldierCareerWithBudget(
-	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool,
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
 ) (Career, UPP) {
 	career := Career{Name: SoldierCareerName, HasRank: true}
 
@@ -51,7 +54,10 @@ func resolveSoldierCareerWithBudget(
 		return career, upp
 	}
 
-	branch, branchMod := rollSoldierBranch(r)
+	branch, branchMod := "Flight", 0
+	if !flightSchool {
+		branch, branchMod = rollSoldierBranch(r)
+	}
 
 	var priorTerms []Term
 
@@ -61,7 +67,15 @@ func resolveSoldierCareerWithBudget(
 
 	terms, finalUPP := resolveCareerLoop(r, upp, soldierRiskRewardPositions,
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
-			term, updatedUPP := ResolveSoldierTerm(r, upp, ccPos, branch, branchMod, priorTerms)
+			entryCommissioned := commissioned && len(priorTerms) == 0
+
+			operationsRolls := operationsRollsPerTerm
+			if flightSchool && len(priorTerms) == 0 {
+				operationsRolls = operationsRollsPerTerm - 1
+			}
+
+			term, updatedUPP := ResolveSoldierTerm(
+				r, upp, ccPos, branch, branchMod, priorTerms, entryCommissioned, operationsRolls)
 			term.SkillsAwarded = append(collegeSkills(), term.SkillsAwarded...)
 			priorTerms = append(priorTerms, term)
 
@@ -76,11 +90,19 @@ func resolveSoldierCareerWithBudget(
 
 	grantBranchSkillToFirstTerm(r, &career, branch)
 
-	if commissioned && len(career.Terms) > 0 {
-		career.Terms[0].Commissioned = true
+	// A Commissioned entry's own Officer1 skill is granted inside
+	// ResolveSoldierTerm instead (entryCommissioned above) — calling
+	// this too would double-grant.
+	if !commissioned {
+		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
 	}
 
-	grantStartingRankAutoSkillToFirstTerm(&career, commissioned, soldierRankAutomaticSkill)
+	if flightSchool && len(career.Terms) > 0 {
+		career.Terms[0].SkillsAwarded = append(
+			career.Terms[0].SkillsAwarded,
+			SkillLevel{Name: "Pilot", Level: 3, Kind: Skill},
+		)
+	}
 
 	return career, finalUPP
 }

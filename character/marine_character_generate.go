@@ -19,8 +19,9 @@ func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
 	commissioned := slices.Contains(education.CommissionCareers, MarineCareerName)
+	flightSchool := commissioned && education.Honors
 
-	c, ok := buildMarineCharacter(r, upp, homeworld, homeworldSkills, commissioned)
+	c, ok := buildMarineCharacter(r, upp, homeworld, homeworldSkills, commissioned, flightSchool)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -34,14 +35,15 @@ func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 // of scoutWoundBadges and musterOutRollCount (already generic,
 // nothing Scout-specific in either body).
 //
-// commissioned is #113's Service Academy/OTC/NOTC Commission — see
-// resolveMarineCareerWithBudget's own doc comment (marine_loop.go).
+// commissioned/flightSchool are #113's Service Academy/OTC/NOTC
+// Commission and Flight School — see resolveMarineCareerWithBudget's
+// own doc comment (marine_loop.go).
 func buildMarineCharacter(
-	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned bool,
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned, flightSchool bool,
 ) (Character, bool) {
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
-			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned)
+			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned, flightSchool)
 		}, ResolveMarineMusterOut, marineCareerFameAwards)
 }
 

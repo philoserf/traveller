@@ -284,9 +284,9 @@ func TestArmedForcesTermsRecordEveryOperation(t *testing.T) {
 	r := dice.New(rand.NewPCG(23, 23))
 
 	for range 100 {
-		marine, _ := ResolveMarineTerm(r, upp, C1, "Commando", 0, nil)
-		soldier, _ := ResolveSoldierTerm(r, upp, C1, "Infantry", 0, nil)
-		spacer, _ := ResolveSpacerTerm(r, upp, C1, 0, nil)
+		marine, _ := ResolveMarineTerm(r, upp, C1, "Commando", 0, nil, false, operationsRollsPerTerm)
+		soldier, _ := ResolveSoldierTerm(r, upp, C1, "Infantry", 0, nil, false, operationsRollsPerTerm)
+		spacer, _ := ResolveSpacerTerm(r, upp, C1, 0, nil, false, operationsRollsPerTerm)
 
 		for _, c := range []struct {
 			name string

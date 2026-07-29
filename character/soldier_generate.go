@@ -83,10 +83,10 @@ func rollSoldierBranch(r *dice.Roller) (string, int) {
 // rollSoldierOperations rolls 4 times (p.82: "Rolls 4 times per Term for
 // Operations; select the highest Mod of the four"), delegating to the
 // shared rollOperations/operationsEduDM (career_generate.go).
-func rollSoldierOperations(r *dice.Roller, branch string, edu int) ([]string, string, int) {
+func rollSoldierOperations(r *dice.Roller, branch string, edu, rolls int) ([]string, string, int) {
 	dm := soldierOperationsBranchDM[branch] + operationsEduDM(edu)
 
-	return rollOperations(r, dm, soldierOperationsNames[:], soldierOperationsMods[:])
+	return rollOperations(r, dm, soldierOperationsNames[:], soldierOperationsMods[:], rolls)
 }
 
 // ResolveSoldierTerm resolves one 4-year Soldier term — mirrors
@@ -96,24 +96,38 @@ func rollSoldierOperations(r *dice.Roller, branch string, edu int) ([]string, st
 // (not Marine's C1), both confirmed directly against Soldier's own
 // dedicated box ("Officer Promotion Soc*", "Enlisted Promotion C3*").
 // Officer Commission targets C3, same as Marine.
+//
+// commissionedEntry and operationsRolls: see ResolveMarineTerm's own
+// doc comment.
 func ResolveSoldierTerm(
 	r *dice.Roller, upp UPP, ccPos Position, branch string, branchMod int, priorTerms []Term,
+	commissionedEntry bool, operationsRolls int,
 ) (Term, UPP) {
-	operations, opName, opMod := rollSoldierOperations(r, branch, int(upp.Characteristics[C5]))
+	operations, opName, opMod := rollSoldierOperations(r, branch, int(upp.Characteristics[C5]), operationsRolls)
 
 	cc := upp.Characteristics[ccPos]
 	mod := -(branchMod + opMod)
 
 	isOfficer, tier := rankState(priorTerms, len(soldierEnlistedRankNames), len(soldierOfficerRankNames))
+	if commissionedEntry {
+		isOfficer, tier = true, 1
+	}
 
 	term := Term{
-		Length:                    4,
+		Length:                    operationsRolls,
 		ControllingCharacteristic: ccPos,
 		Branch:                    branch,
 		Assignment:                opName,
 		Operations:                operations,
 		RewardResult:              "None",
 		Rank:                      soldierRankName(isOfficer, tier),
+		Commissioned:              commissionedEntry,
+	}
+
+	// See ResolveMarineTerm's own doc comment: granted ahead of
+	// resolveRisk so it survives even a Dead first term.
+	if commissionedEntry {
+		grantAutoSkillIfAny(&term, soldierRankAutomaticSkill, true, 1)
 	}
 
 	risk, reducedCC := resolveRisk(r, cc, mod)
@@ -140,20 +154,22 @@ func ResolveSoldierTerm(
 
 	medalMod := medalModTotal(priorTerms) + medalModSum(term.Medals)
 
-	switch {
-	case isOfficer:
-		if tier < len(soldierOfficerRankNames) &&
-			rollSoldierOfficerPromotion(r, int(upp.Characteristics[C6]), medalMod) {
+	if !commissionedEntry {
+		switch {
+		case isOfficer:
+			if tier < len(soldierOfficerRankNames) &&
+				rollSoldierOfficerPromotion(r, int(upp.Characteristics[C6]), medalMod) {
+				term.Promoted = true
+				tier++
+			}
+		case rollSoldierCommission(r, int(upp.Characteristics[C3])):
+			term.Commissioned = true
+			isOfficer = true
+			tier = 1
+		case tier < len(soldierEnlistedRankNames) && rollSoldierEnlistedPromotion(r, int(upp.Characteristics[C3]), medalMod):
 			term.Promoted = true
 			tier++
 		}
-	case rollSoldierCommission(r, int(upp.Characteristics[C3])):
-		term.Commissioned = true
-		isOfficer = true
-		tier = 1
-	case tier < len(soldierEnlistedRankNames) && rollSoldierEnlistedPromotion(r, int(upp.Characteristics[C3]), medalMod):
-		term.Promoted = true
-		tier++
 	}
 
 	term.Rank = soldierRankName(isOfficer, tier)
@@ -162,15 +178,7 @@ func ResolveSoldierTerm(
 	// grants is counted separately below, because p.65 exempts it from
 	// the Operations-column restriction.
 	skillCount := soldierSkillsPerTerm
-	exemptSkills := 0
-
-	if term.Commissioned || term.Promoted {
-		exemptSkills++
-
-		if skill, ok := soldierRankAutomaticSkill(isOfficer, tier); ok {
-			term.SkillsAwarded = append(term.SkillsAwarded, skill)
-		}
-	}
+	exemptSkills := armedForcesTermExemptSkills(&term, commissionedEntry, isOfficer, tier, soldierRankAutomaticSkill)
 
 	// Book 1 p.65: Term skills "may be taken on a column of the Skills
 	// table corresponding to an Operations result received in the Term",

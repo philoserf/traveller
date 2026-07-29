@@ -76,7 +76,7 @@ func TestRollOperationsTakesTheHighestModAndKeepsEveryResult(t *testing.T) {
 
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r1 := dice.New(rand.NewPCG(seed, seed))
-		received, best, got := rollOperations(r1, 0, names, mods)
+		received, best, got := rollOperations(r1, 0, names, mods, operationsRollsPerTerm)
 
 		r2 := dice.New(rand.NewPCG(seed, seed))
 		firstRow := musterOutRow(r2.D6(), len(names))
@@ -140,7 +140,7 @@ func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
 		t.Parallel()
 
 		career := Career{}
-		grantStartingRankAutoSkillToFirstTerm(&career, false, soldierRankAutomaticSkill)
+		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
 
 		if career.Terms != nil {
 			t.Errorf("career.Terms = %v, want nil (unchanged)", career.Terms)
@@ -151,7 +151,7 @@ func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
 		t.Parallel()
 
 		career := Career{Terms: []Term{{}, {}}}
-		grantStartingRankAutoSkillToFirstTerm(&career, false, soldierRankAutomaticSkill)
+		grantStartingRankAutoSkillToFirstTerm(&career, soldierRankAutomaticSkill)
 
 		if want := []SkillLevel{{Name: "Fighter", Level: 1, Kind: Skill}}; !slices.Equal(
 			career.Terms[0].SkillsAwarded, want,
@@ -169,25 +169,11 @@ func TestGrantStartingRankAutoSkillToFirstTerm(t *testing.T) {
 		t.Parallel()
 
 		career := Career{Terms: []Term{{}}}
-		grantStartingRankAutoSkillToFirstTerm(&career, false, marineRankAutomaticSkill)
+		grantStartingRankAutoSkillToFirstTerm(&career, marineRankAutomaticSkill)
 
 		if len(career.Terms[0].SkillsAwarded) != 0 {
 			t.Errorf("career.Terms[0].SkillsAwarded = %+v, want empty (M1 Private has no Auto Skill)",
 				career.Terms[0].SkillsAwarded)
-		}
-	})
-
-	t.Run("startAsOfficer grants the Officer1 entry instead of Enlisted tier 1", func(t *testing.T) {
-		t.Parallel()
-
-		career := Career{Terms: []Term{{}}}
-		grantStartingRankAutoSkillToFirstTerm(&career, true, marineRankAutomaticSkill)
-
-		if want := []SkillLevel{{Name: "Leader", Level: 1, Kind: Skill}}; !slices.Equal(
-			career.Terms[0].SkillsAwarded, want,
-		) {
-			t.Errorf("career.Terms[0].SkillsAwarded = %+v, want %+v (Marine Officer1 grants Leader)",
-				career.Terms[0].SkillsAwarded, want)
 		}
 	})
 }

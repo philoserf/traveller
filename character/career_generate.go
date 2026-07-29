@@ -97,23 +97,63 @@ func grantBranchSkillToFirstTerm(r *dice.Roller, career *Career, branch string) 
 // spacerRankAutomaticSkill). A no-op if career never qualified (no
 // terms at all).
 //
-// startAsOfficer is true for a Service Academy/OTC/NOTC Commission
-// (#113), which enters a career already Officer1 rather than Enlisted
-// tier 1 — p.61's own worked example has Eneri "commissioned O1 Ensign
-// ... receives the Automatic Officer Skill Astrogation-1", the exact
-// autoSkill(true, 1) case this generalizes to reach.
+// Callers must not use this for a Service Academy/OTC/NOTC Commission
+// (#113): that Officer1 entry is granted inside ResolveMarineTerm/
+// ResolveSoldierTerm/ResolveSpacerTerm itself, through the same
+// Commissioned-gated exempt-skill mechanism the term-by-term roll
+// already uses (see ResolveMarineTerm's own doc comment) — calling this
+// too would double-grant. Guard call sites with `if !commissioned`.
 func grantStartingRankAutoSkillToFirstTerm(
 	career *Career,
-	startAsOfficer bool,
 	autoSkill func(isOfficer bool, tier int) (SkillLevel, bool),
 ) {
 	if len(career.Terms) == 0 {
 		return
 	}
 
-	if skill, ok := autoSkill(startAsOfficer, 1); ok {
+	if skill, ok := autoSkill(false, 1); ok {
 		career.Terms[0].SkillsAwarded = append(career.Terms[0].SkillsAwarded, skill)
 	}
+}
+
+// grantAutoSkillIfAny calls autoSkill and appends the result to
+// term.SkillsAwarded when present — a one-line home for the "if ok"
+// branch so callers that already have their own conditional around the
+// call (a Service Academy/OTC/NOTC Commission,
+// ResolveMarineTerm/ResolveSoldierTerm/ResolveSpacerTerm) don't carry a
+// second decision point toward cyclop's own limit.
+func grantAutoSkillIfAny(
+	term *Term, autoSkill func(isOfficer bool, tier int) (SkillLevel, bool), isOfficer bool, tier int,
+) {
+	if skill, ok := autoSkill(isOfficer, tier); ok {
+		term.SkillsAwarded = append(term.SkillsAwarded, skill)
+	}
+}
+
+// armedForcesTermExemptSkills computes one term's own skill-count
+// exemption (p.65: Commission/Promotion each grant +1 skill exempt from
+// the Operations-column restriction) and, for a roll-earned Commission
+// or Promotion, appends the rank's own Automatic Skill. Factored out of
+// ResolveMarineTerm/ResolveSoldierTerm/ResolveSpacerTerm once #113's
+// commissionedEntry branch (ResolveMarineTerm's own doc comment) pushed
+// all three past cyclop's complexity limit — a commissionedEntry term's
+// own auto skill is already granted before resolveRisk runs, so this
+// only re-counts its exemption, never re-grants the skill.
+func armedForcesTermExemptSkills(
+	term *Term, commissionedEntry, isOfficer bool, tier int,
+	autoSkill func(isOfficer bool, tier int) (SkillLevel, bool),
+) int {
+	if commissionedEntry {
+		return 1
+	}
+
+	if !term.Commissioned && !term.Promoted {
+		return 0
+	}
+
+	grantAutoSkillIfAny(term, autoSkill, isOfficer, tier)
+
+	return 1
 }
 
 // BeginScout resolves Book 1 p.79's "To Begin" check for the Scout

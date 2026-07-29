@@ -87,8 +87,8 @@ func spacerBranchNameAndMod(row int, isOfficer bool) (string, int) {
 // delegating to the shared rollOperations/operationsEduDM
 // (career_generate.go) — no branch DM term, unlike Marine's/Soldier's
 // own Operations roll.
-func rollSpacerOperations(r *dice.Roller, edu int) ([]string, string, int) {
-	return rollOperations(r, operationsEduDM(edu), spacerNavalOperationsNames[:], spacerNavalOperationsMods[:])
+func rollSpacerOperations(r *dice.Roller, edu, rolls int) ([]string, string, int) {
+	return rollOperations(r, operationsEduDM(edu), spacerNavalOperationsNames[:], spacerNavalOperationsMods[:], rolls)
 }
 
 // ResolveSpacerTerm resolves one 4-year Spacer term — mirrors
@@ -101,25 +101,43 @@ func rollSpacerOperations(r *dice.Roller, edu int) ([]string, string, int) {
 // Officer Commission and Rating Promotion both against C2 (Dex, the
 // same "Commission and Enlisted-Promotion share a target" shape
 // Soldier's own C3 already established, here C2 instead).
+//
+// commissionedEntry and operationsRolls: see ResolveMarineTerm's own
+// doc comment. Because Branch itself is officer/enlisted-dependent here
+// (unlike Marine's/Soldier's own fixed-for-the-career Branch),
+// commissionedEntry forcing isOfficer=true also fixes Branch resolution
+// for term 1, not just Rank — a Commissioned Spacer's own branchRow (5
+// for Flight School, see spacerFlightBranchRow) now correctly resolves
+// to its Officer-side name (spacerBranchNameAndMod) instead of the
+// Enlisted one a still-false isOfficer would have produced.
 func ResolveSpacerTerm(
 	r *dice.Roller, upp UPP, ccPos Position, branchRow int, priorTerms []Term,
+	commissionedEntry bool, operationsRolls int,
 ) (Term, UPP) {
-	operations, opName, opMod := rollSpacerOperations(r, int(upp.Characteristics[C5]))
+	operations, opName, opMod := rollSpacerOperations(r, int(upp.Characteristics[C5]), operationsRolls)
 
 	isOfficer, tier := rankState(priorTerms, len(spacerEnlistedRankNames), len(spacerOfficerRankNames))
-	branch, branchMod := spacerBranchNameAndMod(branchRow, isOfficer)
+	if commissionedEntry {
+		isOfficer, tier = true, 1
+	}
 
+	branch, branchMod := spacerBranchNameAndMod(branchRow, isOfficer)
 	cc := upp.Characteristics[ccPos]
 	mod := -(branchMod + opMod)
-
 	term := Term{
-		Length:                    4,
+		Length:                    operationsRolls,
 		ControllingCharacteristic: ccPos,
 		Branch:                    branch,
 		Assignment:                opName,
 		Operations:                operations,
 		RewardResult:              "None",
 		Rank:                      spacerRankName(isOfficer, tier),
+		Commissioned:              commissionedEntry,
+	}
+
+	// See ResolveMarineTerm's own doc comment (granted ahead of resolveRisk).
+	if commissionedEntry {
+		grantAutoSkillIfAny(&term, spacerRankAutomaticSkill, true, 1)
 	}
 
 	risk, reducedCC := resolveRisk(r, cc, mod)
@@ -146,36 +164,29 @@ func ResolveSpacerTerm(
 
 	medalMod := medalModTotal(priorTerms) + medalModSum(term.Medals)
 
-	switch {
-	case isOfficer:
-		if tier < len(spacerOfficerRankNames) && rollSpacerOfficerPromotion(r, int(upp.Characteristics[C6]), medalMod) {
+	if !commissionedEntry {
+		switch {
+		case isOfficer:
+			if tier < len(spacerOfficerRankNames) &&
+				rollSpacerOfficerPromotion(r, int(upp.Characteristics[C6]), medalMod) {
+				term.Promoted = true
+				tier++
+			}
+		case rollSpacerCommission(r, int(upp.Characteristics[C2])):
+			term.Commissioned = true
+			isOfficer = true
+			tier = 1
+		case tier < len(spacerEnlistedRankNames) && rollSpacerRatingPromotion(r, int(upp.Characteristics[C2]), medalMod):
 			term.Promoted = true
 			tier++
 		}
-	case rollSpacerCommission(r, int(upp.Characteristics[C2])):
-		term.Commissioned = true
-		isOfficer = true
-		tier = 1
-	case tier < len(spacerEnlistedRankNames) && rollSpacerRatingPromotion(r, int(upp.Characteristics[C2]), medalMod):
-		term.Promoted = true
-		tier++
 	}
 
 	term.Rank = spacerRankName(isOfficer, tier)
 
-	// Term skills only. The extra skill a Commission or Promotion
-	// grants is counted separately below, because p.65 exempts it from
-	// the Operations-column restriction.
+	// Term skills only — the Commission/Promotion skill is exempted below.
 	skillCount := spacerSkillsPerTerm
-	exemptSkills := 0
-
-	if term.Commissioned || term.Promoted {
-		exemptSkills++
-
-		if skill, ok := spacerRankAutomaticSkill(isOfficer, tier); ok {
-			term.SkillsAwarded = append(term.SkillsAwarded, skill)
-		}
-	}
+	exemptSkills := armedForcesTermExemptSkills(&term, commissionedEntry, isOfficer, tier, spacerRankAutomaticSkill)
 
 	// Book 1 p.65: Term skills "may be taken on a column of the Skills
 	// table corresponding to an Operations result received in the Term",

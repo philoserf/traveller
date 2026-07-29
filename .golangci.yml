@@ -132,6 +132,19 @@ linters:
       - path: character/(marine|soldier)_generate\.go
         linters:
           - dupl
+      # marine_character_generate.go/soldier_character_generate.go/
+      # spacer_character_generate.go are the standalone-entry-point
+      # counterpart to the marine|soldier_generate.go exclusion above —
+      # same deliberate per-career mirroring ("Marine shares Scout's own
+      # shape exactly", "Soldier shares Marine's own shape exactly",
+      # "Spacer shares Marine's/Soldier's own shape exactly", each file's
+      # own doc comment). #113's Commission/Flight School threading added
+      # two near-identical lines to all three GenerateXCharacter bodies,
+      # tipping them over dupl's own detection threshold the same way
+      # #53 did for the pair above.
+      - path: character/(marine|soldier|spacer)_character_generate\.go
+        linters:
+          - dupl
       # career_chain_test.go's own TestCareerChainNobleAgeTargetCutsOffMidCareer
       # (#49) deliberately mirrors TestCareerChainAgeTargetCutsOffMidCareer's
       # Scout-based shape almost verbatim, the same "second instance of an
