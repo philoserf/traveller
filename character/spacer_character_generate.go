@@ -18,8 +18,9 @@ func GenerateSpacerCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
 	commissioned := slices.Contains(education.CommissionCareers, SpacerCareerName)
+	flightSchool := commissioned && education.Honors
 
-	c, ok := buildSpacerCharacter(r, upp, homeworld, homeworldSkills, commissioned)
+	c, ok := buildSpacerCharacter(r, upp, homeworld, homeworldSkills, commissioned, flightSchool)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -31,14 +32,15 @@ func GenerateSpacerCharacter(r *dice.Roller) (Character, bool) {
 // (character_generate.go) — Spacer shares Marine's/Soldier's own shape
 // exactly.
 //
-// commissioned is #113's Service Academy/NOTC Commission — see
-// resolveSpacerCareerWithBudget's own doc comment (spacer_loop.go).
+// commissioned/flightSchool are #113's Service Academy/NOTC Commission
+// and Flight School — see resolveSpacerCareerWithBudget's own doc
+// comment (spacer_loop.go).
 func buildSpacerCharacter(
-	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned bool,
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned, flightSchool bool,
 ) (Character, bool) {
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
-			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned)
+			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned, flightSchool)
 		}, ResolveSpacerMusterOut, spacerCareerFameAwards)
 }
 

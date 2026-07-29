@@ -18,8 +18,9 @@ func GenerateSoldierCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
 	commissioned := slices.Contains(education.CommissionCareers, SoldierCareerName)
+	flightSchool := commissioned && education.Honors
 
-	c, ok := buildSoldierCharacter(r, upp, homeworld, homeworldSkills, commissioned)
+	c, ok := buildSoldierCharacter(r, upp, homeworld, homeworldSkills, commissioned, flightSchool)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -30,14 +31,15 @@ func GenerateSoldierCharacter(r *dice.Roller) (Character, bool) {
 // own split for testability. Delegates to buildRiskCareerCharacter
 // (character_generate.go) — Soldier shares Marine's own shape exactly.
 //
-// commissioned is #113's Service Academy/OTC Commission — see
-// resolveSoldierCareerWithBudget's own doc comment (soldier_loop.go).
+// commissioned/flightSchool are #113's Service Academy/OTC Commission
+// and Flight School — see resolveSoldierCareerWithBudget's own doc
+// comment (soldier_loop.go).
 func buildSoldierCharacter(
-	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned bool,
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, commissioned, flightSchool bool,
 ) (Character, bool) {
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
-			return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned)
+			return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned, flightSchool)
 		}, ResolveSoldierMusterOut, soldierCareerFameAwards)
 }
 

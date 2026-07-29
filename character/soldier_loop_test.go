@@ -65,7 +65,7 @@ func TestResolveSoldierCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
 	upp := UPP{}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	career, _ := resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true)
+	career, _ := resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, false)
 
 	if len(career.Terms) == 0 {
 		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSoldier")
@@ -79,6 +79,43 @@ func TestResolveSoldierCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
 	if !slices.Contains(career.Terms[0].SkillsAwarded, want) {
 		t.Errorf("career.Terms[0].SkillsAwarded = %+v, want to contain %+v (Soldier Officer1 auto skill)",
 			career.Terms[0].SkillsAwarded, want)
+	}
+}
+
+// TestResolveSoldierCareerWithBudgetFlightSchoolShortensFirstTerm
+// mirrors TestResolveMarineCareerWithBudgetFlightSchoolShortensFirstTerm
+// (#113): forces Branch="Flight" (Soldier's own branch table has no
+// such row either — Mod 0), shortens term 1's Operations rolls and
+// Length by one, and grants Pilot-3.
+func TestResolveSoldierCareerWithBudgetFlightSchoolShortensFirstTerm(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSoldier")
+	}
+
+	first := career.Terms[0]
+
+	if first.Branch != "Flight" {
+		t.Errorf("Terms[0].Branch = %q, want %q", first.Branch, "Flight")
+	}
+
+	if first.Length != operationsRollsPerTerm-1 {
+		t.Errorf("Terms[0].Length = %d, want %d", first.Length, operationsRollsPerTerm-1)
+	}
+
+	if len(first.Operations) != operationsRollsPerTerm-1 {
+		t.Errorf("len(Terms[0].Operations) = %d, want %d", len(first.Operations), operationsRollsPerTerm-1)
+	}
+
+	want2 := SkillLevel{Name: "Pilot", Level: 3, Kind: Skill}
+	if !slices.Contains(first.SkillsAwarded, want2) {
+		t.Errorf("Terms[0].SkillsAwarded = %+v, want to contain %+v", first.SkillsAwarded, want2)
 	}
 }
 

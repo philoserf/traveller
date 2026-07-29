@@ -202,23 +202,32 @@ func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 // resolveCommissionableCareerSegment mirrors resolveRiskCareerSegment's
 // own body for the three careers a Service Academy/OTC/NOTC Commission
 // (#113) can enter — Marine, Soldier, Spacer. It can't reuse that generic
-// helper directly: resolveCareer here takes a commissioned bool the
-// shared signature has no room for, computed once via
-// commissionAppliesTo before the roll.
+// helper directly: resolveCareer here takes commissioned/flightSchool
+// bools the shared signature has no room for. commissioned is computed
+// once via commissionAppliesTo before the roll; flightSchool (#113) adds
+// Honors on top — p.61's "Service Academy Honors Graduates"/"College or
+// University Honors Graduates who participated in OTC or NOTC may
+// attend Flight School" both reduce to "commissioned AND Honors" (see
+// this slice's own plan-file Context), so it needs no separate tracked
+// state and inherits commissioned's own "consumed once" behavior for
+// free.
 func resolveCommissionableCareerSegment(
 	r *dice.Roller,
 	upp UPP,
 	maxTerms int,
 	ctx segmentContext,
 	careerName string,
-	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool) (Career, UPP),
+	resolveCareer func(
+		r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
+	) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
 	careerFameAwards func(career Career) []int,
 ) careerSegment {
 	aging := ctx.aging()
 	commissioned := commissionAppliesTo(ctx.Education.CommissionCareers, ctx.PriorCareers, careerName)
+	flightSchool := commissioned && ctx.Education.Honors
 
-	career, careerUPP := resolveCareer(r, upp, maxTerms, aging, commissioned)
+	career, careerUPP := resolveCareer(r, upp, maxTerms, aging, commissioned, flightSchool)
 	if aging.alive() {
 		career.MusteringOut = resolveMusterOut(r, career)
 	}

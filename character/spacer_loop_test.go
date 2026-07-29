@@ -66,7 +66,7 @@ func TestResolveSpacerCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
 	upp := UPP{}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	career, _ := resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true)
+	career, _ := resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, false)
 
 	if len(career.Terms) == 0 {
 		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSpacer")
@@ -80,6 +80,44 @@ func TestResolveSpacerCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
 	if !slices.Contains(career.Terms[0].SkillsAwarded, want) {
 		t.Errorf("career.Terms[0].SkillsAwarded = %+v, want to contain %+v (Spacer Officer1 auto skill)",
 			career.Terms[0].SkillsAwarded, want)
+	}
+}
+
+// TestResolveSpacerCareerWithBudgetFlightSchoolShortensFirstTerm mirrors
+// TestResolveMarineCareerWithBudgetFlightSchoolShortensFirstTerm (#113).
+// Unlike Marine/Soldier, Spacer's own branch table already has a Flight
+// row (spacerFlightBranchRow) — commissionedEntry forcing isOfficer=true
+// resolves it through the ordinary spacerBranchNameAndMod lookup, no
+// Mod-0 gap-filling needed.
+func TestResolveSpacerCareerWithBudgetFlightSchoolShortensFirstTerm(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSpacer")
+	}
+
+	first := career.Terms[0]
+
+	if first.Branch != "Flight" {
+		t.Errorf("Terms[0].Branch = %q, want %q", first.Branch, "Flight")
+	}
+
+	if first.Length != operationsRollsPerTerm-1 {
+		t.Errorf("Terms[0].Length = %d, want %d", first.Length, operationsRollsPerTerm-1)
+	}
+
+	if len(first.Operations) != operationsRollsPerTerm-1 {
+		t.Errorf("len(Terms[0].Operations) = %d, want %d", len(first.Operations), operationsRollsPerTerm-1)
+	}
+
+	want2 := SkillLevel{Name: "Pilot", Level: 3, Kind: Skill}
+	if !slices.Contains(first.SkillsAwarded, want2) {
+		t.Errorf("Terms[0].SkillsAwarded = %+v, want to contain %+v", first.SkillsAwarded, want2)
 	}
 }
 

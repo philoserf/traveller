@@ -28,8 +28,16 @@ func continueSpacer(r *dice.Roller, upp UPP) bool {
 // row's own Enlisted name (spacerBranchEnlistedNames[branchRow]) — the
 // character is definitionally still Enlisted at that point.
 func ResolveSpacerCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
+	return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false, false)
 }
+
+// spacerFlightBranchRow is spacerBranchOfficerNames[5] == "Flight" —
+// Flight School (#113) selects this row directly instead of rolling
+// one, so a Commissioned entry's own forced isOfficer=true
+// (ResolveSpacerTerm) resolves it to "Flight" through the ordinary
+// spacerBranchNameAndMod lookup, the same table Command College's own
+// Naval Academy skill pool already treats as authoritative.
+const spacerFlightBranchRow = 5
 
 // resolveSpacerCareerWithBudget is ResolveSpacerCareer's own body, with
 // the resolveCareerLoop term cap threaded as a parameter — see
@@ -40,8 +48,12 @@ func ResolveSpacerCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 // Commission (... NOTC= Navy Officer1 or Marine Officer1)" substitutes
 // for BeginSpacer's own roll. p.61's own worked example is exactly this
 // path: Eneri is "commissioned O1 Ensign in the Imperial Navy" via NOTC.
+// flightSchool (only ever true alongside commissioned) is p.61's Flight
+// School — see resolveMarineCareerWithBudget's own doc comment for the
+// full shape; unlike Marine/Soldier, Spacer's own table already has a
+// Flight row, so this needs no Mod-0 gap-filling.
 func resolveSpacerCareerWithBudget(
-	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool,
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
 ) (Career, UPP) {
 	career := Career{Name: SpacerCareerName, HasRank: true}
 
@@ -55,7 +67,10 @@ func resolveSpacerCareerWithBudget(
 		return career, upp
 	}
 
-	branchRow := rollSpacerBranchRow(r)
+	branchRow := spacerFlightBranchRow
+	if !flightSchool {
+		branchRow = rollSpacerBranchRow(r)
+	}
 
 	var priorTerms []Term
 
@@ -65,7 +80,22 @@ func resolveSpacerCareerWithBudget(
 
 	terms, finalUPP := resolveCareerLoop(r, upp, spacerRiskRewardPositions,
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
-			term, updatedUPP := ResolveSpacerTerm(r, upp, ccPos, branchRow, priorTerms)
+			entryCommissioned := commissioned && len(priorTerms) == 0
+
+			operationsRolls := operationsRollsPerTerm
+			if flightSchool && len(priorTerms) == 0 {
+				operationsRolls = operationsRollsPerTerm - 1
+			}
+
+			term, updatedUPP := ResolveSpacerTerm(
+				r,
+				upp,
+				ccPos,
+				branchRow,
+				priorTerms,
+				entryCommissioned,
+				operationsRolls,
+			)
 			term.SkillsAwarded = append(collegeSkills(), term.SkillsAwarded...)
 			priorTerms = append(priorTerms, term)
 
@@ -80,11 +110,19 @@ func resolveSpacerCareerWithBudget(
 
 	grantBranchSkillToFirstTerm(r, &career, spacerBranchEnlistedNames[branchRow])
 
-	if commissioned && len(career.Terms) > 0 {
-		career.Terms[0].Commissioned = true
+	// A Commissioned entry's own Officer1 skill is granted inside
+	// ResolveSpacerTerm instead (entryCommissioned above) — calling this
+	// too would double-grant.
+	if !commissioned {
+		grantStartingRankAutoSkillToFirstTerm(&career, spacerRankAutomaticSkill)
 	}
 
-	grantStartingRankAutoSkillToFirstTerm(&career, commissioned, spacerRankAutomaticSkill)
+	if flightSchool && len(career.Terms) > 0 {
+		career.Terms[0].SkillsAwarded = append(
+			career.Terms[0].SkillsAwarded,
+			SkillLevel{Name: "Pilot", Level: 3, Kind: Skill},
+		)
+	}
 
 	return career, finalUPP
 }

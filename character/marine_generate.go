@@ -87,10 +87,10 @@ func rollMarineBranch(r *dice.Roller) (string, int) {
 // rollOperations/operationsEduDM (career_generate.go) — Marine's own
 // former per-loop body, generalized once Soldier became a second real
 // caller of the identical shape.
-func rollMarineOperations(r *dice.Roller, branch string, edu int) ([]string, string, int) {
+func rollMarineOperations(r *dice.Roller, branch string, edu, rolls int) ([]string, string, int) {
 	dm := marineOperationsBranchDM[branch] + operationsEduDM(edu)
 
-	return rollOperations(r, dm, marineOperationsNames[:], marineOperationsMods[:])
+	return rollOperations(r, dm, marineOperationsNames[:], marineOperationsMods[:], rolls)
 }
 
 // ResolveMarineTerm resolves one 4-year Marine term. branch/branchMod
@@ -140,24 +140,52 @@ func rollMarineOperations(r *dice.Roller, branch string, edu int) ([]string, str
 // (p.86's own "Skill Eligibility: Commission 1 / Promotion 1") plus any
 // Automatic Skill by Rank (marineRankAutomaticSkill) the newly-reached
 // rank carries.
+//
+// commissionedEntry is #113's Service Academy/OTC/NOTC Commission,
+// true only for term 1 of a career that arrived already commissioned
+// (career_chain.go's commissionAppliesTo). It forces Officer1 directly
+// rather than rolling for it — a bug found wiring in Flight School:
+// PR #120 originally patched career.Terms[0].Commissioned onto the
+// already-built term from outside, but this function still ran its own
+// internal Commission-or-Promotion roll against isOfficer=false for
+// that term regardless, which could spuriously fire Enlisted Promotion
+// and grant a second, wrong-track auto-skill on top of the correct one.
+//
+// operationsRolls is normally operationsRollsPerTerm; Flight School's
+// own first term rolls one fewer (its own doc comment, rollOperations).
 func ResolveMarineTerm(
 	r *dice.Roller, upp UPP, ccPos Position, branch string, branchMod int, priorTerms []Term,
+	commissionedEntry bool, operationsRolls int,
 ) (Term, UPP) {
-	operations, opName, opMod := rollMarineOperations(r, branch, int(upp.Characteristics[C5]))
+	operations, opName, opMod := rollMarineOperations(r, branch, int(upp.Characteristics[C5]), operationsRolls)
 
 	cc := upp.Characteristics[ccPos]
 	mod := -(branchMod + opMod)
 
 	isOfficer, tier := rankState(priorTerms, len(marineEnlistedRankNames), len(marineOfficerRankNames))
+	if commissionedEntry {
+		isOfficer, tier = true, 1
+	}
 
 	term := Term{
-		Length:                    4,
+		Length:                    operationsRolls,
 		ControllingCharacteristic: ccPos,
 		Branch:                    branch,
 		Assignment:                opName,
 		Operations:                operations,
 		RewardResult:              "None",
 		Rank:                      marineRankName(isOfficer, tier),
+		Commissioned:              commissionedEntry,
+	}
+
+	// A Service Academy/OTC/NOTC Commission (#113) and its Officer1 auto
+	// skill are already true on arrival, not something this term's own
+	// Risk & Reward earns — p.61's own worked example grants Eneri's
+	// Astrogation-1 in the same breath as "he is commissioned," before
+	// his first Risk roll. Granted here, ahead of resolveRisk, so it
+	// survives even a Dead first term (an early return below).
+	if commissionedEntry {
+		grantAutoSkillIfAny(&term, marineRankAutomaticSkill, true, 1)
 	}
 
 	risk, reducedCC := resolveRisk(r, cc, mod)
@@ -184,19 +212,25 @@ func ResolveMarineTerm(
 
 	medalMod := medalModTotal(priorTerms) + medalModSum(term.Medals)
 
-	switch {
-	case isOfficer:
-		if tier < len(marineOfficerRankNames) && rollMarineOfficerPromotion(r, int(upp.Characteristics[C4]), medalMod) {
+	// commissionedEntry already carries Officer1 as a pre-existing fact
+	// (above) — no Commission, Officer Promotion, or Enlisted Promotion
+	// roll applies in the same term it happened.
+	if !commissionedEntry {
+		switch {
+		case isOfficer:
+			if tier < len(marineOfficerRankNames) &&
+				rollMarineOfficerPromotion(r, int(upp.Characteristics[C4]), medalMod) {
+				term.Promoted = true
+				tier++
+			}
+		case rollMarineCommission(r, int(upp.Characteristics[C3])):
+			term.Commissioned = true
+			isOfficer = true
+			tier = 1
+		case tier < len(marineEnlistedRankNames) && rollMarineEnlistedPromotion(r, int(upp.Characteristics[C1]), medalMod):
 			term.Promoted = true
 			tier++
 		}
-	case rollMarineCommission(r, int(upp.Characteristics[C3])):
-		term.Commissioned = true
-		isOfficer = true
-		tier = 1
-	case tier < len(marineEnlistedRankNames) && rollMarineEnlistedPromotion(r, int(upp.Characteristics[C1]), medalMod):
-		term.Promoted = true
-		tier++
 	}
 
 	term.Rank = marineRankName(isOfficer, tier)
@@ -205,15 +239,7 @@ func ResolveMarineTerm(
 	// grants is counted separately below, because p.65 exempts it from
 	// the Operations-column restriction.
 	skillCount := marineSkillsPerTerm
-	exemptSkills := 0
-
-	if term.Commissioned || term.Promoted {
-		exemptSkills++
-
-		if skill, ok := marineRankAutomaticSkill(isOfficer, tier); ok {
-			term.SkillsAwarded = append(term.SkillsAwarded, skill)
-		}
-	}
+	exemptSkills := armedForcesTermExemptSkills(&term, commissionedEntry, isOfficer, tier, marineRankAutomaticSkill)
 
 	// Book 1 p.65: Term skills "may be taken on a column of the Skills
 	// table corresponding to an Operations result received in the Term",

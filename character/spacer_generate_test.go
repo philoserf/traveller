@@ -154,7 +154,7 @@ func TestRollSpacerOperationsKeepsHighestMod(t *testing.T) {
 
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r1 := dice.New(rand.NewPCG(seed, seed))
-		_, _, got := rollSpacerOperations(r1, 8)
+		_, _, got := rollSpacerOperations(r1, 8, operationsRollsPerTerm)
 
 		r2 := dice.New(rand.NewPCG(seed, seed))
 
@@ -174,7 +174,7 @@ func TestResolveSpacerTermAppliesCombinedMod(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{6, 6, 0, 6, 8, 0}}
 	r := dice.New(rand.NewPCG(11, 13))
 
-	term, _ := ResolveSpacerTerm(r, upp, C1, 4, nil) // row 4 = Gunnery/Gunnery
+	term, _ := ResolveSpacerTerm(r, upp, C1, 4, nil, false, operationsRollsPerTerm) // row 4 = Gunnery/Gunnery
 
 	if term.Branch != "Gunnery" {
 		t.Errorf("Branch = %q, want %q", term.Branch, "Gunnery")
@@ -191,7 +191,7 @@ func TestResolveSpacerTermSkipsRewardAndSkillsOnDeath(t *testing.T) {
 	upp := UPP{} // guarantees Risk failure and a fatal reduction
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveSpacerTerm(r, upp, C1, 0, nil)
+	term, _ := ResolveSpacerTerm(r, upp, C1, 0, nil, false, operationsRollsPerTerm)
 
 	if term.RiskResult != Dead {
 		t.Fatalf("RiskResult = %v, want Dead (fixture assumption broke)", term.RiskResult)
@@ -220,7 +220,7 @@ func TestResolveSpacerTermPreservesRankOnDeath(t *testing.T) {
 	upp := UPP{}                                                                   // Str=0: fatal Risk
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveSpacerTerm(r, upp, C1, 0, priorTerms)
+	term, _ := ResolveSpacerTerm(r, upp, C1, 0, priorTerms, false, operationsRollsPerTerm)
 
 	if term.RiskResult != Dead {
 		t.Fatalf("RiskResult = %v, want Dead (fixture assumption broke)", term.RiskResult)
@@ -244,14 +244,14 @@ func TestResolveSpacerTermBranchNameChangesOnCommission(t *testing.T) {
 
 	r1 := dice.New(rand.NewPCG(1, 1))
 
-	enlistedTerm, _ := ResolveSpacerTerm(r1, upp, C1, 5, nil)
+	enlistedTerm, _ := ResolveSpacerTerm(r1, upp, C1, 5, nil, false, operationsRollsPerTerm)
 	if enlistedTerm.Branch != "Gunnery" {
 		t.Errorf("Enlisted Branch = %q, want %q", enlistedTerm.Branch, "Gunnery")
 	}
 
 	r2 := dice.New(rand.NewPCG(1, 1))
 
-	officerTerm, _ := ResolveSpacerTerm(r2, upp, C1, 5, []Term{{Commissioned: true}})
+	officerTerm, _ := ResolveSpacerTerm(r2, upp, C1, 5, []Term{{Commissioned: true}}, false, operationsRollsPerTerm)
 	if officerTerm.Branch != "Flight" {
 		t.Errorf("Officer Branch = %q, want %q", officerTerm.Branch, "Flight")
 	}
@@ -269,7 +269,7 @@ func TestResolveSpacerTermGrantsFlatXSOnRiskSuccess(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(4574, 4574))
 
-	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, nil)
+	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, nil, false, operationsRollsPerTerm)
 
 	if term.RiskResult != Unharmed {
 		t.Fatalf("RiskResult = %v, want Unharmed (fixture assumption broke)", term.RiskResult)
@@ -291,7 +291,7 @@ func TestResolveSpacerTermGrantsRewardMedal(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3, 3))
 
-	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, nil)
+	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, nil, false, operationsRollsPerTerm)
 
 	if want := []string{"XS", "MCUF"}; !slices.Equal(term.Medals, want) {
 		t.Errorf("Medals = %v, want %v (fixture assumption broke)", term.Medals, want)
@@ -309,7 +309,7 @@ func TestResolveSpacerTermRewardUsesTermStartCC(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(8, 8))
 
-	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, nil)
+	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, nil, false, operationsRollsPerTerm)
 
 	if term.RiskResult == Unharmed || term.RiskResult == Dead {
 		t.Fatalf("RiskResult = %v, want Wounded or Disabled (fixture assumption broke)", term.RiskResult)
@@ -328,7 +328,7 @@ func TestResolveSpacerTermOfficerRewardBonusReachesSEHD(t *testing.T) {
 	priorTerms := []Term{{Commissioned: true}}
 	r := dice.New(rand.NewPCG(30, 30))
 
-	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, priorTerms)
+	term, _ := ResolveSpacerTerm(r, spacerMedalFixtureUPP, C1, 4, priorTerms, false, operationsRollsPerTerm)
 
 	if !slices.Contains(term.Medals, "SEHD") {
 		t.Errorf("Medals = %v, want to contain %q (Officer +1 Reward bonus reaching roll 13)", term.Medals, "SEHD")
@@ -353,7 +353,7 @@ func TestResolveSpacerTermSetsRankEveryTerm(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(19, 19))
 
-	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, nil)
+	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, nil, false, operationsRollsPerTerm)
 
 	if term.RiskResult == Dead {
 		t.Fatalf("RiskResult = Dead (fixture assumption broke)")
@@ -387,7 +387,7 @@ func TestResolveSpacerTermGrantsCommission(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(2, 2))
 
-	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, nil)
+	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, nil, false, operationsRollsPerTerm)
 
 	if !term.Commissioned {
 		t.Fatalf("Commissioned = false, want true (fixture assumption broke)")
@@ -437,7 +437,7 @@ func TestResolveSpacerTermGrantsRatingPromotion(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(4, 4))
 
-	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, nil)
+	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, nil, false, operationsRollsPerTerm)
 
 	if term.Commissioned {
 		t.Fatalf("Commissioned = true, want false (fixture assumption broke)")
@@ -465,7 +465,7 @@ func TestResolveSpacerTermGrantsOfficerPromotion(t *testing.T) {
 	priorTerms := []Term{{Commissioned: true}}
 	r := dice.New(rand.NewPCG(3, 3))
 
-	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, priorTerms)
+	term, _ := ResolveSpacerTerm(r, spacerPromotionFixtureUPP, C1, 4, priorTerms, false, operationsRollsPerTerm)
 
 	if term.Commissioned {
 		t.Errorf("Commissioned = true, want false (already an Officer)")
@@ -504,7 +504,7 @@ func TestResolveSpacerTermNeverPromotesPastTheRankCap(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{20, 0, 0, 8, 8, 0}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	term, _ := ResolveSpacerTerm(r, upp, C1, 4, priorTerms)
+	term, _ := ResolveSpacerTerm(r, upp, C1, 4, priorTerms, false, operationsRollsPerTerm)
 
 	if term.Promoted {
 		t.Errorf("Promoted = true, want false (already at the R6 cap)")

@@ -68,9 +68,13 @@ var (
 // own pages.
 const operationsRollsPerTerm = 4
 
-// rollOperations resolves one term's Operations: four 1D rolls against
-// the career's own table, returning every assignment received and the
-// single highest associated Mod.
+// rollOperations resolves one term's Operations: rolls 1D against the
+// career's own table rolls times, returning every assignment received
+// and the single highest associated Mod. Every caller passes
+// operationsRollsPerTerm except a Flight-School-shortened first term
+// (#113), which rolls one fewer — p.61's own worked example: "Because
+// Flight School took a year, this first Term is reduced to three years:
+// he rolls 1D three times for Naval Operations."
 //
 // Both halves matter, and this codebase previously kept only the second.
 // The Mod is what Risk & Reward uses — p.65's own example takes
@@ -86,11 +90,11 @@ const operationsRollsPerTerm = 4
 // Returns every assignment received, the name of the highest-Mod one
 // (the term's headline duty, recorded on Term.Assignment) and that Mod.
 // Ties go to the first rolled.
-func rollOperations(r *dice.Roller, dm int, names []string, mods []int) ([]string, string, int) {
-	received := make([]string, 0, operationsRollsPerTerm)
+func rollOperations(r *dice.Roller, dm int, names []string, mods []int, rolls int) ([]string, string, int) {
+	received := make([]string, 0, rolls)
 	best := 0
 
-	for i := range operationsRollsPerTerm {
+	for i := range rolls {
 		row := musterOutRow(r.D6()+dm, len(names))
 		received = append(received, names[row])
 

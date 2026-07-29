@@ -67,7 +67,7 @@ func TestResolveMarineCareerWithBudgetCommissionBypassesBegin(t *testing.T) {
 	upp := UPP{}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true)
+	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, false)
 
 	if len(career.Terms) == 0 {
 		t.Fatal("career.Terms is empty, want a Commission to bypass BeginMarine")
@@ -94,10 +94,80 @@ func TestResolveMarineCareerWithBudgetUncommissionedStillRequiresBegin(t *testin
 	upp := UPP{}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
+	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false, false)
 
 	if len(career.Terms) != 0 {
 		t.Errorf("career.Terms = %v, want empty (Begin against Str=0 always fails)", career.Terms)
+	}
+}
+
+// TestResolveMarineCareerWithBudgetFlightSchoolShortensFirstTerm is
+// #113's own Flight School: forces Branch="Flight" (Marine's own branch
+// table has no such row — a documented gap, Mod 0), shortens term 1 to
+// operationsRollsPerTerm-1 Operations rolls (and Term.Length to match —
+// p.61's own worked example: "Because Flight School took a year, this
+// first Term is reduced to three years: he rolls 1D three times for
+// Naval Operations"), and grants Pilot-3.
+func TestResolveMarineCareerWithBudgetFlightSchoolShortensFirstTerm(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginMarine")
+	}
+
+	first := career.Terms[0]
+
+	if first.Branch != "Flight" {
+		t.Errorf("Terms[0].Branch = %q, want %q", first.Branch, "Flight")
+	}
+
+	if first.Length != operationsRollsPerTerm-1 {
+		t.Errorf("Terms[0].Length = %d, want %d", first.Length, operationsRollsPerTerm-1)
+	}
+
+	if len(first.Operations) != operationsRollsPerTerm-1 {
+		t.Errorf("len(Terms[0].Operations) = %d, want %d", len(first.Operations), operationsRollsPerTerm-1)
+	}
+
+	want := SkillLevel{Name: "Pilot", Level: 3, Kind: Skill}
+	if !slices.Contains(first.SkillsAwarded, want) {
+		t.Errorf("Terms[0].SkillsAwarded = %+v, want to contain %+v", first.SkillsAwarded, want)
+	}
+}
+
+// TestResolveMarineCareerWithBudgetCommissionWithoutHonorsSkipsFlightSchool
+// proves the gate: a Commission alone (flightSchool=false, i.e. no
+// Honors) leaves Branch rolled normally and term 1 at the usual length —
+// Flight School is additional to a Commission, not implied by one.
+func TestResolveMarineCareerWithBudgetCommissionWithoutHonorsSkipsFlightSchool(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, false)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginMarine")
+	}
+
+	first := career.Terms[0]
+
+	if first.Branch == "Flight" {
+		t.Error("Terms[0].Branch = \"Flight\", want a normally-rolled branch (no Honors, no Flight School)")
+	}
+
+	if first.Length != operationsRollsPerTerm {
+		t.Errorf("Terms[0].Length = %d, want the ordinary %d", first.Length, operationsRollsPerTerm)
+	}
+
+	if slices.ContainsFunc(first.SkillsAwarded, func(s SkillLevel) bool { return s.Name == "Pilot" }) {
+		t.Error("Terms[0].SkillsAwarded contains Pilot, want none without Flight School")
 	}
 }
 

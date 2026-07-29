@@ -41,7 +41,7 @@ func continueMarine(r *dice.Roller, upp UPP) bool {
 // list — and Term.Rank is now genuinely populated every term
 // (marineRankName), not a deferred gap.
 func ResolveMarineCareer(r *dice.Roller, upp UPP) (Career, UPP) {
-	return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false)
+	return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false, false)
 }
 
 // resolveMarineCareerWithBudget is ResolveMarineCareer's own body, with
@@ -53,9 +53,13 @@ func ResolveMarineCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 // an Army or Navy Commission (a Naval Academy graduate may choose a
 // Marine Commission instead)" substitutes for BeginMarine's own roll, the
 // same "no attempt to fail" treatment automatic-entry careers already
-// get.
+// get. flightSchool (only ever true alongside commissioned — see
+// career_chain.go) is p.61's Flight School: it forces Branch=Flight for
+// the whole career (Marine's own branch table has no such row — a
+// documented gap, not a contradiction, so Mod is 0) and shortens term 1
+// to operationsRollsPerTerm-1 Operations rolls.
 func resolveMarineCareerWithBudget(
-	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned bool,
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
 ) (Career, UPP) {
 	career := Career{Name: MarineCareerName, HasRank: true}
 
@@ -69,7 +73,10 @@ func resolveMarineCareerWithBudget(
 		return career, upp
 	}
 
-	branch, branchMod := rollMarineBranch(r)
+	branch, branchMod := "Flight", 0
+	if !flightSchool {
+		branch, branchMod = rollMarineBranch(r)
+	}
 
 	var priorTerms []Term
 
@@ -79,7 +86,15 @@ func resolveMarineCareerWithBudget(
 
 	terms, finalUPP := resolveCareerLoop(r, upp, marineRiskRewardPositions,
 		func(r *dice.Roller, upp UPP, ccPos Position) (Term, UPP) {
-			term, updatedUPP := ResolveMarineTerm(r, upp, ccPos, branch, branchMod, priorTerms)
+			entryCommissioned := commissioned && len(priorTerms) == 0
+
+			operationsRolls := operationsRollsPerTerm
+			if flightSchool && len(priorTerms) == 0 {
+				operationsRolls = operationsRollsPerTerm - 1
+			}
+
+			term, updatedUPP := ResolveMarineTerm(
+				r, upp, ccPos, branch, branchMod, priorTerms, entryCommissioned, operationsRolls)
 			term.SkillsAwarded = append(collegeSkills(), term.SkillsAwarded...)
 			priorTerms = append(priorTerms, term)
 
@@ -98,13 +113,19 @@ func resolveMarineCareerWithBudget(
 	// grantStartingRankAutoSkillToFirstTerm call: unlike Soldier's own S1
 	// Private and Spacer's own R1 Spacehand, M1 Private has no automatic
 	// skill at all (marineRankAutomaticSkill's own doc comment) — there
-	// is nothing to grant. A Commissioned entry starts Officer1 instead,
-	// which does grant one ("Leader").
-	if commissioned && len(career.Terms) > 0 {
-		career.Terms[0].Commissioned = true
+	// is nothing to grant. A Commissioned entry's own Officer1 skill is
+	// granted inside ResolveMarineTerm instead (entryCommissioned above),
+	// through the same mechanism a term-by-term Commission already uses.
+	if !commissioned {
+		grantStartingRankAutoSkillToFirstTerm(&career, marineRankAutomaticSkill)
 	}
 
-	grantStartingRankAutoSkillToFirstTerm(&career, commissioned, marineRankAutomaticSkill)
+	if flightSchool && len(career.Terms) > 0 {
+		career.Terms[0].SkillsAwarded = append(
+			career.Terms[0].SkillsAwarded,
+			SkillLevel{Name: "Pilot", Level: 3, Kind: Skill},
+		)
+	}
 
 	return career, finalUPP
 }

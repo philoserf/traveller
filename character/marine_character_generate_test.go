@@ -17,7 +17,7 @@ func TestBuildMarineCharacterNeverQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildMarineCharacter(r, upp, "A000000-0", homeworldSkills, false)
+	c, ok := buildMarineCharacter(r, upp, "A000000-0", homeworldSkills, false, false)
 
 	if ok {
 		t.Error("ok = true, want false (never qualified)")
@@ -55,7 +55,7 @@ func TestBuildMarineCharacterDies(t *testing.T) {
 	sawDeath := false
 
 	for range 200 {
-		c, ok := buildMarineCharacter(r, upp, "hw", nil, false)
+		c, ok := buildMarineCharacter(r, upp, "hw", nil, false, false)
 
 		terms := c.Careers[0].Terms
 		if len(terms) == 0 {
@@ -99,7 +99,7 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildMarineCharacter(r, upp, "hw", homeworldSkills, false)
+	c, ok := buildMarineCharacter(r, upp, "hw", homeworldSkills, false, false)
 
 	if !ok {
 		t.Fatal("ok = false, want true (fixture guarantees survival)")
