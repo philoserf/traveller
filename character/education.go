@@ -167,7 +167,96 @@ var educationInstitutions = []educationInstitution{
 const (
 	educationDegreeBachelors = "BA"
 	educationDegreeHonours   = "Honors BA"
+	educationDegreeMasters   = "MA"
+	educationDegreeDoctor    = "Doctor"
+	educationDegreeAttorney  = "Attorney"
+	educationDegreeProfessor = "Professor"
 )
+
+// graduateProgramRow is one row of p.60's own University-gated
+// follow-on tier (#113) — the same Apply/Pass-Fail/Waiver/Graduation
+// shape educationInstitution already has, keyed by the degree already
+// held instead of Edu, and scoped to a GraduateProgram rather than the
+// top-level Education's own Major/Passes/Degree fields.
+type graduateProgramRow struct {
+	Name                  string
+	RequiresDegree        string
+	ApplyCheck, PassCheck []Position
+	Rolls                 int
+	GraduationEdu         ehex.Value
+	Degree                string
+	// PerPassSkill is Medical School's/Law School's own named +1-per-
+	// pass grant (Medic-4, Advocate-2) — educationInstitution's own
+	// MajorBonus shape, but naming a fixed skill instead of edu.Major.
+	PerPassSkill string
+	// GrantsMinorOnly is Masters's own "Minor+1 per 2 Passes" — no Major
+	// component, unlike College/University/Service Academy's merged
+	// cell. The Minor advanced is the one University already declared;
+	// Masters doesn't let the character pick a fresh one (p.59: "A
+	// character's current Major and Minor are the most recent ones
+	// selected").
+	GrantsMinorOnly bool
+}
+
+// educationHonorsTierPrograms are Medical School and Law School — a
+// genuine open choice with no book-given preference between them,
+// unlike Trade School vs College or OTC vs NOTC elsewhere in this
+// package: neither dominates (different Degree, different named skill,
+// identical prerequisite and per-year cost), so resolving it "toward
+// the better outcome" has no better outcome to resolve toward. Picked
+// with a uniform random draw instead, the same convention rollScoutDuty
+// already establishes for this exact shape of choice (marine_generate.go's
+// own doc comment: "a genuine open choice with no book-given rationale").
+// A first cut ordered these by print position (Medical, then Law) and
+// measurement caught the mistake immediately: Medical's own prerequisite
+// is checked (and, once held, always taken) before Law ever gets a
+// chance, so across 6,000 University graduates Doctor outnumbered
+// Attorney 1791 to 12 — Law School was never really reachable, the same
+// "content that can't fire" mistake this repo's own Lessons section
+// warns about, just introduced instead of inherited this time.
+var educationHonorsTierPrograms = []graduateProgramRow{
+	{
+		Name: "Medical School", RequiresDegree: educationDegreeHonours,
+		ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 4,
+		GraduationEdu: 10, Degree: educationDegreeDoctor, PerPassSkill: "Medic",
+	},
+	{
+		Name: "Law School", RequiresDegree: educationDegreeHonours,
+		ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 2,
+		GraduationEdu: 10, Degree: educationDegreeAttorney, PerPassSkill: "Advocate",
+	},
+}
+
+// mastersProgram is the fallback once the randomly-picked
+// educationHonorsTierPrograms candidate's own Honors-BA prerequisite
+// isn't met and can't be waived — a plain BA (which any University
+// graduate already holds) is enough.
+var mastersProgram = graduateProgramRow{
+	Name: "Masters", RequiresDegree: educationDegreeBachelors,
+	ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 2,
+	GraduationEdu: 9, Degree: educationDegreeMasters, GrantsMinorOnly: true,
+}
+
+// professorsProgram is p.60's own "Professors" row — reachable only
+// once Masters graduates (Degree "MA"). Its own Provides cell is blank
+// in the printed table: no skill grant, Graduation benefits only.
+var professorsProgram = graduateProgramRow{
+	Name: "Professors", RequiresDegree: educationDegreeMasters,
+	ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 2,
+	GraduationEdu: 12, Degree: educationDegreeProfessor,
+}
+
+// holdsDegree reports whether edu's current Degree satisfies want.
+// Honors BA satisfies a plain-BA requirement (Masters's own
+// prerequisite) as well as its own — an Honors graduate has "a
+// Bachelors" too, just a better one.
+func holdsDegree(edu Education, want string) bool {
+	if want == educationDegreeBachelors {
+		return edu.Degree == educationDegreeBachelors || edu.Degree == educationDegreeHonours
+	}
+
+	return edu.Degree == want
+}
 
 // Education is what CharGen step C did to one character.
 type Education struct {
@@ -212,6 +301,34 @@ type Education struct {
 	// whichever the caller's career chain attempts first; see
 	// commissionAppliesTo in career_chain.go.
 	CommissionCareers []string
+	// Graduate is a University graduate's own follow-on program (#113) —
+	// Masters, Medical School, or Law School — gated on the degree
+	// University just produced. Nil for every other primary institution
+	// and for a University graduate who didn't qualify (or waive into)
+	// any of the three. Major/Minor/Waivers/Skills/CommissionCareers stay
+	// on Education itself, shared across the whole process; Graduate
+	// carries only what's specific to its own attendance.
+	Graduate *GraduateProgram
+}
+
+// GraduateProgram is a follow-on institution attended after a
+// character's primary University education (#113) — Masters,
+// Professors, Medical School, or Law School. Its own
+// School/SchoolNameRoll/SchoolName/SchoolRank/Passes mirror Education's
+// own primary-institution fields rather than overwriting them — p.72's
+// own checklist, "For Each School Attended: Note School Name and Rank,"
+// is plural by design.
+type GraduateProgram struct {
+	School         string
+	Passes         int
+	Graduated      bool
+	Degree         string
+	SchoolNameRoll int
+	SchoolName     string
+	SchoolRank     int
+	// Next is Professors, reachable only once this program is Masters
+	// and it graduates with Degree "MA". Nil otherwise.
+	Next *GraduateProgram
 }
 
 // Attended reports whether this character went to school at all.
@@ -259,6 +376,7 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	upp = applyGraduation(upp, school, &edu)
 	resolveHonors(r, upp, school, &edu)
+	upp = resolveGraduateEducation(r, upp, &edu)
 
 	if len(school.CommissionCareers) > 0 {
 		edu.CommissionCareers = mergeCommissionCareers(edu.CommissionCareers, school.CommissionCareers)
@@ -278,6 +396,109 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	edu.Skills = aggregateSkills(edu.Skills)
 
 	return edu, upp
+}
+
+// resolveGraduateEducation is #113's own University-gated follow-on
+// tier — p.61: "A University Masters Program requires a Bachelors. A
+// Professors Program requires a Masters. Medical School or Law School
+// requires an Honors Bachelors (all of these requirements can be
+// waived)." College's and Service Academy's own BAs don't feed into
+// this — both quotes name University specifically ("Often associated
+// with a University are a Medical School... and a Law School").
+//
+// One of educationHonorsTierPrograms is picked at random (see its own
+// doc comment for why a random pick, not a preference order); if its
+// Honors-BA prerequisite isn't already held, a Waiver is tried (p.59's
+// Waiver clause names "Prerequisite" as one of its own four waivable
+// adverse decisions) before falling back to mastersProgram, whose own
+// plain-BA prerequisite any University graduate already holds. No
+// second attempt at the other Honors-tier program either way — the
+// same "chosen, not retried" shape chooseInstitution's own pick already
+// has. A graduated Masters (Degree "MA") immediately also attempts
+// professorsProgram, chained as Graduate.Next.
+func resolveGraduateEducation(r *dice.Roller, upp UPP, edu *Education) UPP {
+	if edu.School != "University" {
+		return upp
+	}
+
+	honorsCandidate := educationHonorsTierPrograms[r.Uniform(len(educationHonorsTierPrograms))-1]
+
+	program := mastersProgram
+	if holdsDegree(*edu, honorsCandidate.RequiresDegree) || tryWaiver(r, upp, &edu.Waivers) {
+		program = honorsCandidate
+	}
+
+	var grad GraduateProgram
+
+	upp = resolveOneGraduateProgram(r, upp, program, edu, &grad)
+	edu.Graduate = &grad
+
+	if grad.Degree == educationDegreeMasters && grad.Graduated {
+		var next GraduateProgram
+
+		upp = resolveOneGraduateProgram(r, upp, professorsProgram, edu, &next)
+		grad.Next = &next
+	}
+
+	return upp
+}
+
+// resolveOneGraduateProgram runs one graduateProgramRow's own Apply/
+// Pass-Fail/Graduation, mirroring resolveEducation's own primary-
+// institution flow but against a GraduateProgram's own Passes counter
+// rather than Education's — p.59's "Minor+1 per 2 Passes" counts a
+// program's own years, not the character's whole Education history, so
+// sharing Education.Passes with the primary institution would only
+// coincidentally align.
+func resolveOneGraduateProgram(
+	r *dice.Roller, upp UPP, program graduateProgramRow, edu *Education, grad *GraduateProgram,
+) UPP {
+	grad.School = program.Name
+
+	if len(program.ApplyCheck) > 0 && !checkAgainst(r, upp, program.ApplyCheck) && !tryWaiver(r, upp, &edu.Waivers) {
+		return upp
+	}
+
+	for range program.Rolls {
+		if checkAgainst(r, upp, program.PassCheck) {
+			grad.Passes++
+			awardGraduateProgramSkills(program, grad, edu)
+
+			continue
+		}
+
+		if !tryWaiver(r, upp, &edu.Waivers) {
+			return upp
+		}
+	}
+
+	grad.Graduated = true
+	grad.Degree = program.Degree
+
+	if upp.Characteristics[C5] >= program.GraduationEdu {
+		upp.Characteristics[C5] = awardCharacteristic(upp.Characteristics[C5], 1)
+	} else {
+		upp.Characteristics[C5] = program.GraduationEdu
+	}
+
+	grad.SchoolNameRoll, grad.SchoolName, grad.SchoolRank = rollInstitution(r, program.Name, edu.Major)
+
+	return upp
+}
+
+// awardGraduateProgramSkills applies one passed year of a graduate
+// program's own Provides column — Medical School's/Law School's own
+// named +1-per-pass grant (PerPassSkill), or Masters's own "Minor+1 per
+// 2 Passes" against the Minor University already declared. Professors
+// grants nothing (its own Provides cell is blank in the printed table),
+// so neither case matches for it.
+func awardGraduateProgramSkills(program graduateProgramRow, grad *GraduateProgram, edu *Education) {
+	switch {
+	case program.PerPassSkill != "":
+		edu.Skills = append(edu.Skills, skillLevel1(program.PerPassSkill, Skill))
+	case program.GrantsMinorOnly && grad.Passes%2 == 0 && edu.Minor != "":
+		edu.Skills = append(edu.Skills, skillLevel1(edu.Minor, Skill))
+	}
 }
 
 // resolveOfficerTrainingCorps is p.61's OTC/NOTC: "A character attending
