@@ -216,6 +216,20 @@ func nobleRankForSoc(soc ehex.Value) (nobleRank, bool) {
 	return nobleRanks[i], true
 }
 
+// nobleRankForTitle returns the rank matching a NobleTitle string. Safe
+// against the two rows sharing "Duke" (Lesser/Greater) because both
+// carry identical Votes/ProxyValue — the only two fields this is used
+// for — even though other columns (PreferredWorld) genuinely differ.
+func nobleRankForTitle(title string) (nobleRank, bool) {
+	for _, rank := range nobleRanks {
+		if rank.Title == title {
+			return rank, true
+		}
+	}
+
+	return nobleRank{}, false
+}
+
 // NobleTitleForSoc is Book 1 p.88's own Soc-to-title mapping. Returns
 // the empty string below Soc A, which is not a noble rank at all.
 func NobleTitleForSoc(soc ehex.Value) string {
