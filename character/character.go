@@ -98,6 +98,33 @@ func (c Character) LandGrantIncome() int {
 	return totalLandGrantIncome(c.LandGrants)
 }
 
+// ProxyIncome is the annual Credits value of this character's own Moot
+// vote(s), assigned away as a Proxy (#96) — Book 1 p.88: "every Noble
+// has the right to vote in the Moot... A Proxy is worth about
+// Cr100,000 per vote." Zero for Gentleman/Knight (the table's own "no
+// votes" rows) and for a character with no noble title at all.
+//
+// Reuses NobleTitle, so it's correct for both a Noble career's own
+// ladder rank and a Knighthood-derived title — LandGrantIncome's own
+// doc comment explains why this is a derived accessor rather than a
+// stored field.
+//
+// Deliberately excludes p.85's Noble Mustering Out "Proxy (N)"
+// entitlement (a Noble who holds other nobles' proxies, not this one's
+// own vote): the book prices only an assigned proxy ("about Cr100,000
+// per vote"), not a held one — its own "Complications" paragraph frames
+// a held proxy's worth as political power and negotiated
+// consideration, not a stated Credits formula. Assigning one would be
+// inventing a number the text doesn't give.
+func (c Character) ProxyIncome() int {
+	rank, ok := nobleRankForTitle(c.NobleTitle())
+	if !ok {
+		return 0
+	}
+
+	return rank.ProxyValue
+}
+
 // nobleLadderRank is the rank the Noble career walked to, if this
 // character served one that reached a rank at all.
 func (c Character) nobleLadderRank() (string, bool) {

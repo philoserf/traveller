@@ -643,3 +643,144 @@ func TestCapitalLevelIsOneDie(t *testing.T) {
 		t.Errorf("Capital produced only levels %v across 300 rolls, want the full 1D range", seen)
 	}
 }
+
+// TestNobleRankForTitleMatchesTheVotesTable is #96's own p.88 "NOBLE
+// VOTING" table, checked against every title nobleRanks prints —
+// including both rows sharing "Duke" (Lesser and Greater), which must
+// agree since ProxyIncome looks them up by title alone.
+func TestNobleRankForTitleMatchesTheVotesTable(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		title      string
+		votes      int
+		proxyValue int
+	}{
+		{"Gentleman", 0, 0},
+		{"Knight", 0, 0},
+		{"Baronet", 1, 100_000},
+		{"Baron", 1, 100_000},
+		{"Marquis", 2, 200_000},
+		{"Viscount", 3, 300_000},
+		{"Count", 3, 300_000},
+		{"Archduke", 5, 500_000},
+		{"Imperial Family", 6, 600_000},
+		{"Emperor", 0, 0},
+	}
+
+	for _, c := range cases {
+		t.Run(c.title, func(t *testing.T) {
+			t.Parallel()
+
+			rank, ok := nobleRankForTitle(c.title)
+			if !ok {
+				t.Fatalf("nobleRankForTitle(%q) not found", c.title)
+			}
+
+			if rank.Votes != c.votes || rank.ProxyValue != c.proxyValue {
+				t.Errorf("nobleRankForTitle(%q) = Votes=%d ProxyValue=%d, want Votes=%d ProxyValue=%d",
+					c.title, rank.Votes, rank.ProxyValue, c.votes, c.proxyValue)
+			}
+		})
+	}
+
+	// Duke is the one title with two rows (Lesser and Greater) — both
+	// must carry the same Votes/ProxyValue, or a title-only lookup would
+	// be ambiguous.
+	rank, ok := nobleRankForTitle("Duke")
+	if !ok || rank.Votes != 4 || rank.ProxyValue != 400_000 {
+		t.Errorf("nobleRankForTitle(\"Duke\") = %+v ok=%v, want Votes=4 ProxyValue=400000", rank, ok)
+	}
+
+	if _, ok := nobleRankForTitle("not a real title"); ok {
+		t.Error("nobleRankForTitle(unknown title) reported found, want false")
+	}
+}
+
+// TestProxyIncomeMatchesTheRankReached covers Character.ProxyIncome
+// through a Noble's own tracked ladder rank, mirroring
+// TestNobleTitleFollowsTheLadderNotSoc's own fixture shape.
+func TestProxyIncomeMatchesTheRankReached(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		rank string
+		want int
+	}{
+		{"Gentleman", 0},
+		{"Knight", 0},
+		{"Baronet", 100_000},
+		{"Baron", 100_000},
+		{"Marquis", 200_000},
+		{"Duke", 400_000},
+		{"Archduke", 500_000},
+	}
+
+	for _, c := range cases {
+		t.Run(c.rank, func(t *testing.T) {
+			t.Parallel()
+
+			char := Character{
+				Careers: []Career{{Name: NobleCareerName, HasRank: true, Terms: []Term{{Rank: c.rank}}}},
+			}
+
+			if got := char.ProxyIncome(); got != c.want {
+				t.Errorf("ProxyIncome() = %d at rank %q, want %d", got, c.rank, c.want)
+			}
+		})
+	}
+}
+
+// TestProxyIncomeZeroWithoutANobleTitle covers a character who never
+// reached any noble rank at all — NobleTitle returns "", which
+// nobleRankForTitle must not match against any real row.
+func TestProxyIncomeZeroWithoutANobleTitle(t *testing.T) {
+	t.Parallel()
+
+	var c Character
+
+	c.UPP.Characteristics[C6] = 9
+
+	if got := c.ProxyIncome(); got != 0 {
+		t.Errorf("ProxyIncome() = %d for a character with no noble title, want 0", got)
+	}
+}
+
+// TestGeneratedNobleProxyIncomeMatchesRank sweeps generated Nobles the
+// same way TestGeneratedNobleRankAndTitleNeverDisagree does (#93's own
+// regression shape), confirming ProxyIncome tracks the rank actually
+// reached rather than drifting from it.
+func TestGeneratedNobleProxyIncomeMatchesRank(t *testing.T) {
+	t.Parallel()
+
+	votingNobles := 0
+
+	for seed := uint64(1); seed <= 3000; seed++ {
+		c, ok := GenerateNobleCharacter(dice.New(rand.NewPCG(seed, seed)))
+		if !ok {
+			continue
+		}
+
+		rank := lastTermRank(c.Careers[0].Terms)
+		if rank == "" {
+			continue
+		}
+
+		want, ok := nobleRankForTitle(rank)
+		if !ok {
+			t.Fatalf("seed %d: rank %q has no nobleRanks row at all", seed, rank)
+		}
+
+		if got := c.ProxyIncome(); got != want.ProxyValue {
+			t.Errorf("seed %d: ProxyIncome() = %d at rank %q, want %d", seed, got, rank, want.ProxyValue)
+		}
+
+		if want.Votes > 0 {
+			votingNobles++
+		}
+	}
+
+	if votingNobles == 0 {
+		t.Fatal("no generated Noble ever reached a voting rank (Baronet+) in 3,000 seeds — sweep is vacuous")
+	}
+}
