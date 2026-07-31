@@ -10,8 +10,12 @@ import (
 
 // Character renders c as a Markdown character sheet: Species, Genetic
 // Profile, UPP, Age, Life Stage, Birthdate, Homeworld (and Birthworld
-// only when it differs), Wound Badges, the full Skills list, and each
-// Career's Terms and Mustering Out benefits. Age, Life Stage, and
+// only when it differs), Wound Badges, the full Skills list, CharGen
+// step C's own Education (if attended), each Career's Terms and
+// Mustering Out benefits, any Land Grants, and any Masterpieces — in
+// that order, matching Book 1's own CharGen step order (Education is
+// step C, before career resolution; Land Grants and Masterpieces are
+// consequences of careers, so they sit after). Age, Life Stage, and
 // Birthdate are always shown, like WoundBadges: every real generation
 // path computes them now (finalizeAging and GenerateBirthdate,
 // character/aging.go and character/birthdate.go), with a minimum Age of
@@ -26,7 +30,8 @@ import (
 // zero result, the same reasoning already applied to WoundBadges.
 // Equipment is likewise shown only when non-empty — Craftsman is the
 // first (and so far only) source that ever populates it, one entry per
-// Masterpiece created.
+// Masterpiece created; the Masterpieces section below shows the same
+// creations in structured form (QREBS, Vintage-appreciated value).
 // Position and RiskResult get local label functions
 // (positionAbbrev, riskResultLabel) rather than String() methods on the
 // character package's own types, matching this project's existing
@@ -43,11 +48,24 @@ func Character(c character.Character) string {
 	fmt.Fprint(&b, "## Skills\n\n")
 	writeSkills(&b, c.Skills)
 
-	fmt.Fprint(&b, "\n## Careers\n\n")
+	writeEducation(&b, c.Education)
+
+	// writeEducation already supplies its own leading blank line and its
+	// own trailing one when it writes anything at all — an unconditional
+	// second "\n" here would double up. Only add one when Education
+	// stayed silent, matching writeSkills' own no-Education gap exactly.
+	if c.Education.Attended() {
+		fmt.Fprint(&b, "## Careers\n\n")
+	} else {
+		fmt.Fprint(&b, "\n## Careers\n\n")
+	}
 
 	for _, career := range c.Careers {
 		writeCareer(&b, career)
 	}
+
+	writeLandGrants(&b, c)
+	writeMasterpieces(&b, c)
 
 	return strings.TrimRight(b.String(), "\n") + "\n"
 }
@@ -66,12 +84,30 @@ func Character(c character.Character) string {
 // took that slot; Wound Badges is omitted at zero, matching the
 // existing treatment of Fame, Cash, Rank, Notes and Medals; Birthworld
 // keeps its existing "only when it differs from Homeworld" rule.
+// Commendations follows Medals' own shape exactly. Noble Title
+// (Character.NobleTitle) follows the same "only when it differs" rule
+// as Birthworld — against Rank, not Homeworld — since NobleTitle
+// already equals Rank for a Noble-career character; it earns its own
+// line only for a Knighthood-derived title with no career rank behind
+// it. Proxy Income is omitted at zero the same way Fame/Cash are.
 //
 // Age, Life Stage, Birthdate and Homeworld always print: every
 // generation path computes them, and none has a value that means
 // "absent". Life Stage is derived from Age but kept — it names the
 // rules bracket (Book 1 p.89) rather than restating the number.
 func writeMetadata(b *strings.Builder, c character.Character) {
+	lines := append(metadataIdentityLines(c), metadataStatusLines(c)...)
+
+	// Two trailing spaces are Markdown's hard line break: the block reads
+	// as one paragraph of labelled lines rather than as many paragraphs.
+	fmt.Fprintf(b, "%s\n\n", strings.Join(lines, "  \n"))
+}
+
+// metadataIdentityLines is who/what the character is: Species, Genetic
+// Profile, UPP (only when a Name displaced it from the heading), Age,
+// Life Stage, Birthdate, Homeworld, Birthworld (only when it differs),
+// and Rank.
+func metadataIdentityLines(c character.Character) []string {
 	var lines []string
 
 	add := func(format string, args ...any) {
@@ -104,12 +140,43 @@ func writeMetadata(b *strings.Builder, c character.Character) {
 		add("**Rank:** %s", c.Rank)
 	}
 
+	return lines
+}
+
+// metadataStatusLines is what the character has accumulated: Wound
+// Badges, Medals, Commendations, Noble Title (only when it differs from
+// Rank — see writeMetadata's own doc comment), Proxy Income, Fame,
+// Cash, Notes, and Equipment. All are omitted at their zero value.
+func metadataStatusLines(c character.Character) []string {
+	var lines []string
+
+	add := func(format string, args ...any) {
+		lines = append(lines, fmt.Sprintf(format, args...))
+	}
+
 	if c.WoundBadges != 0 {
 		add("**Wound Badges:** %d", c.WoundBadges)
 	}
 
 	if len(c.Medals) > 0 {
 		add("**Medals:** %s", strings.Join(c.Medals, ", "))
+	}
+
+	if len(c.Commendations) > 0 {
+		add("**Commendations:** %s", strings.Join(c.Commendations, ", "))
+	}
+
+	// Only when it earns its place beside Rank: NobleTitle already equals
+	// Rank for a Noble-career character (TestGeneratedNobleRankAndTitleNeverDisagree),
+	// so this line exists for a Knighthood-derived title with no career
+	// rank behind it at all — the same "only when it differs" shape
+	// Birthworld already uses against Homeworld.
+	if title := c.NobleTitle(); title != "" && title != c.Rank {
+		add("**Noble Title:** %s", title)
+	}
+
+	if income := c.ProxyIncome(); income != 0 {
+		add("**Proxy Income:** %s/year", formatCr(income))
 	}
 
 	if c.Fame != 0 {
@@ -128,9 +195,7 @@ func writeMetadata(b *strings.Builder, c character.Character) {
 		add("**Equipment:** %s", strings.Join(c.Equipment, ", "))
 	}
 
-	// Two trailing spaces are Markdown's hard line break: the block reads
-	// as one paragraph of labelled lines rather than as many paragraphs.
-	fmt.Fprintf(b, "%s\n\n", strings.Join(lines, "  \n"))
+	return lines
 }
 
 // characterTitle falls back to the UPP code when Name is empty — nothing
@@ -613,4 +678,125 @@ func riskResultLabel(r character.RiskResult) string {
 	default:
 		return "?"
 	}
+}
+
+// writeEducation renders CharGen step C's own result (#113): School,
+// Major/Minor, Degree, Honors, and — for a University graduate who
+// qualified for one — the follow-on Graduate program chain (Masters,
+// Medical School, or Law School, with Professors chained after a
+// graduated Masters). Nothing is written at all for a character who
+// attended no institution — Education.Attended() is false whenever
+// chooseInstitution never found a qualifying school, which in practice
+// is never for a generated character (education.go's own doc comment),
+// but a hand-built Character has no such guarantee.
+//
+// CommissionCareers is deliberately not shown here: it's eligibility
+// bookkeeping (which careers a Commission could still apply to), not an
+// outcome, and its actual consequence — a career entered already
+// Commissioned at Officer1 — is already visible below in that career's
+// own first Term (Commissioned: true, an Officer1 Rank). Printing the
+// raw list too would restate the same fact a second, more confusing way.
+func writeEducation(b *strings.Builder, edu character.Education) {
+	if !edu.Attended() {
+		return
+	}
+
+	fmt.Fprint(b, "\n## Education\n\n")
+
+	var lines []string
+
+	add := func(format string, args ...any) {
+		lines = append(lines, fmt.Sprintf(format, args...))
+	}
+
+	add("**School:** %s", edu.School)
+
+	if edu.Major != "" {
+		add("**Major:** %s", edu.Major)
+	}
+
+	if edu.Minor != "" {
+		add("**Minor:** %s", edu.Minor)
+	}
+
+	if edu.Degree != "" {
+		add("**Degree:** %s", edu.Degree)
+	}
+
+	if edu.Honors {
+		add("**Honors:** yes")
+	}
+
+	fmt.Fprintf(b, "%s\n\n", strings.Join(lines, "  \n"))
+
+	for grad := edu.Graduate; grad != nil; grad = grad.Next {
+		writeGraduateProgram(b, *grad)
+	}
+}
+
+// writeGraduateProgram renders one link of the Graduate chain — status
+// distinguishes an attempt that never graduated (School attended, no
+// Degree) from a completed one, the same "attended, even if it went
+// nowhere" record Education.School itself already keeps for the
+// primary institution.
+func writeGraduateProgram(b *strings.Builder, grad character.GraduateProgram) {
+	status := "attended"
+	if grad.Graduated {
+		status = "graduated as " + grad.Degree
+	}
+
+	fmt.Fprintf(b, "**Graduate Program:** %s (%s)\n\n", grad.School, status)
+}
+
+// writeLandGrants renders every Land Grant this character holds — p.88:
+// "Land Grants Are Cumulative. Each title confers its own Land Grant: a
+// Knight raised to Baronet receives it in addition to his Knighthood."
+// A Total Annual Income line (the existing LandGrantIncome) appears
+// only when there's more than one grant to sum; a single grant's own
+// line already states its income.
+func writeLandGrants(b *strings.Builder, c character.Character) {
+	if len(c.LandGrants) == 0 {
+		return
+	}
+
+	fmt.Fprint(b, "\n## Land Grants\n\n")
+
+	for _, g := range c.LandGrants {
+		fmt.Fprintf(b, "- %s on %s (MW %d, other %d hexes) — %s/year\n",
+			g.Source, g.World, g.MainworldHexes, g.OtherHexes, formatCr(g.AnnualIncome))
+	}
+
+	if len(c.LandGrants) > 1 {
+		fmt.Fprintf(b, "\n**Total Annual Income:** %s/year\n", formatCr(c.LandGrantIncome()))
+	}
+
+	fmt.Fprint(b, "\n")
+}
+
+// writeMasterpieces renders every Masterpiece this character created
+// (#95's own QREBS allocation and Vintage appreciation): Master Points,
+// the QREBS split, Perfect status, the age it was created, and the
+// character-wide current Vintage-appreciated value (MasterpieceValue,
+// which already sums across every Masterpiece). The same creations
+// already appear as flat strings in Equipment; this is their
+// structured record.
+func writeMasterpieces(b *strings.Builder, c character.Character) {
+	if len(c.Masterpieces) == 0 {
+		return
+	}
+
+	fmt.Fprint(b, "\n## Masterpieces\n\n")
+
+	for _, m := range c.Masterpieces {
+		perfect := ""
+		if m.Perfect {
+			perfect = ", Perfect"
+		}
+
+		fmt.Fprintf(b, "- %d Master Points (Q%d R%d E%d B%d S%d)%s, created at Age %d\n",
+			m.MasterPoints, m.QREBS.Quality, m.QREBS.Reliability, m.QREBS.EaseOfUse,
+			m.QREBS.Burden, m.QREBS.Safety, perfect, m.CreatedAtAge)
+	}
+
+	fmt.Fprintf(b, "\n**Total Value:** %s\n\n", formatCr(c.MasterpieceValue()))
 }

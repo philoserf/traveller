@@ -1073,3 +1073,218 @@ func TestCharacterRendersRoguePrisonServedSeparately(t *testing.T) {
 		t.Errorf("the following term should report prison served alongside its own Scheme, got:\n%s", out)
 	}
 }
+
+// TestCharacterShowsCommendationsOnlyWhenSet mirrors
+// TestCharacterShowsMedalsOnlyWhenSet's own convention.
+func TestCharacterShowsCommendationsOnlyWhenSet(t *testing.T) {
+	t.Parallel()
+
+	bare := character.Character{}
+	if out := render.Character(bare); strings.Contains(out, "Commendations") {
+		t.Errorf("render.Character should omit Commendations when empty, got:\n%s", out)
+	}
+
+	withCommendations := character.Character{Commendations: []string{"Order of the Iron Star"}}
+	if got := render.Character(withCommendations); !strings.Contains(got, "**Commendations:** Order of the Iron Star") {
+		t.Errorf("render.Character should show a joined Commendations list, got:\n%s", got)
+	}
+}
+
+// TestCharacterShowsNobleTitleOnlyWhenItDiffersFromRank covers both
+// halves of the rule: a Knighthood-derived title with no career Rank
+// behind it earns its own line, but a Noble career's own ladder Rank
+// (which NobleTitle already returns verbatim) must not be shown twice.
+func TestCharacterShowsNobleTitleOnlyWhenItDiffersFromRank(t *testing.T) {
+	t.Parallel()
+
+	// Soc B via Knighthood, no Noble career at all: NobleTitle falls back
+	// to "Knight" (NobleTitleForSoc) while Rank stays empty.
+	knighted := character.Character{}
+	knighted.UPP.Characteristics[character.C6] = 11
+
+	got := render.Character(knighted)
+	if !strings.Contains(got, "**Noble Title:** Knight") {
+		t.Errorf("render.Character should show Noble Title for a title with no career Rank, got:\n%s", got)
+	}
+
+	// A real Noble career: Rank and NobleTitle agree, so the line is redundant.
+	ranked := character.Character{
+		Rank: "Baron",
+		Careers: []character.Career{{
+			Name: character.NobleCareerName, HasRank: true,
+			Terms: []character.Term{{Rank: "Baron"}},
+		}},
+	}
+	ranked.UPP.Characteristics[character.C6] = 12
+
+	if got := render.Character(ranked); strings.Contains(got, "Noble Title") {
+		t.Errorf("render.Character should not show Noble Title when it duplicates Rank, got:\n%s", got)
+	}
+}
+
+// TestCharacterShowsProxyIncomeOnlyWhenNonZero mirrors
+// TestCharacterOmitsZeroFameAndCash's own convention.
+func TestCharacterShowsProxyIncomeOnlyWhenNonZero(t *testing.T) {
+	t.Parallel()
+
+	bare := character.Character{}
+	if out := render.Character(bare); strings.Contains(out, "Proxy Income") {
+		t.Errorf("render.Character should omit Proxy Income when 0, got:\n%s", out)
+	}
+
+	baron := character.Character{
+		Rank: "Baron",
+		Careers: []character.Career{{
+			Name: character.NobleCareerName, HasRank: true,
+			Terms: []character.Term{{Rank: "Baron"}},
+		}},
+	}
+
+	if got := render.Character(baron); !strings.Contains(got, "**Proxy Income:** Cr100,000/year") {
+		t.Errorf("render.Character should show a Baron's own Proxy Income, got:\n%s", got)
+	}
+}
+
+// TestCharacterOmitsEducationWhenNotAttended guards the gate: a
+// zero-value Education (School empty) must produce no ## Education
+// heading at all, not an empty one.
+func TestCharacterOmitsEducationWhenNotAttended(t *testing.T) {
+	t.Parallel()
+
+	out := render.Character(character.Character{})
+	if strings.Contains(out, "Education") {
+		t.Errorf("render.Character should omit the Education section entirely when unattended, got:\n%s", out)
+	}
+}
+
+// TestCharacterShowsEducationFields covers School/Major/Minor/Degree/
+// Honors together, and confirms CommissionCareers is deliberately not
+// shown (its own consequence is visible in the Careers section instead
+// — see writeEducation's own doc comment).
+func TestCharacterShowsEducationFields(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Education: character.Education{
+			School: "University", Major: "Psychology", Minor: "Robotics",
+			Degree: "Honors BA", Honors: true,
+			CommissionCareers: []string{character.SpacerCareerName},
+		},
+	}
+
+	out := render.Character(c)
+
+	for _, want := range []string{
+		"## Education", "**School:** University", "**Major:** Psychology",
+		"**Minor:** Robotics", "**Degree:** Honors BA", "**Honors:** yes",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("render.Character should contain %q, got:\n%s", want, out)
+		}
+	}
+
+	if strings.Contains(out, character.SpacerCareerName) {
+		t.Errorf("render.Character should not print raw CommissionCareers, got:\n%s", out)
+	}
+}
+
+// TestCharacterShowsChainedGraduateProgram covers a graduated Masters
+// chaining into Professors (Education.Graduate.Next) — both links must
+// appear, each with its own graduated status.
+func TestCharacterShowsChainedGraduateProgram(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Education: character.Education{
+			School: "University", Degree: "BA",
+			Graduate: &character.GraduateProgram{
+				School: "Masters", Degree: "MA", Graduated: true,
+				Next: &character.GraduateProgram{School: "Professors", Graduated: false},
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "**Graduate Program:** Masters (graduated as MA)") {
+		t.Errorf("render.Character should show the graduated Masters link, got:\n%s", out)
+	}
+
+	if !strings.Contains(out, "**Graduate Program:** Professors (attended)") {
+		t.Errorf("render.Character should show the attempted-but-not-graduated Professors link, got:\n%s", out)
+	}
+}
+
+// TestCharacterShowsLandGrantsWithTotalOnlyWhenCumulative covers p.88's
+// "Land Grants Are Cumulative": a single grant states its own income
+// and needs no separate total; two or more get a Total Annual Income
+// line summing LandGrantIncome.
+func TestCharacterShowsLandGrantsWithTotalOnlyWhenCumulative(t *testing.T) {
+	t.Parallel()
+
+	single := character.Character{
+		LandGrants: []character.LandGrant{
+			{Source: "Knight", World: "A867A69-B", MainworldHexes: 1, OtherHexes: 1, AnnualIncome: 25_000},
+		},
+	}
+
+	out := render.Character(single)
+	if !strings.Contains(out, "- Knight on A867A69-B (MW 1, other 1 hexes) — Cr25,000/year") {
+		t.Errorf("render.Character should show the single grant's own line, got:\n%s", out)
+	}
+
+	if strings.Contains(out, "Total Annual Income") {
+		t.Errorf("render.Character should not show a Total line for a single grant, got:\n%s", out)
+	}
+
+	cumulative := character.Character{
+		LandGrants: []character.LandGrant{
+			{Source: "Knight", World: "A867A69-B", MainworldHexes: 1, OtherHexes: 1, AnnualIncome: 25_000},
+			{Source: "Baronet", World: "B545644-7", MainworldHexes: 2, OtherHexes: 2, AnnualIncome: 40_000},
+		},
+	}
+
+	if got := render.Character(cumulative); !strings.Contains(got, "**Total Annual Income:** Cr65,000/year") {
+		t.Errorf("render.Character should sum a Total Annual Income line for cumulative grants, got:\n%s", got)
+	}
+}
+
+// TestCharacterShowsMasterpieces covers #95's own structured record —
+// QREBS, Perfect, age created, and the character-wide Vintage-
+// appreciated Total Value.
+func TestCharacterShowsMasterpieces(t *testing.T) {
+	t.Parallel()
+
+	c := character.Character{
+		Age: 40,
+		Masterpieces: []character.Masterpiece{
+			{
+				MasterPoints: 42, Perfect: false,
+				QREBS:        character.QREBS{Quality: 10, Reliability: 8, EaseOfUse: 8, Burden: 8, Safety: 8},
+				CreatedAtAge: 34, BaseValue: 170_000,
+			},
+		},
+	}
+
+	out := render.Character(c)
+
+	if !strings.Contains(out, "## Masterpieces") {
+		t.Errorf("render.Character should contain a Masterpieces heading, got:\n%s", out)
+	}
+
+	if !strings.Contains(out, "42 Master Points (Q10 R8 E8 B8 S8), created at Age 34") {
+		t.Errorf("render.Character should show the QREBS allocation and creation age, got:\n%s", out)
+	}
+
+	if strings.Contains(out, "Perfect") {
+		t.Errorf("render.Character should not claim Perfect for a non-Perfect Masterpiece, got:\n%s", out)
+	}
+
+	// formatCr is unexported and its own comma-grouping is already
+	// covered by TestCharacterFormatsCashWithThousandsSeparators — this
+	// just confirms the line exists and carries a real Credits amount,
+	// not the exact grouped digits.
+	if !regexp.MustCompile(`\*\*Total Value:\*\* Cr[\d,]+`).MatchString(out) {
+		t.Errorf("render.Character should show a Total Value line with a Credits amount, got:\n%s", out)
+	}
+}
