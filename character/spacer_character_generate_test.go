@@ -127,7 +127,7 @@ func TestBuildSpacerCharacterQualified(t *testing.T) {
 	// TestBuildMarineCharacterQualified's own equivalent block explains:
 	// Aging now runs between terms and erodes C1-C3, so no starting UPP
 	// makes "Risk always succeeds" true for a full 14-term career.
-	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+	if want := careerWoundBadges(c.Careers[0]); c.WoundBadges != want {
 		t.Errorf("WoundBadges = %d, want %d (one per Wounded/Disabled term)", c.WoundBadges, want)
 	}
 

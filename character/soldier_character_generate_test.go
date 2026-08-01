@@ -135,7 +135,7 @@ func TestBuildSoldierCharacterQualified(t *testing.T) {
 		t.Errorf("len(Skills) = %d, want at least %d (homeworld skills alone)", len(c.Skills), len(homeworldSkills))
 	}
 
-	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+	if want := careerWoundBadges(c.Careers[0]); c.WoundBadges != want {
 		t.Errorf("WoundBadges = %d, want %d (the career's own wounded terms)", c.WoundBadges, want)
 	}
 

@@ -297,7 +297,7 @@ func TestResolveCraftsmanTermSuccess(t *testing.T) {
 		t.Errorf("RiskResult = %v, want Unharmed (Craftsman never rolls Risk & Reward)", term.RiskResult)
 	}
 
-	if term.Perfect {
+	if termMasterpieceIsPerfect(term) {
 		t.Error("Perfect = true, want false (42 points, below the 55 Perfect threshold)")
 	}
 
@@ -352,7 +352,7 @@ func TestResolveCraftsmanTermBelowMinimumMasterPointsNeverRolls(t *testing.T) {
 		)
 	}
 
-	if term.Perfect {
+	if termMasterpieceIsPerfect(term) {
 		t.Error("Perfect = true, want false")
 	}
 
@@ -396,7 +396,7 @@ func TestResolveCraftsmanTermPerfectMasterpiece(t *testing.T) {
 
 	term, _ := ResolveCraftsmanTerm(r, upp, C1, perfectSkill, 18)
 
-	if !term.Perfect {
+	if !termMasterpieceIsPerfect(term) {
 		t.Fatalf("Perfect = false, want true (masterPoints=%d)", mp)
 	}
 

@@ -82,10 +82,10 @@ func buildEntertainerCharacter(
 		Notes:          notes,
 		// WoundBadges deliberately left at its zero value: Entertainer's
 		// own Wounded/Disabled RiskResults represent a Talent setback,
-		// not a physical wound (scoutWoundBadges' own reasoning is
+		// not a physical wound (careerWoundBadges' own reasoning is
 		// specifically about physical characteristic reduction) — a
 		// code-review pass caught an earlier version calling
-		// scoutWoundBadges(career) here, which misrepresented a bad
+		// careerWoundBadges(career) here, which misrepresented a bad
 		// show as a combat injury on the rendered sheet.
 		Fame:       totalFame,
 		Cash:       bonuses.Cash,

@@ -47,7 +47,14 @@ func awardCharacteristic(current ehex.Value, amount int) ehex.Value {
 		return current
 	}
 
-	//nolint:gosec // bounded above by HumanCharacteristicMax
+	// current is never negative (ehex.Value is unsigned) and every
+	// caller's own amount is a positive Book 1 award (a literal 1, or a
+	// "+N" parsed from a Mustering Out/Personal-award table — this
+	// function is for awards only, never the reductions Aging/Risk apply
+	// elsewhere), so boosted can't go negative either; the guard above
+	// bounds it at HumanCharacteristicMax. Both bounds hold, so the
+	// int->uint8 conversion is safe.
+	//nolint:gosec // bounded to [0, HumanCharacteristicMax] — see comment above
 	return ehex.Value(boosted)
 }
 
@@ -55,7 +62,7 @@ func awardCharacteristic(current ehex.Value, amount int) ehex.Value {
 // kept so this package's many struct literals read unchanged.
 const humanGeneticProfile = HumanGeneticProfile
 
-// scoutWoundBadges counts one Wound Badge per term whose Risk roll left
+// careerWoundBadges counts one Wound Badge per term whose Risk roll left
 // the Controlling Characteristic reduced — Wounded or Disabled, both
 // "reduced" outcomes per Book 1 p.65: "Reduced. If the Controlling
 // Characteristic is reduced, the Character has been wounded and receives
@@ -63,7 +70,7 @@ const humanGeneticProfile = HumanGeneticProfile
 // separate category — p.69's own Disability Muster Out sidebar describes
 // a Disabling result as caused by "Risk Failure produces an Injury or
 // Wound".
-func scoutWoundBadges(career Career) int {
+func careerWoundBadges(career Career) int {
 	n := 0
 
 	for _, t := range career.Terms {
@@ -208,7 +215,7 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 // Scout's own shape: resolveCareer returns (Career, UPP) threading a
 // Risk-driven characteristic reduction forward, ok is len(Terms) > 0 &&
 // the last term's RiskResult != Dead, and WoundBadges counts Wounded/
-// Disabled terms via the already-generic scoutWoundBadges. Extracted
+// Disabled terms via the already-generic careerWoundBadges. Extracted
 // once Marine became a second real, byte-identical caller of this exact
 // shape (flagged by golangci-lint's own dupl check) — the same
 // "generalize on 2nd instance" discipline already applied repeatedly
@@ -299,7 +306,7 @@ func buildRiskCareerCharacter(
 		Careers:        []Career{career},
 		Skills:         aggregateSkills(skills),
 		Medals:         allMedalsFromTerms(career.Terms),
-		WoundBadges:    scoutWoundBadges(career),
+		WoundBadges:    careerWoundBadges(career),
 		LandGrants:     append(landGrants, bonuses.LandGrants...),
 	}, ok
 }

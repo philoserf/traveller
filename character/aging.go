@@ -142,44 +142,6 @@ func agingExtremeIllnessIsFatal(priorExtremeCount int) bool {
 	return priorExtremeCount >= 1
 }
 
-// ResolveAging simulates every Aging checkpoint from Physical Aging's own
-// onset through finalAge against upp, per Book 1 p.89. Returns the
-// resulting UPP, whether the character survived (false only when a second
-// agingSeverityExtreme batch occurs — "the character dies"), a
-// human-readable note for every major/extreme illness or the fatal event,
-// in chronological order, and the age the character actually reached.
-//
-// reachedAge is finalAge for a survivor, or the fatal checkpoint's own
-// age for one who died — never finalAge in that case. Aging runs over
-// the same span Career Resolution already covered (finalizeAging passes
-// the career-end age), so without this a character could be reported as
-// having died at 70 while their Age field still read 74: older than
-// their own recorded death. Callers use it to cap Age/LifeStage so the
-// two can't contradict each other.
-//
-// A characteristic already at 0 entering a checkpoint (from some
-// non-Aging cause, e.g. a Scout Risk wound) is left at 0 rather than
-// underflowing or counting as newly zeroed — Aging's own reset-to-1 rule
-// exists for values Aging itself just reduced to 0, not as a
-// general-purpose floor for characteristics zeroed by other mechanics.
-//
-// On death, the characteristics zeroed in the fatal checkpoint are left
-// at 0 in the returned UPP rather than reset to 1 — the reset-to-1 rule
-// is for a character who survives the illness, which a dead one, by
-// definition, does not.
-func ResolveAging(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string, int) {
-	var sim agingSimulation
-
-	for _, age := range agingCheckpoints(finalAge) {
-		upp = sim.checkpoint(r, upp, age)
-		if !sim.alive() {
-			return upp, false, sim.notes, sim.diedAtAge
-		}
-	}
-
-	return upp, true, sim.notes, finalAge
-}
-
 // agingSimulation carries Aging state across the checkpoints of one
 // character's life, so they can be applied chronologically — interleaved
 // between career terms by resolveCareerLoop (career_loop.go) — rather

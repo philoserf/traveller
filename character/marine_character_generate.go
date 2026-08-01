@@ -32,7 +32,7 @@ func GenerateMarineCharacter(r *dice.Roller) (Character, bool) {
 // split for testability. Delegates to buildRiskCareerCharacter
 // (character_generate.go) — Marine shares Scout's own shape exactly
 // (byte-identical, per golangci-lint's own dupl check), including reuse
-// of scoutWoundBadges and musterOutRollCount (already generic,
+// of careerWoundBadges and musterOutRollCount (already generic,
 // nothing Scout-specific in either body).
 //
 // commissioned/flightSchool are #113's Service Academy/OTC/NOTC

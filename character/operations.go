@@ -106,24 +106,16 @@ func rollOperations(r *dice.Roller, dm int, names []string, mods []int, rolls in
 	return received, names[best], mods[best]
 }
 
-// operationMod is the Mod an Operations result name carries. Several
-// rows of each table share a name at different Mods (Marine's own Combat
-// appears at 2, 2 and 3), so this reports the highest any row with that
-// name carries — the most that name could have contributed.
-func operationMod(name string, names []string, mods []int) int {
-	best, found := 0, false
+// rollBranch resolves a "Select Branch" open choice — Book 1's own
+// Master Checklist "Select," not "Roll" — uniformly over names/mods,
+// shared by every career whose Branch pick is a flat, uncorrelated list
+// (Marine's/Soldier's own; Spacer's own Branch depends on current
+// Officer/Enlisted status each term, so it uses its own row-index
+// picker instead, see spacer_generate.go).
+func rollBranch(r *dice.Roller, names []string, mods []int) (string, int) {
+	i := r.Uniform(len(names)) - 1
 
-	for i, n := range names {
-		if n != name {
-			continue
-		}
-
-		if !found || mods[i] > best {
-			best, found = mods[i], true
-		}
-	}
-
-	return best
+	return names[i], mods[i]
 }
 
 // eligibleSkillColumns is the set of Skills-table columns a Term's own

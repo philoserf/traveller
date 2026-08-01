@@ -1,5 +1,21 @@
 package character
 
+import "fmt"
+
+// rankName is Marine's/Soldier's/Spacer's own shared rank-notation
+// formatter — confirmed byte-identical across all three careers except
+// which enlisted-track letter and rank-name tables get passed in
+// ("M1 Private"/"S1 Private"/"R1 Spacehand" for Enlisted, "O4 Force
+// Commander" and its own siblings for Officer, all Book 1's own
+// notation).
+func rankName(isOfficer bool, tier int, enlistedLetter string, enlistedNames, officerNames []string) string {
+	if isOfficer {
+		return fmt.Sprintf("O%d %s", tier, officerNames[tier-1])
+	}
+
+	return fmt.Sprintf("%s%d %s", enlistedLetter, tier, enlistedNames[tier-1])
+}
+
 // rankState derives the current Armed Forces rank track and tier from
 // prior terms — derived, not separately tracked, matching this codebase's
 // existing "derive from Terms" discipline (nobleIntrigueCounts,
@@ -42,30 +58,14 @@ func rankState(terms []Term, enlistedTiers, officerTiers int) (bool, int) {
 }
 
 // rankBasedCareerFame is Marine's/Soldier's/Spacer's own shared Fame
-// body (Book 1 p.91's "Army/Marine/Navy: Officer Rank*" bracket) —
-// confirmed byte-identical across all three careers except which
-// rank-name tables get passed in, extracted per this codebase's own
-// "generalize on 2nd instance" discipline once a third verbatim match
-// (Spacer) appeared. See marineCareerFameAwards's own doc comment
-// (marine_character_generate.go) for the full formula rationale: Medal
+// total (Book 1 p.91's "Army/Marine/Navy: Officer Rank*" bracket): Medal
 // Fame + Wound Badge Fame (x1 each) + Officer Rank Fame (=Rank, the
-// numeric tier).
+// numeric tier) — the sum of rankBasedCareerFameAwards' own individual
+// awards (fame.go), which report each separately for the Fame Stacks
+// cap. See marineCareerFameAwards's own doc comment
+// (marine_character_generate.go) for the full formula rationale.
 func rankBasedCareerFame(career Career, enlistedRankCount, officerRankCount int) int {
-	fame := 0
-
-	for _, t := range career.Terms {
-		for _, medal := range t.Medals {
-			fame += medalFame[medal]
-		}
-	}
-
-	fame += scoutWoundBadges(career)
-
-	if isOfficer, tier := rankState(career.Terms, enlistedRankCount, officerRankCount); isOfficer {
-		fame += tier
-	}
-
-	return fame
+	return sumInts(rankBasedCareerFameAwards(career, enlistedRankCount, officerRankCount))
 }
 
 // rankAutoSkillFromTables is Spacer's/Merchant's own shared "Automatic

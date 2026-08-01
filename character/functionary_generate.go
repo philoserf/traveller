@@ -117,7 +117,7 @@ func functionaryRankName(tier int, precedingCareer string, nthUnderSecretary int
 // Office Politics' own "Risk Failure: ... may not Continue" — reused
 // for what it already means, the same class of reuse Entertainer's own
 // Talent-exhaustion "Dead" already established this session. Callers
-// must not call scoutWoundBadges on a Functionary career (WoundBadges
+// must not call careerWoundBadges on a Functionary career (WoundBadges
 // is always 0 — a career-ending setback, not a wound) and must not
 // render the literal word "Disabled" for it (render/character.go's own
 // functionaryTermLabel overrides this, mirroring

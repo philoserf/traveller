@@ -289,7 +289,11 @@ func ResolveRogueTerm(r *dice.Roller, cc, mod, servingPrison int, priorCareers [
 // Scheme succeeded.
 func rollRogueTermSkills(r *dice.Roller, term Term) []SkillLevel {
 	if term.ServedYears > 0 {
-		return rollRogueSkillsFromTable(r, roguePrisonSkillsPerTerm)
+		// "In Prison: Prison Skills from the Rogue Skills table column 1
+		// or 2 only" — reuses the shared restricted-column drawer
+		// (operations.go), the same one Marine/Soldier/Spacer Operations
+		// skills use.
+		return rollSkillsFromColumns(r, rogueSkillTable, []int{0, 1}, rogueTermSkillCount(term))
 	}
 
 	return rollSkillsFromTable(r, rogueSkillTable, rogueTermSkillCount(term))
@@ -297,9 +301,9 @@ func rollRogueTermSkills(r *dice.Roller, term Term) []SkillLevel {
 
 // rogueTermSkillCount is rollRogueTermSkills' own eligibility arithmetic,
 // split out because the roll itself can return fewer skills than it asks
-// for — rollSkillsFromTable drops cells this codebase can't resolve yet
-// ("Major", "One Science"). Counting separately keeps the rule directly
-// testable without that noise.
+// for — rollSkillsFromTable/rollSkillsFromColumns drop cells this
+// codebase can't resolve yet ("Major", "One Science"). Counting
+// separately keeps the rule directly testable without that noise.
 func rogueTermSkillCount(term Term) int {
 	if term.ServedYears > 0 {
 		return roguePrisonSkillsPerTerm
@@ -310,23 +314,4 @@ func rogueTermSkillCount(term Term) int {
 	}
 
 	return rogueSkillsPerTerm + rogueSuccessfulSchemeSkillBonus
-}
-
-// rollRogueSkillFromTable/rollRogueSkillsFromTable are Book 1 p.84's own
-// "In Prison: Prison Skills from the Rogue Skills table column 1 or 2
-// only" — reuses the shared resolveSkillCell (career_generate.go).
-func rollRogueSkillFromTable(r *dice.Roller) (SkillLevel, bool) {
-	return resolveSkillCell(r, rogueSkillTable, r.Uniform(2)-1, r.Uniform(6)-1)
-}
-
-func rollRogueSkillsFromTable(r *dice.Roller, count int) []SkillLevel {
-	var skills []SkillLevel
-
-	for range count {
-		if skill, ok := rollRogueSkillFromTable(r); ok {
-			skills = append(skills, skill)
-		}
-	}
-
-	return skills
 }

@@ -8,11 +8,7 @@ import "github.com/philoserf/traveller/dice"
 // against the (possibly Risk-reduced) current Str (C1) — Book 1 p.81's
 // own "Continue C1," matching Marine's own target, unlike Soldier's C3.
 func continueSpacerOutcome(roll, str int) bool {
-	if roll == 2 {
-		return true
-	}
-
-	return roll <= str
+	return mandatoryContinueOutcome(roll, str)
 }
 
 func continueSpacer(r *dice.Roller, upp UPP) bool {

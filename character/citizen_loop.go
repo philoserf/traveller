@@ -18,11 +18,7 @@ var citizenLifePositions = []Position{C1, C2, C3, C4}
 // "Continue 10-" target — unlike Scout's characteristic-based Continue
 // Int, this never varies by UPP.
 func continueCitizenOutcome(roll int) bool {
-	if roll == 2 {
-		return true
-	}
-
-	return succeedsAgainst(roll, 10, 0)
+	return mandatoryContinueOutcome(roll, 10)
 }
 
 func continueCitizen(r *dice.Roller) bool {

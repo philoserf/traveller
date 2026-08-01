@@ -11,6 +11,27 @@ import (
 	"github.com/philoserf/traveller/ehex"
 )
 
+// resolveAgingForTest runs every Aging checkpoint from onset through
+// finalAge in one call — a whole-life convenience wrapper around
+// agingSimulation.checkpoint that only these tests need; production code
+// only ever checkpoints incrementally, interleaved between career terms
+// (see resolveCareerLoop, career_loop.go). Returns the resulting UPP,
+// whether the character survived, the human-readable notes in
+// chronological order, and the age actually reached (finalAge for a
+// survivor, or the fatal checkpoint's own age for one who died).
+func resolveAgingForTest(r *dice.Roller, upp UPP, finalAge int) (UPP, bool, []string, int) {
+	var sim agingSimulation
+
+	for _, age := range agingCheckpoints(finalAge) {
+		upp = sim.checkpoint(r, upp, age)
+		if !sim.alive() {
+			return upp, false, sim.notes, sim.diedAtAge
+		}
+	}
+
+	return upp, true, sim.notes, finalAge
+}
+
 // TestLifeStageForAge pins every boundary age in Book 1 p.89's own "THE
 // STAGES OF LIFE" table, full-pinned rather than sampled.
 func TestLifeStageForAge(t *testing.T) {
@@ -226,7 +247,7 @@ func TestResolveAgingNoEffectBeforeOnset(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{7, 7, 7, 7, 7, 7}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	got, survived, notes, _ := ResolveAging(r, upp, 33)
+	got, survived, notes, _ := resolveAgingForTest(r, upp, 33)
 
 	if got != upp {
 		t.Errorf("ResolveAging before onset changed upp: got %v, want unchanged %v", got, upp)
@@ -255,7 +276,7 @@ func TestResolveAgingNeverTriggersIllnessWithSufficientBuffer(t *testing.T) {
 	for _, seed := range []uint64{1, 2, 3, 4, 5} {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		got, survived, notes, _ := ResolveAging(r, upp, 74)
+		got, survived, notes, _ := resolveAgingForTest(r, upp, 74)
 		if !survived {
 			t.Errorf("seed %d: survived = false, want true", seed)
 		}
@@ -290,7 +311,7 @@ func TestResolveAgingProducesIllnessAndDeathOverManyTrials(t *testing.T) {
 	for seed := uint64(1); seed <= trials; seed++ {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		got, survived, notes, _ := ResolveAging(r, upp, 110)
+		got, survived, notes, _ := resolveAgingForTest(r, upp, 110)
 
 		if !survived {
 			died++
@@ -325,7 +346,7 @@ func TestResolveAgingReportsReachedAge(t *testing.T) {
 
 		upp := UPP{Characteristics: [6]ehex.Value{15, 15, 15, 15, 15, 15}}
 
-		_, survived, _, reachedAge := ResolveAging(dice.New(rand.NewPCG(1, 1)), upp, 74)
+		_, survived, _, reachedAge := resolveAgingForTest(dice.New(rand.NewPCG(1, 1)), upp, 74)
 		if !survived {
 			t.Fatal("survived = false, want true (all-15 UPP has ample aging buffer)")
 		}
@@ -343,7 +364,7 @@ func TestResolveAgingReportsReachedAge(t *testing.T) {
 		// where a capped and an uncapped answer are indistinguishable.
 		upp := UPP{Characteristics: [6]ehex.Value{2, 2, 2, 2, 2, 2}}
 
-		_, survived, notes, reachedAge := ResolveAging(dice.New(rand.NewPCG(1, 1)), upp, 110)
+		_, survived, notes, reachedAge := resolveAgingForTest(dice.New(rand.NewPCG(1, 1)), upp, 110)
 		if survived {
 			t.Fatal("survived = true, want false (fixture assumption broke)")
 		}

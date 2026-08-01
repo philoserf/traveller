@@ -15,10 +15,8 @@ linters:
     - gomodguard # deprecated in v2.12; std-lib-only module has no blocked modules to guard
     - gochecknoglobals # career/table data are intentional package-level vars
     - noinlineerr # `if err := f(); err != nil` is standard Go
-    - paralleltest # ~0 benefit on fast deterministic tests; huge manual churn
     - err113 # false-positive-prone; pointless sentinels for one-off CLI errors
     - wsl # deprecated; superseded by wsl_v5
-    - testpackage # white-box tests are intentional (see file header) — internal package access to unexported generation/table logic
   settings:
     depguard:
       # Enforce the deliberate std-lib-only invariant (go.mod has no require
@@ -71,6 +69,15 @@ linters:
       - path: (^|/)cmd/
         linters:
           - forbidigo
+      # testpackage (black-box `_test` packages) stays enforced for render/,
+      # api/, and dice/ — all three are already 100% compliant, so this only
+      # guards against future regression. The generation/table packages
+      # below need white-box access to unexported table/generation logic
+      # (the same reason testpackage used to be disabled repo-wide), so
+      # they're the ones excluded, not the default.
+      - path: (^|/)(character|ehex|sector|starship|system|world)/
+        linters:
+          - testpackage
       # Marine's and Soldier's own *_character_generate_test.go mirror the
       # same NeverQualified/Dies/Qualified test triad test-for-test,
       # deliberately, not incidentally — each one's own fixture values and
@@ -121,40 +128,22 @@ linters:
       - path: character/(rogue|agent)_muster_out_test\.go
         linters:
           - dupl
-      # marine_generate.go's ResolveMarineTerm and soldier_generate.go's
-      # ResolveSoldierTerm are the production (non-test) counterpart to
-      # the marine_generate_test.go exclusion above — same deliberate
-      # per-career mirroring, same "Spacer's own int branchRow parameter
-      # defeats dupl's clone detection" reason ResolveSpacerTerm never
-      # joins this pair. Previously just under dupl's own detection
-      # threshold; #53's otherwise-unrelated changes elsewhere in the
-      # package shifted enough token-count context to surface it.
-      - path: character/(marine|soldier)_generate\.go
-        linters:
-          - dupl
       # marine_character_generate.go/soldier_character_generate.go/
       # spacer_character_generate.go are the standalone-entry-point
-      # counterpart to the marine|soldier_generate.go exclusion above —
+      # counterpart to the marine|soldier_generate_test.go exclusion above —
       # same deliberate per-career mirroring ("Marine shares Scout's own
       # shape exactly", "Soldier shares Marine's own shape exactly",
       # "Spacer shares Marine's/Soldier's own shape exactly", each file's
       # own doc comment). #113's Commission/Flight School threading added
       # two near-identical lines to all three GenerateXCharacter bodies,
       # tipping them over dupl's own detection threshold the same way
-      # #53 did for the pair above.
+      # #53 did for marine_generate.go/soldier_generate.go's own
+      # ResolveMarineTerm/ResolveSoldierTerm (no longer needs its own
+      # exclusion — later refactoring pulled enough shared logic out via
+      # rollBranch/rankName/mandatoryContinueOutcome/commissionStatus that
+      # dupl no longer flags that pair on its own; re-add it here if that
+      # ever regresses).
       - path: character/(marine|soldier|spacer)_character_generate\.go
-        linters:
-          - dupl
-      # career_chain_test.go's own TestCareerChainNobleAgeTargetCutsOffMidCareer
-      # (#49) deliberately mirrors TestCareerChainAgeTargetCutsOffMidCareer's
-      # Scout-based shape almost verbatim, the same "second instance of an
-      # established test shape, seeds/exact term counts are the point, not
-      # the surrounding scaffolding" reasoning as every other exclusion in
-      # this file — proving the shared age-budget machinery (segmentBudget,
-      # maxAllowedCareerTerms) that already had Scout coverage also wires
-      # correctly for Noble specifically, since Noble's own Begin/Continue
-      # shape is otherwise nothing like Scout's.
-      - path: character/career_chain_test\.go
         linters:
           - dupl
 

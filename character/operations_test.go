@@ -10,6 +10,28 @@ import (
 	"github.com/philoserf/traveller/dice"
 )
 
+// operationMod is the Mod an Operations result name carries. Several
+// rows of each table share a name at different Mods (Marine's own Combat
+// appears at 2, 2 and 3), so this reports the highest any row with that
+// name carries — the most that name could have contributed. Test-only:
+// production code only ever needs the roll outcome itself, never a
+// reverse lookup from name back to Mod.
+func operationMod(name string, names []string, mods []int) int {
+	best, found := 0, false
+
+	for i, n := range names {
+		if n != name {
+			continue
+		}
+
+		if !found || mods[i] > best {
+			best, found = mods[i], true
+		}
+	}
+
+	return best
+}
+
 // TestEligibleSkillColumnsAlwaysIncludesPersonal is Book 1 p.65's
 // "Column 1-Personal Skills may always be rolled" — true even for a term
 // whose every Operations result maps to no column at all.
