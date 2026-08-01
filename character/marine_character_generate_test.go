@@ -146,7 +146,7 @@ func TestBuildMarineCharacterQualified(t *testing.T) {
 		t.Errorf("Fame = %d, want at least %d (career Fame, before Mustering Out's own additions)", c.Fame, want)
 	}
 
-	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+	if want := careerWoundBadges(c.Careers[0]); c.WoundBadges != want {
 		t.Errorf("WoundBadges = %d, want %d (one per Wounded/Disabled term)", c.WoundBadges, want)
 	}
 

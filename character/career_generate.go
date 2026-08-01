@@ -13,6 +13,23 @@ func succeedsAgainst(roll, target, mod int) bool {
 	return roll <= target+mod
 }
 
+// mandatoryContinueOutcome is the dice-free comparison every career's
+// own end-of-Term Continue check shares (p.65-66: "the Character must
+// successfully roll (2D) to Continue (or less) in the career... If the
+// Continue roll is 2 exactly, the character is required to continue in
+// this career for another term"). The roll-of-2 override matters beyond
+// the boundary case a plain succeedsAgainst already covers: a
+// characteristic-based target (Str/Int/etc.) can itself be below 2, so
+// without it a very low characteristic could make even the minimum
+// possible 2D6 roll fail.
+func mandatoryContinueOutcome(roll, target int) bool {
+	if roll == 2 {
+		return true
+	}
+
+	return succeedsAgainst(roll, target, 0)
+}
+
 // rollAgainstTarget is Book 1 p.63's universal resolution primitive:
 // "2D, result <= Target = success." mod raises or lowers the effective
 // target (a positive mod makes success easier, matching the book's own

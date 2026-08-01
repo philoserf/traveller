@@ -609,21 +609,7 @@ func awardEducationSkills(r *dice.Roller, school educationInstitution, edu *Educ
 // p.60's matrix, excluding one already-taken subject — p.59: a character
 // "may select any Major and Minor (they cannot be the same)".
 func pickEducationSubject(r *dice.Roller, exclude string) string {
-	pool := skillsForSchool(schoolCollege, false)
-
-	available := make([]string, 0, len(pool))
-
-	for _, name := range pool {
-		if name != exclude {
-			available = append(available, name)
-		}
-	}
-
-	if len(available) == 0 {
-		return ""
-	}
-
-	return available[r.Uniform(len(available))-1]
+	return pickSubjectExcluding(r, skillsForSchool(schoolCollege, false), exclude)
 }
 
 // applyGraduation applies p.60's Graduation column. Its own aside — "(If

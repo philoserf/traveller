@@ -1,8 +1,6 @@
 package character
 
 import (
-	"fmt"
-
 	"github.com/philoserf/traveller/dice"
 )
 
@@ -26,11 +24,7 @@ var marineOfficerRankNames = [7]string{
 // marineRankName formats a rank state as Book 1's own "M1 Private"/"O4
 // Force Commander" notation.
 func marineRankName(isOfficer bool, tier int) string {
-	if isOfficer {
-		return fmt.Sprintf("O%d %s", tier, marineOfficerRankNames[tier-1])
-	}
-
-	return fmt.Sprintf("M%d %s", tier, marineEnlistedRankNames[tier-1])
+	return rankName(isOfficer, tier, "M", marineEnlistedRankNames[:], marineOfficerRankNames[:])
 }
 
 // marineRankAutomaticSkill is Book 1 p.86's own "Automatic Skills by

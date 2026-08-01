@@ -256,16 +256,13 @@ func ResolveCraftsmanTerm(
 	skillCount := craftsmanSkillsPerTerm
 
 	if succeeded {
-		perfect := masterPoints >= craftsmanPerfectMasterPoints
-		term.Perfect = perfect
-
 		// Book 1 p.75's QREBS allocation and the value it implies, kept as
 		// a structured record beside the display string below.
 		masterpiece := newMasterpiece(r, masterPoints, ageAtCreation)
 		term.Masterpiece = &masterpiece
 
 		value := masterpiece.BaseValue
-		if perfect {
+		if masterpiece.Perfect {
 			term.RewardResult = fmt.Sprintf("Perfect Masterpiece (Cr%d)", value)
 		} else {
 			term.RewardResult = fmt.Sprintf("Masterpiece (Cr%d)", value)
@@ -281,6 +278,15 @@ func ResolveCraftsmanTerm(
 	term.SkillsAwarded = granted
 
 	return term, newHeld
+}
+
+// termMasterpieceIsPerfect reports whether t's own Masterpiece (if any)
+// is Perfect — Term.Perfect was removed as a redundant stored copy of
+// this same fact (Masterpiece.Perfect, itself derived from MasterPoints,
+// see masterpiece.go), so every caller checks it this way instead of a
+// second stored bool.
+func termMasterpieceIsPerfect(t Term) bool {
+	return t.Masterpiece != nil && t.Masterpiece.Perfect
 }
 
 // craftsmanCareerFame is Book 1 p.91's own two-row, additive Fame
@@ -299,7 +305,7 @@ func craftsmanCareerFame(terms []Term) int {
 
 		fame += 3
 
-		if t.Perfect {
+		if termMasterpieceIsPerfect(t) {
 			fame += 5
 		}
 	}

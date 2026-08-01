@@ -143,19 +143,36 @@ var careerChainRegistry = map[string]careerSegmentResolver{
 // finalizeAging — the shared shape behind Scout/Marine/Soldier/Spacer/
 // Agent's own adapters below, the same generalization
 // buildRiskCareerCharacter itself already applies to their full
-// Character-assembly functions.
+// Character-assembly functions: resolve the career, apply Mustering Out,
+// then tally Fame/Land Grants/Wound Badges/Skills/Medals the same gates
+// and order as the single-career builder, so a chain segment and a
+// standalone career produce the identical character from the identical
+// seed.
+//
+// commissioned/flightSchool thread through to resolveCareer for the
+// three Commission-eligible careers; Scout and Agent always pass false,
+// false and adapt their own narrower resolveCareer signature to match
+// (resolveScoutSegment/resolveAgentSegment). flightSchool (#113) adds
+// Honors on top of commissioned — p.61's "Service Academy Honors
+// Graduates"/"College or University Honors Graduates who participated in
+// OTC or NOTC may attend Flight School" both reduce to "commissioned AND
+// Honors", so callers compute it as a one-line derivation rather than
+// tracking separate state.
 func resolveRiskCareerSegment(
 	r *dice.Roller,
 	upp UPP,
 	maxTerms int,
 	ctx segmentContext,
-	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP),
+	resolveCareer func(
+		r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
+	) (Career, UPP),
 	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
 	careerFameAwards func(career Career) []int,
+	commissioned, flightSchool bool,
 ) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP := resolveCareer(r, upp, maxTerms, aging)
+	career, careerUPP := resolveCareer(r, upp, maxTerms, aging, commissioned, flightSchool)
 
 	if aging.alive() {
 		career.MusteringOut = resolveMusterOut(r, career)
@@ -182,106 +199,83 @@ func resolveRiskCareerSegment(
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
-		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: careerWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
+	}
+}
+
+// commissionStatus is commissioned/flightSchool for careerName, shared by
+// resolveMarineSegment/resolveSoldierSegment/resolveSpacerSegment —
+// commissioned via commissionAppliesTo, flightSchool (#113) adding
+// Honors on top per p.61's "Service Academy Honors Graduates"/"College
+// or University Honors Graduates who participated in OTC or NOTC may
+// attend Flight School", both reducing to "commissioned AND Honors".
+func commissionStatus(ctx segmentContext, careerName string) (bool, bool) {
+	commissioned := commissionAppliesTo(ctx.Education.CommissionCareers, ctx.PriorCareers, careerName)
+	flightSchool := commissioned && ctx.Education.Honors
+
+	return commissioned, flightSchool
+}
+
+// dropCommissionParams adapts a career whose own resolveCareer signature
+// has no room for commissioned/flightSchool (Scout, Agent — neither is
+// Commission-eligible) to resolveRiskCareerSegment's shared, wider
+// signature.
+func dropCommissionParams(
+	resolveCareer func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP),
+) func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool) (Career, UPP) {
+	return func(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, _, _ bool) (Career, UPP) {
+		return resolveCareer(r, upp, maxTerms, aging)
 	}
 }
 
 func resolveScoutSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r,
-		upp,
-		maxTerms,
-		ctx,
-		resolveScoutCareerWithBudget,
+		r, upp, maxTerms, ctx,
+		dropCommissionParams(resolveScoutCareerWithBudget),
 		ResolveScoutMusterOut,
 		scoutDiscoveryFameAwards,
+		false, false,
 	)
 }
 
-// resolveCommissionableCareerSegment mirrors resolveRiskCareerSegment's
-// own body for the three careers a Service Academy/OTC/NOTC Commission
-// (#113) can enter — Marine, Soldier, Spacer. It can't reuse that generic
-// helper directly: resolveCareer here takes commissioned/flightSchool
-// bools the shared signature has no room for. commissioned is computed
-// once via commissionAppliesTo before the roll; flightSchool (#113) adds
-// Honors on top — p.61's "Service Academy Honors Graduates"/"College or
-// University Honors Graduates who participated in OTC or NOTC may
-// attend Flight School" both reduce to "commissioned AND Honors" (see
-// this slice's own plan-file Context), so it needs no separate tracked
-// state and inherits commissioned's own "consumed once" behavior for
-// free.
-func resolveCommissionableCareerSegment(
-	r *dice.Roller,
-	upp UPP,
-	maxTerms int,
-	ctx segmentContext,
-	careerName string,
-	resolveCareer func(
-		r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
-	) (Career, UPP),
-	resolveMusterOut func(r *dice.Roller, career Career) MusteringOut,
-	careerFameAwards func(career Career) []int,
-) careerSegment {
-	aging := ctx.aging()
-	commissioned := commissionAppliesTo(ctx.Education.CommissionCareers, ctx.PriorCareers, careerName)
-	flightSchool := commissioned && ctx.Education.Honors
-
-	career, careerUPP := resolveCareer(r, upp, maxTerms, aging, commissioned, flightSchool)
-	if aging.alive() {
-		career.MusteringOut = resolveMusterOut(r, career)
-	}
-
-	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
-
-	ok := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
-
-	fameAwards := bonuses.FameAwards
-	if ok {
-		fameAwards = append(fameAwards, careerFameAwards(career)...)
-	}
-
-	fame := sumInts(fameAwards)
-
-	var landGrants []LandGrant
-	if ok {
-		landGrants = scoutDiscoveryLandGrants(r, career)
-	}
-
-	return careerSegment{
-		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
-		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
-		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
-	}
-}
-
 func resolveMarineSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	return resolveCommissionableCareerSegment(
-		r, upp, maxTerms, ctx, MarineCareerName,
-		resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFameAwards)
+	commissioned, flightSchool := commissionStatus(ctx, MarineCareerName)
+
+	return resolveRiskCareerSegment(
+		r, upp, maxTerms, ctx,
+		resolveMarineCareerWithBudget, ResolveMarineMusterOut, marineCareerFameAwards,
+		commissioned, flightSchool,
+	)
 }
 
 func resolveSoldierSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	return resolveCommissionableCareerSegment(
-		r, upp, maxTerms, ctx, SoldierCareerName,
-		resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFameAwards)
+	commissioned, flightSchool := commissionStatus(ctx, SoldierCareerName)
+
+	return resolveRiskCareerSegment(
+		r, upp, maxTerms, ctx,
+		resolveSoldierCareerWithBudget, ResolveSoldierMusterOut, soldierCareerFameAwards,
+		commissioned, flightSchool,
+	)
 }
 
 func resolveSpacerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
-	return resolveCommissionableCareerSegment(
-		r, upp, maxTerms, ctx, SpacerCareerName,
-		resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFameAwards)
+	commissioned, flightSchool := commissionStatus(ctx, SpacerCareerName)
+
+	return resolveRiskCareerSegment(
+		r, upp, maxTerms, ctx,
+		resolveSpacerCareerWithBudget, ResolveSpacerMusterOut, spacerCareerFameAwards,
+		commissioned, flightSchool,
+	)
 }
 
 func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	return resolveRiskCareerSegment(
-		r,
-		upp,
-		maxTerms,
-		ctx,
-		resolveAgentCareerWithBudget,
+		r, upp, maxTerms, ctx,
+		dropCommissionParams(resolveAgentCareerWithBudget),
 		ResolveAgentMusterOut,
 		agentCareerFameAwards,
+		false, false,
 	)
 }
 
@@ -357,7 +351,7 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
-		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: careerWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
 	}
 }
@@ -423,7 +417,7 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
-		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: scoutWoundBadges(career),
+		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: careerWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 	}
 }
@@ -456,7 +450,7 @@ func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 // mechanic at all — Survived is always true, the same as Citizen/Rogue/
 // Entertainer — and WoundBadges is never set (Disabled here means
 // "career ends," not a physical wound; see ResolveFunctionaryTerm's own
-// doc comment for why scoutWoundBadges must not be called on this
+// doc comment for why careerWoundBadges must not be called on this
 // segment).
 func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()

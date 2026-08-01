@@ -1,8 +1,6 @@
 package character
 
 import (
-	"fmt"
-
 	"github.com/philoserf/traveller/dice"
 )
 
@@ -29,11 +27,7 @@ var spacerOfficerRankNames = [7]string{
 // table's own "Enlisted Naval Ranks" column header convention, not "S"
 // like Soldier's own.
 func spacerRankName(isOfficer bool, tier int) string {
-	if isOfficer {
-		return fmt.Sprintf("O%d %s", tier, spacerOfficerRankNames[tier-1])
-	}
-
-	return fmt.Sprintf("R%d %s", tier, spacerEnlistedRankNames[tier-1])
+	return rankName(isOfficer, tier, "R", spacerEnlistedRankNames[:], spacerOfficerRankNames[:])
 }
 
 // spacerEnlistedRankAutoSkills/spacerOfficerRankAutoSkills back

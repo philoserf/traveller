@@ -107,7 +107,7 @@ func rankBasedCareerFameAwards(career Career, enlistedRankCount, officerRankCoun
 		}
 	}
 
-	for range scoutWoundBadges(career) {
+	for range careerWoundBadges(career) {
 		awards = append(awards, 1) // "Wound Badge WB x1"
 	}
 

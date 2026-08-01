@@ -58,11 +58,7 @@ func nextScoutCC(upp UPP, usedThisCycle map[Position]bool) Position {
 // directly testable against a fixed roll instead of a real 2D6 draw. roll==2
 // always succeeds (Book 1's "Mandatory Continue"); otherwise roll<=intChar.
 func continueScoutOutcome(roll, intChar int) bool {
-	if roll == 2 {
-		return true
-	}
-
-	return roll <= intChar
+	return mandatoryContinueOutcome(roll, intChar)
 }
 
 // continueScout resolves Book 1's end-of-Term Continue check (p.65-66: "the

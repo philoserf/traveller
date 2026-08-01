@@ -76,9 +76,7 @@ func BeginMarine(r *dice.Roller, str int) bool {
 // rollMarineBranch resolves "Select Branch" (see marineBranchNames' own
 // doc comment for why this is a choice, not a roll).
 func rollMarineBranch(r *dice.Roller) (string, int) {
-	i := r.Uniform(len(marineBranchNames)) - 1
-
-	return marineBranchNames[i], marineBranchMods[i]
+	return rollBranch(r, marineBranchNames[:], marineBranchMods[:])
 }
 
 // rollMarineOperations rolls 4 times (p.86: "Roll 4 times per Term for

@@ -75,9 +75,7 @@ func BeginSoldier(r *dice.Roller, str int) bool {
 // verb already resolved this way for Scout's own Duty pick and Marine's
 // own Branch pick).
 func rollSoldierBranch(r *dice.Roller) (string, int) {
-	i := r.Uniform(len(soldierBranchNames)) - 1
-
-	return soldierBranchNames[i], soldierBranchMods[i]
+	return rollBranch(r, soldierBranchNames[:], soldierBranchMods[:])
 }
 
 // rollSoldierOperations rolls 4 times (p.82: "Rolls 4 times per Term for

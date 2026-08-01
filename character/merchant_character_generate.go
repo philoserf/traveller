@@ -164,7 +164,7 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 		LifeStage:      lifeStage,
 		Notes:          notes,
 		Rank:           lastTermRank(career.Terms),
-		WoundBadges:    scoutWoundBadges(career),
+		WoundBadges:    careerWoundBadges(career),
 		Fame:           fame,
 		Cash:           bonuses.Cash,
 		Careers:        []Career{career},

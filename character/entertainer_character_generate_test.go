@@ -15,7 +15,7 @@ import (
 // completely spent, not physical death, so that check silently skipped
 // ResolveAging for a perfectly alive character (age would stay frozen at
 // 18, no aging Notes ever generated) and misreported WoundBadges via
-// scoutWoundBadges (which counts Talent setbacks as physical wounds).
+// careerWoundBadges (which counts Talent setbacks as physical wounds).
 // Seed 39 against an all-8 UPP was confirmed by direct inspection to end
 // its one term Dead (Talent exhausted) while still producing ok=true,
 // Age > 18 (aging ran), and WoundBadges == 0.

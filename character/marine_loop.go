@@ -9,11 +9,7 @@ import "github.com/philoserf/traveller/dice"
 // p.86's own "Continue C1," characteristic-based like Scout's own
 // Continue Int, not a flat target like Citizen's/Noble's.
 func continueMarineOutcome(roll, str int) bool {
-	if roll == 2 {
-		return true
-	}
-
-	return roll <= str
+	return mandatoryContinueOutcome(roll, str)
 }
 
 func continueMarine(r *dice.Roller, upp UPP) bool {

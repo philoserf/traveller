@@ -536,7 +536,7 @@ func TestResolveMarineTermNeverPromotesPastTheRankCap(t *testing.T) {
 
 // TestMarineCareerFame confirms marineCareerFameAwards sums each term's own
 // Medal Fame (Book 1 p.91's per-medal values), Wound Badge Fame (via
-// scoutWoundBadges, x1 each), and — for an Officer — Rank Fame (the
+// careerWoundBadges, x1 each), and — for an Officer — Rank Fame (the
 // numeric tier, derived via rankState) — see this and the prior
 // slice's own plan-file Context entries for the full reasoning.
 func TestMarineCareerFame(t *testing.T) {

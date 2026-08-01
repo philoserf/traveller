@@ -297,9 +297,9 @@ func TestResolveRogueTermServedInPrisonUsesPrisonSkills(t *testing.T) {
 }
 
 // prisonColumnSkillNames is rogueSkillTable's own columns 1-2 (table
-// indices 0-1 — rollRogueSkillFromTable's own r.Uniform(2)-1 picks
-// index 0 or 1) flattened into a lookup set, for
-// TestResolveRogueTermServedInPrisonUsesPrisonSkills.
+// indices 0-1 — the restricted-column set rollRogueTermSkills passes to
+// rollSkillsFromColumns for a prison term) flattened into a lookup set,
+// for TestResolveRogueTermServedInPrisonUsesPrisonSkills.
 var prisonColumnSkillNames = func() map[string]bool {
 	names := make(map[string]bool)
 

@@ -8,11 +8,7 @@ import "github.com/philoserf/traveller/dice"
 // against the (possibly Risk-reduced) current End (C3) — Book 1 p.82's
 // own "Continue C3," unlike Marine's own "Continue C1" (Str).
 func continueSoldierOutcome(roll, end int) bool {
-	if roll == 2 {
-		return true
-	}
-
-	return roll <= end
+	return mandatoryContinueOutcome(roll, end)
 }
 
 func continueSoldier(r *dice.Roller, upp UPP) bool {

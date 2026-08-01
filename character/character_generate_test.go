@@ -22,8 +22,8 @@ func TestScoutWoundBadges(t *testing.T) {
 		},
 	}
 
-	if got, want := scoutWoundBadges(career), 3; got != want {
-		t.Errorf("scoutWoundBadges() = %d, want %d", got, want)
+	if got, want := careerWoundBadges(career), 3; got != want {
+		t.Errorf("careerWoundBadges() = %d, want %d", got, want)
 	}
 }
 
@@ -182,7 +182,7 @@ func TestBuildScoutCharacterFullTermSurvivor(t *testing.T) {
 	// age 74 and Aging erodes those 12s on the way, so a late-term Risk
 	// roll can fail — the same fragility a Soldier fixture had. What has
 	// to hold is that the badges match the career that produced them.
-	if want := scoutWoundBadges(c.Careers[0]); c.WoundBadges != want {
+	if want := careerWoundBadges(c.Careers[0]); c.WoundBadges != want {
 		t.Errorf("WoundBadges = %d, want %d (the career's own wounded terms)", c.WoundBadges, want)
 	}
 }

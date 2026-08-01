@@ -351,10 +351,6 @@ func TestCraftsmanTermsRecordStructuredMasterpieces(t *testing.T) {
 			t.Errorf("Perfect = %v at %d Master Points", m.Perfect, m.MasterPoints)
 		}
 
-		if m.Perfect != term.Perfect {
-			t.Errorf("Masterpiece.Perfect = %v but Term.Perfect = %v", m.Perfect, term.Perfect)
-		}
-
 		if want := craftsmanMasterpieceValue(m.MasterPoints); m.BaseValue != want {
 			t.Errorf("BaseValue = %d, want %d", m.BaseValue, want)
 		}

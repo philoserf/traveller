@@ -11,11 +11,7 @@ import (
 // implement). Otherwise defers to succeedsAgainst against p.85's own
 // fixed "Continue 7" target.
 func continueNobleOutcome(roll int) bool {
-	if roll == 2 {
-		return true
-	}
-
-	return succeedsAgainst(roll, 7, 0)
+	return mandatoryContinueOutcome(roll, 7)
 }
 
 func continueNoble(r *dice.Roller) bool {
