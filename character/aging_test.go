@@ -250,15 +250,15 @@ func TestResolveAgingNoEffectBeforeOnset(t *testing.T) {
 	got, survived, notes, _ := resolveAgingForTest(r, upp, 33)
 
 	if got != upp {
-		t.Errorf("ResolveAging before onset changed upp: got %v, want unchanged %v", got, upp)
+		t.Errorf("resolveAgingForTest before onset changed upp: got %v, want unchanged %v", got, upp)
 	}
 
 	if !survived {
-		t.Error("ResolveAging before onset reported survived = false, want true")
+		t.Error("resolveAgingForTest before onset reported survived = false, want true")
 	}
 
 	if len(notes) != 0 {
-		t.Errorf("ResolveAging before onset returned notes %v, want none", notes)
+		t.Errorf("resolveAgingForTest before onset returned notes %v, want none", notes)
 	}
 }
 
