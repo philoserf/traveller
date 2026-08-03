@@ -57,7 +57,7 @@ func TestCharacterSummaryFallsBackToUPPWithoutAName(t *testing.T) {
 
 	got := render.CharacterSummary(c)
 
-	firstLine := strings.SplitN(got, "\n", 2)[0]
+	firstLine, _, _ := strings.Cut(got, "\n")
 	if !strings.HasPrefix(firstLine, c.UPP.String()+".") {
 		t.Errorf("first line should be the bare UPP followed by a period, got %q", firstLine)
 	}
