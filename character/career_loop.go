@@ -151,6 +151,16 @@ const maxCareerTerms = 14
 // for it.
 type afterContinue func(r *dice.Roller, upp UPP, terms []Term) bool
 
+// beforeTerm is p.59's own Later Education hook: "At the beginning of
+// any term, the character may apply for any Educational Institution or
+// Training, and if accepted substitutes that process for the entire
+// term." Checked once per iteration, before nextCC/resolveTerm — if it
+// reports true, its returned Term and UPP substitute for what
+// resolveTerm would have produced, and nextCC's own rotation is not
+// advanced, since no Controlling Characteristic was used. Nil for every
+// career that doesn't yet offer it.
+type beforeTerm func(r *dice.Roller, upp UPP) (Term, UPP, bool)
+
 func resolveCareerLoop(
 	r *dice.Roller,
 	upp UPP,
@@ -160,6 +170,7 @@ func resolveCareerLoop(
 	maxTerms int,
 	aging *agingSimulation,
 	afterContinueCheck afterContinue,
+	beforeTermCheck beforeTerm,
 ) ([]Term, UPP) {
 	var terms []Term
 
@@ -175,9 +186,21 @@ func resolveCareerLoop(
 			break
 		}
 
-		ccPos := nextCC(upp, positions, usedThisCycle)
+		var (
+			term       Term
+			updatedUPP UPP
+			elected    bool
+		)
 
-		term, updatedUPP := resolveTerm(r, upp, ccPos)
+		if beforeTermCheck != nil {
+			term, updatedUPP, elected = beforeTermCheck(r, upp)
+		}
+
+		if !elected {
+			ccPos := nextCC(upp, positions, usedThisCycle)
+			term, updatedUPP = resolveTerm(r, upp, ccPos)
+		}
+
 		upp = applyPersonalAwards(updatedUPP, term.SkillsAwarded)
 
 		terms = append(terms, term)
@@ -271,6 +294,7 @@ func resolveScoutCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *
 		continueScout,
 		maxTerms,
 		aging,
+		nil,
 		nil,
 	)
 	career.Terms = terms

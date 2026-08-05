@@ -161,6 +161,7 @@ func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
 		1,
 		&agingSimulation{},
 		nil,
+		nil,
 	)
 
 	if len(terms) != 1 {
@@ -169,6 +170,83 @@ func TestResolveCareerLoopBudgetEndsBeforeContinueRoll(t *testing.T) {
 
 	if continueCalled {
 		t.Fatal("Continue was rolled after the caller had already chosen to transfer")
+	}
+}
+
+// TestResolveCareerLoopBeforeTermSubstitutesForResolveTerm is the
+// regression test for the beforeTerm hook (#113 item 5, stage 2): when
+// it fires, its own Term/UPP must be what lands in the returned Terms
+// slice, resolveTerm must not run at all, and nextCC's own rotation
+// must not advance — no Controlling Characteristic was used.
+func TestResolveCareerLoopBeforeTermSubstitutesForResolveTerm(t *testing.T) {
+	t.Parallel()
+
+	resolveTermCalled := false
+	terms, _ := resolveCareerLoop(
+		dice.New(rand.NewPCG(1, 1)),
+		UPP{Characteristics: [6]ehex.Value{8}},
+		[]Position{C1, C2},
+		func(_ *dice.Roller, upp UPP, _ Position) (Term, UPP) {
+			resolveTermCalled = true
+
+			return Term{Length: 4, RiskResult: Unharmed}, upp
+		},
+		func(_ *dice.Roller, _ UPP) bool { return false },
+		1,
+		&agingSimulation{},
+		nil,
+		func(_ *dice.Roller, upp UPP) (Term, UPP, bool) {
+			return Term{Length: 4, LaterEducation: true, LaterEducationSchool: "Test University"}, upp, true
+		},
+	)
+
+	if resolveTermCalled {
+		t.Error("resolveTerm was called even though beforeTerm elected Later Education")
+	}
+
+	if len(terms) != 1 || !terms[0].LaterEducation || terms[0].LaterEducationSchool != "Test University" {
+		t.Fatalf("terms = %+v, want one LaterEducation term naming Test University", terms)
+	}
+
+	if terms[0].ControllingCharacteristic != 0 {
+		t.Errorf(
+			"ControllingCharacteristic = %v, want the zero value — no CC was used",
+			terms[0].ControllingCharacteristic,
+		)
+	}
+}
+
+// TestResolveCareerLoopBeforeTermDecliningFallsThroughToResolveTerm
+// confirms the hook is opt-in per term, not all-or-nothing: when it
+// reports false, the ordinary resolveTerm/nextCC path still runs.
+func TestResolveCareerLoopBeforeTermDecliningFallsThroughToResolveTerm(t *testing.T) {
+	t.Parallel()
+
+	resolveTermCalled := false
+	terms, _ := resolveCareerLoop(
+		dice.New(rand.NewPCG(1, 1)),
+		UPP{Characteristics: [6]ehex.Value{8}},
+		[]Position{C1},
+		func(_ *dice.Roller, upp UPP, _ Position) (Term, UPP) {
+			resolveTermCalled = true
+
+			return Term{Length: 4, RiskResult: Unharmed}, upp
+		},
+		func(_ *dice.Roller, _ UPP) bool { return false },
+		1,
+		&agingSimulation{},
+		nil,
+		func(_ *dice.Roller, upp UPP) (Term, UPP, bool) {
+			return Term{}, upp, false
+		},
+	)
+
+	if !resolveTermCalled {
+		t.Error("resolveTerm was never called even though beforeTerm declined")
+	}
+
+	if len(terms) != 1 || terms[0].LaterEducation {
+		t.Fatalf("terms = %+v, want one ordinary (non-LaterEducation) term", terms)
 	}
 }
 

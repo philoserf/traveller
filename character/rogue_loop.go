@@ -99,6 +99,7 @@ func resolveRogueCareerAndUPPWithBudget(
 		maxTerms,
 		aging,
 		nil,
+		nil,
 	)
 	career.Terms = terms
 

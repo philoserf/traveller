@@ -94,6 +94,9 @@ type Term struct {
 	// Institution or Training, and if accepted substitutes that process
 	// for the entire term." Elapsed, not served — see termsServed below.
 	LaterEducation bool
+	// LaterEducationSchool names the institution attended, for a term
+	// with LaterEducation set. Empty otherwise.
+	LaterEducationSchool string
 }
 
 // termsServed excludes LaterEducation terms from a count of terms of

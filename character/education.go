@@ -352,7 +352,37 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 		return Education{}, upp
 	}
 
-	edu := Education{School: school.Name}
+	var edu Education
+
+	upp = attendInstitution(r, upp, school, &edu)
+
+	return edu, upp
+}
+
+// attendInstitution runs one attendance at school against edu, mutating
+// it in place rather than building a fresh Education — the seam #113's
+// Later Education (item 5) needs, since p.59 lets a character attend
+// "one or more schools" and a second attendance must not discard what
+// the first one earned. edu.School is always overwritten to the
+// institution just attempted; School/Passes/Waivers/Honors/SchoolName
+// etc. are updated the same way (in the same fields) a first attendance
+// already used. Graduated and Degree are only ever set on success
+// (runEducationYears/applyGraduation never clear them on failure), so a
+// failed later attempt cannot regress a Degree an earlier one already
+// earned — an invariant to preserve deliberately, not an accident of
+// this extraction.
+//
+// Open question, deliberately not settled here: a failed later attempt
+// leaves edu.School naming the new (failed) institution while
+// edu.Graduated/edu.Degree still read true/whatever an earlier,
+// different institution actually earned — a "Graduated from University"
+// read that was really College. Unwired today (nothing calls this
+// function's caller from a real generation path yet), so it changes no
+// generated output; the wiring PR (#113 item 5, stage 3) needs to
+// settle whether Graduated should track "ever" or "most recent
+// attempt" before it matters.
+func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) UPP {
+	edu.School = school.Name
 
 	// p.59: "To Apply (for Admission), a character must Check one of the
 	// stated Characteristics. A failure disallows admission and consumes
@@ -360,25 +390,25 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	// example is exactly that: Eneri is rejected by the College of Regina
 	// on Check Edu, applies for a Waiver, and is admitted.
 	if len(school.ApplyCheck) > 0 && !checkAgainst(r, upp, school.ApplyCheck) && !tryWaiver(r, upp, &edu.Waivers) {
-		return edu, upp
+		return upp
 	}
 
-	runEducationYears(r, upp, school, &edu)
+	runEducationYears(r, upp, school, edu)
 
 	// p.61: "A character attending College or University may also
 	// volunteer to participate in OTC ... or NOTC." Resolved regardless of
 	// whether the primary program itself Graduates — p.60's own worked
 	// example has Eneri volunteer for NOTC mid-College, well before his
 	// eventual graduation.
-	resolveOfficerTrainingCorps(r, upp, &edu)
+	resolveOfficerTrainingCorps(r, upp, edu)
 
 	if !edu.Graduated {
-		return edu, upp
+		return upp
 	}
 
-	upp = applyGraduation(upp, school, &edu)
-	resolveHonors(r, upp, school, &edu)
-	upp = resolveGraduateEducation(r, upp, &edu)
+	upp = applyGraduation(upp, school, edu)
+	resolveHonors(r, upp, school, edu)
+	upp = resolveGraduateEducation(r, upp, edu)
 
 	if len(school.CommissionCareers) > 0 {
 		edu.CommissionCareers = mergeCommissionCareers(edu.CommissionCareers, school.CommissionCareers)
@@ -397,7 +427,7 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	edu.Skills = aggregateSkills(edu.Skills)
 
-	return edu, upp
+	return upp
 }
 
 // resolveGraduateEducation is #113's own University-gated follow-on
@@ -729,6 +759,70 @@ func chooseInstitution(upp UPP) (educationInstitution, bool) {
 	}
 
 	return educationInstitution{}, false
+}
+
+// educationInstitutionIndex reports school's own position in
+// educationInstitutions — its preference rank, since the list is
+// already ordered "the most demanding institution a character
+// qualifies for" (chooseInstitution's own doc comment) — or -1 if
+// school isn't one of the primary institutions this list carries (e.g.
+// a graduate-tier program name, or the empty string for a character who
+// has never attended anything).
+func educationInstitutionIndex(school string) int {
+	for i, s := range educationInstitutions {
+		if s.Name == school {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// shouldAttemptLaterEducation is p.59's own open choice — "At the
+// beginning of any term, the character may apply for any Educational
+// Institution or Training" — resolved the same way this codebase
+// resolves every open choice Book 1 leaves to the player: toward the
+// better outcome, not a coin flip (chooseInstitution's own precedent).
+// Two cases:
+//
+//   - Retry: the character's last attendance didn't graduate, and
+//     chooseInstitution(upp) still returns something.
+//   - Escalate: chooseInstitution(upp) now returns an institution
+//     strictly better than edu.School — earlier in
+//     educationInstitutions's own preference order, reachable because
+//     Edu grew via a Personal award since the character last attended.
+//
+// Pure: draws no dice, so a character this declines costs nothing to
+// the dice stream. Graduate-tier programs (Masters/Professors/Medical/
+// Law School) are deliberately out of reach here — chooseInstitution
+// only ever considers the primary institutions table. Reaching them via
+// Later Education is #113's own open question, not decided by this
+// function; see PLAN.md.
+//
+// Unwired: nothing calls this yet. It exists, and is tested, ahead of
+// the beforeTerm hook that will use it, so the hook's own wiring PR is
+// pure plumbing rather than also introducing new decision logic.
+func shouldAttemptLaterEducation(upp UPP, edu Education) (educationInstitution, bool) {
+	school, ok := chooseInstitution(upp)
+	if !ok {
+		return educationInstitution{}, false
+	}
+
+	if !edu.Graduated {
+		return school, true
+	}
+
+	current := educationInstitutionIndex(edu.School)
+	if current < 0 {
+		return educationInstitution{}, false
+	}
+
+	next := educationInstitutionIndex(school.Name)
+	if next < 0 || next >= current {
+		return educationInstitution{}, false
+	}
+
+	return school, true
 }
 
 // generateStart is CharGen steps A, B and C in order: create the UPP,
