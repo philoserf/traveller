@@ -162,34 +162,69 @@ whose names resolve completely today but aren't recorded yet (they'd
 need a name on `Term`, not `Education`); place names generally are
 #118.
 
-## 1. #113 — the rest of Education
+**#113, items 1-3** shipped in three PRs, the largest remaining chargen
+work at the time:
 
-The academic spine shipped (see above) and #36 closed with it. #113
-carries the rest — its title is accurate where #36's "unresearched" no
-longer was. Each piece was deferred because it pulls in a mechanic of
-its own rather than more of Education:
+PR #120 built **Service Academy, OTC, NOTC** — each confers a military
+Commission (p.61), entering Marine/Soldier/Spacer term 1 already
+Officer1 and bypassing `BeginMarine`/`BeginSoldier`/`BeginSpacer`.
+NOTC dominates OTC in this codebase's model (Navy-or-Marine vs.
+Army-only, identical cost) and is always taken, the open-choice
+convention `chooseInstitution` already used. `commissionAppliesTo`
+enforces "consumed once" across a career chain. 6,000-seed sweep:
+Marine 61.6%, Soldier 29.3%, Spacer 64.1% commissioned-entry — a large
+shift, driven by University's own pre-existing ~53% share combined
+with NOTC succeeding often for that population.
 
-- **Service Academy, OTC, NOTC.** They confer an Army, Navy or Marine
-  Commission and oblige a term of service — "The character is required
-  to serve one term in the service... he is in the Reserves" — which is
-  a career interaction. #110 removed a blanket version of that cap for
-  having no basis; this is the real one, and it arrives here.
-- **Masters, Professors, Medical School, Law School.** These gate on the
-  degree step C now produces (BA, MA, Honors BA), so they chain off it.
-  Masters shares the "Minor+1 per 2 Passes" cell already implemented.
-- **Flight School.** Gates on an Honors BA, grants Pilot-3 and a Flight
-  Branch.
-- **The Tra path** — Apprenticeship, Mentor, Training Course. p.59 puts
-  Sophonts with Tra there and lets Humans use Training Courses at Edu/2.
-  `GenerateUPP` produces only Humans, whose C5 is always Edu, so none
-  has a caller yet; this is really a "generate non-Humans" item wearing
-  an Education hat.
+PR #121 built **Flight School** — Pilot-3 and a Flight Branch, p.61's
+own worked example implemented literally down to the shortened first
+term ("Because Flight School took a year, this first Term is reduced
+to three years"), the first real use of `Term.Length` off its
+hardcoded `4`. Also fixed a live bug PR #120 had shipped: a
+Commissioned entry's own term 1 could still spuriously fire an
+internal Enlisted Promotion roll, granting a second wrong-track
+auto-skill and computing the wrong `Rank` string — invisible in #120's
+own all-zero-UPP test, where that internal roll always failed too.
+6,000-seed sweep of commissioned entrants: Marine 60.8%, Soldier
+16.0%, Spacer 62.9% also reach Flight School — Soldier's Commission
+path is Service Academy-only (NOTC doesn't reach Army), so it never
+gets NOTC's higher-Edu Honors population.
+
+PR #122 built **Masters, Professors, Medical School, Law School** —
+University-only (both governing sentences name University
+specifically), gated on the `Degree` step C already produces, and
+Waiver-eligible like every other Prerequisite. A first draft ordered
+Medical before Law as a fixed preference, mirroring `chooseInstitution`'s
+demanding-first convention; measurement caught it immediately (1,791
+Doctors vs. 12 Attorneys across 6,000 graduates, since Medical's
+prerequisite is checked, and taken, first) — unlike Trade-vs-College or
+OTC-vs-NOTC, Medical and Law don't actually dominate each other, so the
+pick is uniform-random instead, `rollScoutDuty`'s own convention for
+this shape of choice. Re-measured: Doctor 926, Attorney 948.
+
+Item 4 (the Tra path) and item 5 (retries and multiple schools) are
+what's left of #113 — see below.
+
+## 1. #113 — Later Education (item 5)
+
+p.59: "Later Education or Training. Characters may suspend career
+resolution to return to school or training. At the beginning of any
+term, the character may apply for any Educational Institution or
+Training, and if accepted substitutes that process for the entire
+term." Voluntary, mid-career, and distinct from ANM School/Command
+College (assigned, don't consume a whole term) —
+`character/command_college.go`'s own doc comment already names this
+rule as the reason it avoided partial-term modeling.
+
+Item 4, the Tra path (Apprenticeship, Mentor, Training Course), stays
+out of scope: it needs non-Human generation, which doesn't exist
+anywhere in this codebase, and #113's own text says it "probably should
+not be built" until it does.
 
 Service Academy, Masters, Professors, Medical School, Law School and
 Flight School are all Educational Institution Chart entries (#102), so
 their names will hit the same #118 gap College and University already
-do — expect them to withhold names too until #118 lands, not a new
-defect in this item.
+do — not a new defect when Later Education can reach them.
 
 ## 2. #96 — Land Grant scope deferrals
 
