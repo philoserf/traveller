@@ -72,6 +72,30 @@ func TestEd5RaisesEduToFive(t *testing.T) {
 	}
 }
 
+// TestEd5AwardsNoMajor is the regression test for #128:
+// awardEducationSkills used to declare edu.Major unconditionally on the
+// first Pass, before the switch that's supposed to gate it on
+// MajorBonus/GrantsMajorMinor — so ED5 (which has neither, p.60) drew a
+// College-column Major subject and rolled a die for it despite having no
+// Major/Minor mechanic of its own anywhere in the book.
+func TestEd5AwardsNoMajor(t *testing.T) {
+	t.Parallel()
+
+	edu, upp := resolveEducation(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 7))
+	if edu.School != "ED5" || !edu.Graduated {
+		t.Fatalf("School = %q graduated=%v, want ED5 graduated (Int 20 cannot fail a 2D check)",
+			edu.School, edu.Graduated)
+	}
+
+	if upp.Characteristics[C5] != 5 {
+		t.Fatalf("Edu = %v, want 5 after ED5", upp.Characteristics[C5])
+	}
+
+	if edu.Major != "" {
+		t.Errorf("Major = %q, want \"\" (ED5 has no Major/Minor mechanic, p.60)", edu.Major)
+	}
+}
+
 // TestGraduationNeverLowersEdu is the aside printed beside p.60's own
 // Graduation column: "(If Edu already at this level, award Edu+1)". A
 // University graduate whose Edu was already 9 must come out at A, not
