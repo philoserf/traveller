@@ -113,6 +113,51 @@ func TestBuildScholarCharacterQualified(t *testing.T) {
 	assertBirthdateFormat(t, c.Birthdate, c.Age)
 }
 
+// TestBuildScholarCharacterMusterOutUsesEntryTimeEdu is the regression
+// test for #136: buildScholarCharacter used to pass careerUPP (the
+// post-career UPP) to both ResolveScholarMusterOut and
+// scholarSegmentFameAwards, when both need entry-time Edu to know
+// Scholar's starting rank tier (scholarStartTier, gated at Edu 8) —
+// ResolveScholarMusterOut's own doc comment says so explicitly.
+// resolveScholarSegment (career_chain.go) had the identical bug at both
+// call sites; fixed there too so a chain segment and a standalone career
+// still produce the identical character from the identical seed.
+//
+// Seed 3 against Str/Dex/End/Int 8, Edu 7, Soc 8 (BeginScholar rolls
+// against Edu 7, tier starts at 0/Amateur): a 4-term career with a
+// Personal award raising Edu to 8 mid-career, but never a Promoted term
+// — Rank stays Amateur (tier 0) throughout. Confirmed by direct
+// comparison against the pre-fix implementation: it wrongly read the
+// post-career Edu 8 as the starting tier (scholarStartTier(8) = 1),
+// crediting a Rank-tier-1 Fame award and a +1 Mustering Out DM the
+// character never earned — Fame 6 pre-fix vs. the correct 4 post-fix.
+func TestBuildScholarCharacterMusterOutUsesEntryTimeEdu(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 7, 8}}
+	r := dice.New(rand.NewPCG(3, 3))
+
+	c, ok := buildScholarCharacter(r, upp, "hw", nil, Education{})
+
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if c.Rank != "Amateur" {
+		t.Fatalf(
+			"Rank = %q, want %q (no Promoted term this seed, so tier must stay at its entry-time 0)",
+			c.Rank,
+			"Amateur",
+		)
+	}
+
+	if c.Fame != 4 {
+		t.Errorf("Fame = %d, want 4 (6 was the pre-fix value: a spurious Rank-tier-1 Fame award "+
+			"plus a Mustering Out benefit reached only via the inflated DM the stale post-career Edu produced)",
+			c.Fame)
+	}
+}
+
 // TestBuildScholarCharacterDiedMidCareer pins seed 1 against a very low
 // Str/Dex/End/Int (2) UPP: the character dies on term 2's own Risk roll
 // (RiskResult == Dead), so ok is false despite two real Terms having

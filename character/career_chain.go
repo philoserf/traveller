@@ -326,7 +326,10 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 
 	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxTerms, aging, ctx.Education)
 	if aging.alive() {
-		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+		// upp, not careerUPP — ResolveScholarMusterOut needs entry-time
+		// Edu to know Scholar's starting rank tier (its own doc comment),
+		// not the post-career value. Mirrors buildScholarCharacter.
+		career.MusteringOut = ResolveScholarMusterOut(r, career, upp)
 	}
 
 	boostedUPP, bonuses := ApplyMusteringOut(r, career, careerUPP)
@@ -336,7 +339,9 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 	fameAwards := bonuses.FameAwards
 
 	if ok {
-		fameAwards = append(fameAwards, scholarSegmentFameAwards(careerUPP, career.Terms)...)
+		// upp, not careerUPP — same entry-time-Edu requirement as
+		// ResolveScholarMusterOut above.
+		fameAwards = append(fameAwards, scholarSegmentFameAwards(upp, career.Terms)...)
 	}
 
 	fame := sumInts(fameAwards)
