@@ -309,6 +309,15 @@ func applyRetirementPay(out *MusteringOut, career Career, isOfficer bool) {
 		return
 	}
 
+	// p.69's "Dying During Character Generation... all efforts... are
+	// lost" — the same Risk-roll-death guard musterOutRollCount already
+	// applies to Money/Benefits. Retirement Pay is a separate award
+	// computed after that loop, so it needs its own check rather than
+	// inheriting the zero roll count for free.
+	if career.Terms[len(career.Terms)-1].RiskResult == Dead {
+		return
+	}
+
 	rate := enlistedRetirementRate
 	if isOfficer {
 		rate = officerRetirementRate

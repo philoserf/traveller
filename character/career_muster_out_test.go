@@ -543,3 +543,22 @@ func TestApplyRetirementPay(t *testing.T) {
 		})
 	}
 }
+
+// TestApplyRetirementPayZeroOnDeath pins p.69's "Dying During Character
+// Generation... all efforts in this particular character creation process
+// are lost" against Retirement Pay specifically: a character with enough
+// terms to otherwise qualify (retirementMinimumTerms) whose last term ended
+// in Death gets none, the same guard musterOutRollCount already applies to
+// Money/Benefits rolls.
+func TestApplyRetirementPayZeroOnDeath(t *testing.T) {
+	t.Parallel()
+
+	career := Career{Terms: append(make([]Term, retirementMinimumTerms-1), Term{RiskResult: Dead})}
+
+	out := MusteringOut{}
+	applyRetirementPay(&out, career, false)
+
+	if out.RetirementPay != 0 {
+		t.Errorf("RetirementPay = %d, want 0 for a character whose last term ended in Death", out.RetirementPay)
+	}
+}

@@ -53,6 +53,11 @@ func TestResolveMarineMusterOutRollCountMatchesTerms(t *testing.T) {
 		if got := len(out.Money) + len(out.Benefits); got != want {
 			t.Errorf("len(Money)+len(Benefits) = %d, want %d (musterOutRollCount)", got, want)
 		}
+
+		if len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult == Dead && out.RetirementPay != 0 {
+			t.Errorf("RetirementPay = %d, want 0 for a character whose last term ended in Death (Book 1 p.69)",
+				out.RetirementPay)
+		}
 	}
 }
 
