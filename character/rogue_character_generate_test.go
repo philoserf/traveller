@@ -19,7 +19,7 @@ func TestBuildRogueCharacterNeverQualified(t *testing.T) {
 	upp := UPP{}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildRogueCharacter(r, upp, "hw", nil)
+	c, ok := buildRogueCharacter(r, upp, "hw", nil, nil)
 
 	if ok {
 		t.Error("ok = true, want false (BeginRogue fails against a zero UPP)")
@@ -55,7 +55,7 @@ func TestBuildRogueCharacterQualifiedOneTermShipShare(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(25, 25))
 
-	c, ok := buildRogueCharacter(r, upp, "hw", nil)
+	c, ok := buildRogueCharacter(r, upp, "hw", nil, nil)
 
 	if !ok {
 		t.Fatal("ok = false, want true")
@@ -103,7 +103,7 @@ func TestBuildRogueCharacterQualifiedTwoTermsPayoff(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(48, 48))
 
-	c, ok := buildRogueCharacter(r, upp, "hw", nil)
+	c, ok := buildRogueCharacter(r, upp, "hw", nil, nil)
 
 	if !ok {
 		t.Fatal("ok = false, want true")
@@ -153,5 +153,48 @@ func TestGenerateRogueCharacterProducesAHumanCharacter(t *testing.T) {
 
 	if len(c.Careers) != 1 || c.Careers[0].Name != RogueCareerName {
 		t.Errorf("Careers = %+v, want one Career named %q", c.Careers, RogueCareerName)
+	}
+}
+
+// TestGenerateRogueCharacterElectsLaterEducation is the pilot's own
+// end-to-end regression test (#113 item 5, stage 3): seed 15 confirmed
+// by direct inspection to elect Later Education exactly once, at
+// University, graduating with Honors. Pins that the mechanism actually
+// fires through the real standalone generator — not just the shared
+// resolveCareerLoop hook in isolation — and that the final
+// Character.Education reflects the attendance rather than the stale
+// pre-career snapshot (the bug TestCareerChainSingleEntryMatchesLegacyGenerator's
+// own rogue case caught: careerSegment used to drop a segment's Later
+// Education mutation entirely).
+func TestGenerateRogueCharacterElectsLaterEducation(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(15, 15))
+
+	c, _ := GenerateRogueCharacter(r)
+
+	laterEdTerms := 0
+
+	for _, term := range c.Careers[0].Terms {
+		if term.LaterEducation {
+			laterEdTerms++
+
+			if term.LaterEducationSchool != "University" {
+				t.Errorf("LaterEducationSchool = %q, want %q", term.LaterEducationSchool, "University")
+			}
+
+			if len(term.SkillsAwarded) == 0 {
+				t.Error("a Later Education term awarded no skills")
+			}
+		}
+	}
+
+	if laterEdTerms != 1 {
+		t.Fatalf("laterEdTerms = %d, want 1", laterEdTerms)
+	}
+
+	if c.Education.School != "University" || !c.Education.Graduated || c.Education.Degree != educationDegreeHonours {
+		t.Errorf("Education = %+v, want School=University Graduated=true Degree=%q",
+			c.Education, educationDegreeHonours)
 	}
 }

@@ -35,7 +35,7 @@ func continueRogue(r *dice.Roller, cc, mod int) bool {
 // no death/disability concept at all, so this is the correct behavior,
 // not a coincidental side effect.
 func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
-	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, nil)
+	career, _ := resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, nil, nil)
 
 	return career
 }
@@ -46,8 +46,14 @@ func ResolveRogueCareer(r *dice.Roller, upp UPP) Career {
 // priorCareers are the careers this character already served, for Book
 // 1 p.84's own "A Rogue may select for his Scheme (rather than roll) any
 // previous career." Empty for a standalone Rogue, who has none.
+// education is #113 item 5's own Later Education pilot (p.59): nil for
+// callers with no Education context (ResolveRogueCareer, test-only);
+// buildRogueCharacter and resolveRogueSegment thread the character's
+// real, mutable Education through so the beforeTerm hook below can
+// both read it (is a better institution now reachable?) and update it
+// (attendInstitution) in place.
 func resolveRogueCareerAndUPPWithBudget(
-	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, priorCareers []string,
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, priorCareers []string, education *Education,
 ) (Career, UPP) {
 	career := Career{Name: RogueCareerName}
 
@@ -99,9 +105,44 @@ func resolveRogueCareerAndUPPWithBudget(
 		maxTerms,
 		aging,
 		nil,
-		nil,
+		laterEducationHook(education),
 	)
 	career.Terms = terms
 
 	return career, finalUPP
+}
+
+// laterEducationHook builds resolveCareerLoop's own beforeTerm hook
+// (#113 item 5) from a caller's Education pointer, or reports nil if
+// there is none — ResolveRogueCareer has no Education context at all,
+// so Later Education is simply unavailable there rather than treated
+// as "never attended anything."
+//
+// shouldAttemptLaterEducation reads *education as it stands at the
+// start of this term (any Personal-row Edu growth from an earlier term
+// has already landed via applyPersonalAwards, career_loop.go, since
+// this hook runs after that on every iteration but the first);
+// attendInstitution then mutates *education in place, so the next call
+// sees this term's own attempt. Rogue is the pilot career for this
+// mechanism — see PLAN.md.
+func laterEducationHook(education *Education) beforeTerm {
+	if education == nil {
+		return nil
+	}
+
+	return func(r *dice.Roller, upp UPP) (Term, UPP, bool) {
+		school, ok := shouldAttemptLaterEducation(upp, *education)
+		if !ok {
+			return Term{}, upp, false
+		}
+
+		updatedUPP, skills := attendInstitution(r, upp, school, education)
+
+		return Term{
+			Length:               4,
+			LaterEducation:       true,
+			LaterEducationSchool: education.School,
+			SkillsAwarded:        skills,
+		}, updatedUPP, true
+	}
 }

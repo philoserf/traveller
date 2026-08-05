@@ -354,7 +354,7 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	var edu Education
 
-	upp = attendInstitution(r, upp, school, &edu)
+	upp, _ = attendInstitution(r, upp, school, &edu)
 
 	return edu, upp
 }
@@ -372,17 +372,31 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // earned — an invariant to preserve deliberately, not an accident of
 // this extraction.
 //
+// Also returns the skills this specific attendance granted — distinct
+// from edu.Skills, which accumulates across every attendance — so a
+// Later Education Term can carry only what it itself earned, not the
+// character's whole education history. before/finish isolate that: only
+// the tail appended since this call began is aggregated and folded back
+// in, so an earlier attendance's own entries are never re-merged by a
+// later one. For a first (and today, only) attendance before is always
+// 0, so this reduces exactly to the original "aggregate everything"
+// behavior — zero change for any character that never attends twice.
+//
 // Open question, deliberately not settled here: a failed later attempt
 // leaves edu.School naming the new (failed) institution while
 // edu.Graduated/edu.Degree still read true/whatever an earlier,
 // different institution actually earned — a "Graduated from University"
-// read that was really College. Unwired today (nothing calls this
-// function's caller from a real generation path yet), so it changes no
-// generated output; the wiring PR (#113 item 5, stage 3) needs to
-// settle whether Graduated should track "ever" or "most recent
-// attempt" before it matters.
-func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) UPP {
+// read that was really College.
+func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel) {
 	edu.School = school.Name
+	before := len(edu.Skills)
+
+	finish := func(upp UPP) (UPP, []SkillLevel) {
+		granted := aggregateSkills(edu.Skills[before:])
+		edu.Skills = append(edu.Skills[:before:before], granted...)
+
+		return upp, granted
+	}
 
 	// p.59: "To Apply (for Admission), a character must Check one of the
 	// stated Characteristics. A failure disallows admission and consumes
@@ -390,7 +404,7 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 	// example is exactly that: Eneri is rejected by the College of Regina
 	// on Check Edu, applies for a Waiver, and is admitted.
 	if len(school.ApplyCheck) > 0 && !checkAgainst(r, upp, school.ApplyCheck) && !tryWaiver(r, upp, &edu.Waivers) {
-		return upp
+		return finish(upp)
 	}
 
 	runEducationYears(r, upp, school, edu)
@@ -403,7 +417,7 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 	resolveOfficerTrainingCorps(r, upp, edu)
 
 	if !edu.Graduated {
-		return upp
+		return finish(upp)
 	}
 
 	upp = applyGraduation(upp, school, edu)
@@ -425,9 +439,7 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 
 	edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = rollInstitution(r, chartName, edu.Major)
 
-	edu.Skills = aggregateSkills(edu.Skills)
-
-	return upp
+	return finish(upp)
 }
 
 // resolveGraduateEducation is #113's own University-gated follow-on

@@ -19,7 +19,7 @@ import (
 func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildRogueCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildRogueCharacter(r, upp, homeworld, homeworldSkills, &education)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -38,12 +38,14 @@ func GenerateRogueCharacter(r *dice.Roller) (Character, bool) {
 // the career box's own "+1 Infamy" line) and Cash (each term's own
 // SchemePayoff) both come from the career's own Terms, not from
 // Mustering Out rolls alone.
-func buildRogueCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
+func buildRogueCharacter(
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, education *Education,
+) (Character, bool) {
 	var aging agingSimulation
 
 	career, careerUPP := // A standalone Rogue has served nothing else, so p.84's
 		// select-a-previous-career option never applies.
-		resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging, nil)
+		resolveRogueCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging, nil, education)
 	if aging.alive() {
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
 	}
