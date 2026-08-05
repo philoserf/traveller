@@ -64,10 +64,19 @@ const (
 const rogueMaxPrisonYears = 4
 
 // rogueSentence resolves the length of the sentence a failed Scheme
-// earns, per that same line. mod is the term's own combined Mod, so its
-// negative part is added as p.84 describes — the previous version rolled
-// Flux alone, which dropped the half of the formula that makes a
-// heavily-modified Scheme more dangerous to fail.
+// earns, per that same line: "sum of negative Mods + Flux". mod is the
+// term's own combined Mod; negativeMods below only has an effect when
+// mod is negative.
+//
+// In production mod is always ResolveRogueTerm's termCount (rogue_loop.go),
+// which only ever increments — this codebase doesn't model Bravery/
+// Caution's own contribution to Mod (see ResolveRogueTerm's own doc
+// comment below), so mod never goes negative through any real call, and
+// negativeMods is always 0. The negative-Mods branch exists so this
+// function matches the book's formula exactly rather than the
+// simplification a prior version took (rolling Flux alone) — see
+// TestRogueSentenceIncludesNegativeMods — but it is presently unreachable
+// through actual character generation.
 func rogueSentence(r *dice.Roller, mod int) int {
 	negativeMods := min(mod, 0)
 
