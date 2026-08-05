@@ -49,13 +49,13 @@ func TestMedalTableMatchesBook1P70(t *testing.T) {
 	}
 
 	wantMod := map[string]int{"XS": 1, "MCUF": 2, "MCG": 3, "SEH": 4, "SEHD": 5}
-	if len(medalTierMod) != len(wantMod) {
-		t.Fatalf("medalTierMod has %d entries, want %d", len(medalTierMod), len(wantMod))
+	if len(medalRewardMod) != len(wantMod) {
+		t.Fatalf("medalRewardMod has %d entries, want %d", len(medalRewardMod), len(wantMod))
 	}
 
 	for code, want := range wantMod {
-		if got := medalTierMod[code]; got != want {
-			t.Errorf("medalTierMod[%q] = %d, want %d", code, got, want)
+		if got := medalRewardMod[code]; got != want {
+			t.Errorf("medalRewardMod[%q] = %d, want %d", code, got, want)
 		}
 	}
 }

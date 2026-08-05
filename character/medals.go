@@ -32,14 +32,18 @@ var medalNames = map[string]string{
 }
 
 // medalFame is Book 1 p.91's own per-medal Fame contribution — distinct
-// from medalTierMod (this table's own Mod column, p.70), which feeds
+// from medalRewardMod (this table's own Mod column, p.70), which feeds
 // Promotion rolls.
 var medalFame = map[string]int{"XS": 0, "MCUF": 1, "MCG": 2, "SEH": 3, "SEHD": 4}
 
-// medalTierMod is Book 1 p.70's own Medals table Mod column — named
-// distinctly from the local "medalMod" variable each career's own
-// ResolveXTerm computes (the cumulative sum this map feeds into).
-var medalTierMod = map[string]int{"XS": 1, "MCUF": 2, "MCG": 3, "SEH": 4, "SEHD": 5}
+// medalRewardMod is Book 1 p.70's own Medals table Mod column — named
+// for what it's keyed by (a medal earned via the Reward roll,
+// medalFromReward) and distinctly from the local "medalMod" variable
+// each career's own ResolveXTerm computes (the cumulative sum this map
+// feeds into), not from Book 1's own Tier concept (career rank
+// progression, scholarRankTier/commandCollegeOfficerTier) — this table
+// has nothing to do with that.
+var medalRewardMod = map[string]int{"XS": 1, "MCUF": 2, "MCG": 3, "SEH": 4, "SEHD": 5}
 
 // medalFromReward converts a raw Reward roll (2-13, already including the
 // Officer +1 bonus if applicable) into its Medals table code.
@@ -47,11 +51,11 @@ func medalFromReward(roll int) string {
 	return medalCodes[roll-2]
 }
 
-// medalModSum sums medals' own Mod values (medalTierMod).
+// medalModSum sums medals' own Mod values (medalRewardMod).
 func medalModSum(medals []string) int {
 	total := 0
 	for _, m := range medals {
-		total += medalTierMod[m]
+		total += medalRewardMod[m]
 	}
 
 	return total

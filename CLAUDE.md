@@ -103,6 +103,17 @@ measurable is usually a signal the reading is wrong, not that the rule is minor.
 - **Rule text lives beside the code.** Doc comments quote the governing passage with
   its page number, and record why an ambiguity resolved the way it did. This is the
   primary documentation — it is why completed work is not restated in `PLAN.md`.
+- **Table values follow the book; Go identifiers don't have to.** For a string a
+  table emits or compares against the reference text — skill names, rank titles —
+  normalize the book's own column-width abbreviation to its own canonical spelled-out
+  form when that full form is corroborated elsewhere in the text ("JOT" →
+  "Jack of all Trades", confirmed against Scout's own table), but preserve the book's
+  literal term verbatim, however odd or inconsistent with a sibling table, when it's a
+  confirmed standing usage rather than a typo (Marine's "Coronel" stays split from
+  Soldier's "Colonel" — the book prints it three times, consistently; a one-off OCR
+  slip like "Pilor" does get corrected to "Pilot"). This test has never applied to Go
+  identifiers themselves — no struct field, function, or constant needs to match a
+  printed table header, only the values it produces.
 - **Tests are white-box on purpose** (`testpackage` is disabled) so they can reach
   unexported tables and generation logic. Prefer assertions derived from generated
   data over pinned magic numbers; seed-pinned fixtures have needed re-deriving after
