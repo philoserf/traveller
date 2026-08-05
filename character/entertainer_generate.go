@@ -154,7 +154,6 @@ func ResolveEntertainerTerm(r *dice.Roller, fame, talent int) (Term, int, int) {
 	}
 
 	term.FameAfterTerm = fame
-	term.TalentAfterTerm = talent
 
 	// Talent can only grow by +1 per Fame increase across at most 14
 	// terms, so it never realistically approaches ehex.Max — clamped
