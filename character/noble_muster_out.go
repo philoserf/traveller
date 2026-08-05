@@ -66,7 +66,7 @@ func rollNobleMusterOutPower(r *dice.Roller, row int) string {
 // concept, matching Citizen's own simpler precedent over Scout's more
 // involved musterOutRollCount.
 //
-// Each roll shares one row (musterOutRow, dm = termsServed(career.Terms),
+// Each roll shares one row (musterOutRow, dm = servedTermCount(career.Terms),
 // p.85's own "DM +Total Terms") across all three columns, then independently
 // picks Money, Benefits, or Power via a uniform 3-way pick — the book
 // gives no mechanic for the choice, the same "genuine open player
@@ -80,7 +80,7 @@ func rollNobleMusterOutPower(r *dice.Roller, row int) string {
 func ResolveNobleMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	dm := termsServed(career.Terms)
+	dm := servedTermCount(career.Terms)
 
 	for range dm {
 		row := musterOutRow(r.D6()+dm, 12)

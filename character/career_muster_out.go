@@ -121,7 +121,7 @@ func musterOutRollCount(career Career, fame int) int {
 		return 0
 	}
 
-	rolls := termsServed(career.Terms) + musterOutCommendations(career) + musterOutExtraRollMedals(career)
+	rolls := servedTermCount(career.Terms) + musterOutCommendations(career) + musterOutExtraRollMedals(career)
 	if fame >= fameExtraRollThreshold {
 		rolls++
 	}
@@ -155,7 +155,7 @@ func resolveRankMusterOut(
 ) MusteringOut {
 	var out MusteringOut
 
-	dm := termsServed(career.Terms)
+	dm := servedTermCount(career.Terms)
 	if isOfficer, tier := rankState(career.Terms, enlistedRankCount, officerRankCount); isOfficer {
 		dm += tier
 	}
@@ -305,7 +305,8 @@ func entitlementMultiple(money []string, doublingToken string) int {
 // begins when the individual ends his career activity and begins
 // adventuring" — which is exactly when generation finishes.
 func applyRetirementPay(out *MusteringOut, career Career, isOfficer bool) {
-	if termsServed(career.Terms) < retirementMinimumTerms {
+	served := servedTermCount(career.Terms)
+	if served < retirementMinimumTerms {
 		return
 	}
 
@@ -314,7 +315,7 @@ func applyRetirementPay(out *MusteringOut, career Career, isOfficer bool) {
 	// applies to Money/Benefits. Retirement Pay is a separate award
 	// computed after that loop, so it needs its own check rather than
 	// inheriting the zero roll count for free.
-	if career.Terms[len(career.Terms)-1].RiskResult == Dead {
+	if !career.Terms[len(career.Terms)-1].RiskResult.Survived() {
 		return
 	}
 
@@ -323,7 +324,7 @@ func applyRetirementPay(out *MusteringOut, career Career, isOfficer bool) {
 		rate = officerRetirementRate
 	}
 
-	out.RetirementPay = rate * termsServed(career.Terms) * entitlementMultiple(out.Money, retirementDoubling)
+	out.RetirementPay = rate * served * entitlementMultiple(out.Money, retirementDoubling)
 }
 
 // applyPension sets an annual Pension of rate, scaled by any "Pension x2"
@@ -349,7 +350,7 @@ func applyPension(out *MusteringOut, rate int) {
 // each roll" — a genuine open player choice with no book-given mechanic and
 // no objectively-better column, resolved the same way rollScoutDuty
 // resolves Courier-vs-Explorer Duty), then rolls rollScoutMusterOutRow with
-// dm = termsServed(career.Terms) + fame/2, per p.79's own "DM +Terms +Fame/2".
+// dm = servedTermCount(career.Terms) + fame/2, per p.79's own "DM +Terms +Fame/2".
 //
 // fame is a running local accumulator seeded from the Fame this career
 // already earned before Mustering Out began — scoutDiscoveryFameAwards's own
@@ -393,7 +394,7 @@ func applyPension(out *MusteringOut, rate int) {
 func ResolveScoutMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	terms := termsServed(career.Terms)
+	terms := servedTermCount(career.Terms)
 	fameAwards := scoutDiscoveryFameAwards(career)
 
 	// The same Discovery Fame that seeds the DM also decides p.68's

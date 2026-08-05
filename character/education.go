@@ -395,14 +395,15 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // rejected application (ApplyCheck failed and no Waiver saved it) must
 // not substitute a Later Education Term for the caller's own normal one
 // — only checked here, not enforced, since this function has no
-// opinion about terms; laterEducationHook (rogue_loop.go) is what acts
+// opinion about terms; laterEducationHook (career_loop.go) is what acts
 // on it.
 func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel, bool) {
-	prevGraduated := edu.Graduated
-	prevDegree := edu.Degree
-	prevHonors := edu.Honors
-	prevSchoolNameRoll, prevSchoolName, prevSchoolRank := edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank
-	prevGraduate := edu.Graduate
+	// A whole-struct snapshot, not one local per restorable field — the
+	// restore below still names only the fields it means to touch (not
+	// CommissionCareers, see its own comment above), so this is purely
+	// about not needing a new named capture every time a future field
+	// joins the restorable set.
+	prev := *edu
 
 	edu.School = school.Name
 	edu.Passes = 0
@@ -414,11 +415,11 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 		edu.Skills = append(edu.Skills[:before:before], granted...)
 
 		if !edu.Graduated {
-			edu.Graduated = prevGraduated
-			edu.Degree = prevDegree
-			edu.Honors = prevHonors
-			edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = prevSchoolNameRoll, prevSchoolName, prevSchoolRank
-			edu.Graduate = prevGraduate
+			edu.Graduated = prev.Graduated
+			edu.Degree = prev.Degree
+			edu.Honors = prev.Honors
+			edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = prev.SchoolNameRoll, prev.SchoolName, prev.SchoolRank
+			edu.Graduate = prev.Graduate
 		}
 
 		return upp, granted, admitted

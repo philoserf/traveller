@@ -20,14 +20,14 @@ var rogueMusterOutBenefits = [12]string{
 // ResolveRogueMusterOut resolves Book 1 p.84's own Mustering Out table
 // (step E, p.57), one roll per term served — mirrors
 // ResolveNobleMusterOut's own simpler shape (character/noble_muster_out.go:
-// termsServed(career.Terms) directly), not Scout's/Marine's own
+// servedTermCount(career.Terms) directly), not Scout's/Marine's own
 // musterOutRollCount, since Rogue has no Dead/Disabled wrinkle at
 // all (no death or disability concept exists for this career). DM is
 // p.84's own "+Total Terms" on both columns.
 func ResolveRogueMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	dm := termsServed(career.Terms)
+	dm := servedTermCount(career.Terms)
 
 	for range dm {
 		appendMusterOutRoll(r, &out, dm, rogueMusterOutMoney[:], rogueMusterOutBenefits[:])

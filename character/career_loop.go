@@ -235,6 +235,56 @@ func resolveCareerLoop(
 	return terms, upp
 }
 
+// laterEducationHook builds a beforeTerm hook (#113 item 5) from a
+// caller's Education pointer, or reports nil if there is none — a
+// standalone entry point with no Education context (e.g.
+// ResolveRogueCareer) makes Later Education simply unavailable rather
+// than treated as "never attended anything."
+//
+// Career-agnostic on purpose, not just piloted that way: it holds no
+// career-specific logic at all, only the shouldAttemptLaterEducation/
+// attendInstitution wiring every future caller would need identically,
+// so it lives beside beforeTerm itself rather than under whichever
+// career happened to pilot it first (Rogue — see PLAN.md, and #164 for
+// the other careers still to wire in).
+//
+// shouldAttemptLaterEducation reads *education as it stands at the
+// start of this term (any Personal-row Edu growth from an earlier term
+// has already landed via applyPersonalAwards above, since this hook
+// runs after that on every iteration but the first); attendInstitution
+// then mutates *education in place, so the next call sees this term's
+// own attempt.
+func laterEducationHook(education *Education) beforeTerm {
+	if education == nil {
+		return nil
+	}
+
+	return func(r *dice.Roller, upp UPP) (Term, UPP, bool) {
+		school, ok := shouldAttemptLaterEducation(upp, *education)
+		if !ok {
+			return Term{}, upp, false
+		}
+
+		updatedUPP, skills, admitted := attendInstitution(r, upp, school, education)
+
+		// p.59: "if accepted substitutes that process for the entire
+		// term." A rejected application does not consume the term —
+		// resolveCareerLoop falls through to the ordinary resolveTerm
+		// path for this iteration instead, the same as if Later
+		// Education had never been offered.
+		if !admitted {
+			return Term{}, updatedUPP, false
+		}
+
+		return Term{
+			Length:               4,
+			LaterEducation:       true,
+			LaterEducationSchool: school.Name,
+			SkillsAwarded:        skills,
+		}, updatedUPP, true
+	}
+}
+
 // ResolveScoutCareer resolves a full multi-term Scout career (Book 1 p.79)
 // via resolveCareerLoop. BeginScout's one-time "To Begin" check runs
 // first; if it fails, this returns Career{Name: "Scout"} with a nil Terms

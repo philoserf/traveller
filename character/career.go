@@ -92,23 +92,28 @@ type Term struct {
 	// Training" instead of ordinary career resolution: "At the beginning
 	// of any term, the character may apply for any Educational
 	// Institution or Training, and if accepted substitutes that process
-	// for the entire term." Elapsed, not served — see termsServed below.
+	// for the entire term." Elapsed, not served — see servedTermCount
+	// below.
 	LaterEducation bool
 	// LaterEducationSchool names the institution attended, for a term
 	// with LaterEducation set. Empty otherwise.
 	LaterEducationSchool string
 }
 
-// termsServed excludes LaterEducation terms from a count of terms of
-// service. Every DM, roll count, and cash amount in this package that
-// scales with "how long this character served" is really counting
+// servedTermCount excludes LaterEducation terms from a count of terms
+// of service. Every DM, roll count, and cash amount in this package
+// that scales with "how long this character served" is really counting
 // service, not elapsed time — Book 1 never spends a term of career
 // service on Later Education; p.59 says explicitly that it "substitutes
 // that process for the entire term", separate from career resolution.
 // len(terms) still answers "how many terms elapsed", which is what
-// Aging and the maxCareerTerms budget both want; termsServed answers
-// "how many of those were actually served".
-func termsServed(terms []Term) int {
+// Aging and the maxCareerTerms budget both want; servedTermCount
+// answers "how many of those were actually served". Named distinctly
+// from agingSimulation's own termsServed field (aging.go), which counts
+// elapsed terms including Later Education — the two disagree on exactly
+// the distinction this function exists to draw, so they should not
+// share a name.
+func servedTermCount(terms []Term) int {
 	n := 0
 
 	for _, t := range terms {

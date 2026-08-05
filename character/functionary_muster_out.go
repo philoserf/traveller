@@ -35,7 +35,7 @@ var functionaryMusterOutBenefits = [11]string{
 // equivalent at all (no Mods, no characteristic reduction), so doubling
 // here would be a real bug, not a faithful reuse of the shared helper.
 func functionaryMusterOutRollCount(career Career) int {
-	return termsServed(career.Terms)
+	return servedTermCount(career.Terms)
 }
 
 // ResolveFunctionaryMusterOut resolves Book 1 p.87's own Muster Out
@@ -51,9 +51,15 @@ func functionaryMusterOutRollCount(career Career) int {
 func ResolveFunctionaryMusterOut(r *dice.Roller, career Career, finalTier int) MusteringOut {
 	var out MusteringOut
 
-	dm := termsServed(career.Terms)
+	// dm and the roll count are the same value (functionaryMusterOutRollCount's
+	// own body is just servedTermCount(career.Terms)) — called once here
+	// and reused for both, rather than either calling it twice or
+	// inlining its body and leaving the named, separately-tested
+	// function (functionary_muster_out_test.go, its own "never doubled"
+	// invariant) orphaned from production.
+	dm := functionaryMusterOutRollCount(career)
 
-	for range functionaryMusterOutRollCount(career) {
+	for range dm {
 		appendMusterOutRoll(r, &out, dm, functionaryMusterOutMoney[:], functionaryMusterOutBenefits[:])
 	}
 
