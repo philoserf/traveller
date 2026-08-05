@@ -70,10 +70,10 @@ var nonZeroTechLevels = func() []ehex.Value {
 // rule — see computeTravelZone and travelZoneTradeCode), just not via
 // this table. Their real predicate is a population threshold OR'd with a
 // two-field sum threshold, which doesn't fit tradeCodeTrigger's
-// per-field AND-of-sets shape. An earlier version of this comment claimed
-// all three were purely referee-assigned, citing the rulebook's flavor
-// text (Book 3 line 877) — that was written without having found the
-// p.28 generation-step table, which gives an actual mechanic.
+// per-field AND-of-sets shape. Book 3 p.19's Travel Zones flavor text
+// alone reads as though these three are purely referee-assigned, but the
+// p.28 generation-step table is the one that gives an actual mechanic,
+// and it wins.
 //
 // Dieback (Di) was excluded for a while: its Pop/Gov/Law columns are
 // identical to Barren's (Ba) in the printed table, with only a trailing

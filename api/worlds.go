@@ -30,10 +30,9 @@ type CulturalResponse struct {
 // mirrors only what world.Generate actually populates today (UWP,
 // TradeCodes, TravelZone, Bases, PBG, Importance, Economic, Cultural)
 // rather than the full world.World struct — see world/generate.go's doc
-// comment for
-// what's not generated yet, and why. PBG is rendered as its 3-character
-// string form, same as UWP, rather than its raw ehex.Value struct —
-// consistent wire representation, and it sidesteps deciding how
+// comment for what's not generated yet, and why. PBG is rendered as its
+// 3-character string form, same as UWP, rather than its raw ehex.Value
+// struct — consistent wire representation, and it sidesteps deciding how
 // ehex.Value itself should marshal to JSON.
 type WorldResponse struct {
 	Seed       int64             `json:"seed"`
