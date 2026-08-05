@@ -34,7 +34,7 @@ var craftsmanMusterOutBenefits = [12]string{
 func ResolveCraftsmanMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	dm := len(career.Terms)
+	dm := termsServed(career.Terms)
 
 	for range musterOutRollCount(career, craftsmanCareerFame(career.Terms)) {
 		appendMusterOutRoll(r, &out, dm, craftsmanMusterOutMoney[:], craftsmanMusterOutBenefits[:])
