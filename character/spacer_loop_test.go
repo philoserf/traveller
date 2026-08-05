@@ -121,6 +121,60 @@ func TestResolveSpacerCareerWithBudgetFlightSchoolShortensFirstTerm(t *testing.T
 	}
 }
 
+// TestResolveSpacerCareerWithBudgetCommissionedGrantsOfficerBranchSkill is
+// the regression for #139: a Commissioned entry (Service Academy/NOTC or
+// Flight School, here Flight School for a fixed branchRow) forces
+// isOfficer=true before term 1 resolves (spacer_generate.go's own
+// ResolveSpacerTerm), so the one-time branch-tied automatic skill
+// (branchAutomaticSkill, career_generate.go) must be resolved from the
+// Officer-side name (spacerBranchOfficerNames), not the Enlisted one.
+// Every row where the real tables diverge has neither name Medical nor
+// Technical (branchAutomaticSkill's only two special cases), so the bug
+// is otherwise unobservable against the real table data — this test
+// temporarily overwrites the Flight row's own Officer name to "Medical"
+// (leaving the Enlisted name at "Gunnery") to make the selection
+// observable, then restores the real table. "Medical" (not "Technical")
+// is deliberate: branchAutomaticSkill's Medical case is die-free
+// (skillLevel1("Medic", ...)), so this fixture draws nothing extra from
+// r and can't perturb the dice stream a real Technical divergence would.
+//
+//nolint:paralleltest // mutates a package-level table for the test body; see doc comment above
+func TestResolveSpacerCareerWithBudgetCommissionedGrantsOfficerBranchSkill(t *testing.T) {
+	// Not t.Parallel(): mutates a package-level table for the duration of
+	// the test body, restored via t.Cleanup before any parallel sibling
+	// resumes.
+	origOfficerName := spacerBranchOfficerNames[spacerFlightBranchRow]
+	spacerBranchOfficerNames[spacerFlightBranchRow] = "Medical"
+
+	t.Cleanup(func() {
+		spacerBranchOfficerNames[spacerFlightBranchRow] = origOfficerName
+	})
+
+	if spacerBranchEnlistedNames[spacerFlightBranchRow] == "Medical" {
+		t.Fatal("fixture assumption broke: Enlisted name at the Flight row is already \"Medical\"")
+	}
+
+	upp := UPP{Characteristics: [6]ehex.Value{20, 20, 0, 20, 8, 0}}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, true, true)
+
+	if len(career.Terms) == 0 {
+		t.Fatal("career.Terms is empty, want a Commission to bypass BeginSpacer")
+	}
+
+	if career.Terms[0].Branch != "Medical" {
+		t.Fatalf("Terms[0].Branch = %q, want %q (fixture assumption broke)", career.Terms[0].Branch, "Medical")
+	}
+
+	want := SkillLevel{Name: "Medic", Level: 1, Kind: Skill}
+	if !slices.Contains(career.Terms[0].SkillsAwarded, want) {
+		t.Errorf("Terms[0].SkillsAwarded = %+v, want to contain %+v (branchAutomaticSkill's \"Medical\" case, "+
+			"resolved from the Officer name — pre-fix this used the unchanged Enlisted name \"Gunnery\" and granted nothing)",
+			career.Terms[0].SkillsAwarded, want)
+	}
+}
+
 // TestResolveSpacerCareerRespectsMaxTermsCap uses a provably immortal
 // fixture: Str=Dex=Int=20 (all three of Spacer's own Risk & Reward
 // positions), high enough that even the worst-case combined Mod

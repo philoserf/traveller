@@ -20,9 +20,12 @@ func continueSpacer(r *dice.Roller, upp UPP) bool {
 // threading a branchRow (not a resolved branch/branchMod pair, since
 // Spacer's own Branch name/Mod depends on current Officer/Enlisted
 // status every term — see spacer_generate.go's own ResolveSpacerTerm).
-// The one-time branch-tied automatic skill at career start uses the
-// row's own Enlisted name (spacerBranchEnlistedNames[branchRow]) — the
-// character is definitionally still Enlisted at that point.
+// This entry point is never Commissioned (it always passes commissioned=
+// false to resolveSpacerCareerWithBudget), so term 1 is definitionally
+// still Enlisted and the one-time branch-tied automatic skill at career
+// start correctly resolves from the Enlisted name — see
+// resolveSpacerCareerWithBudget's own doc comment for the Commissioned
+// case, where that premise doesn't hold.
 func ResolveSpacerCareer(r *dice.Roller, upp UPP) (Career, UPP) {
 	return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, false, false)
 }
@@ -48,6 +51,16 @@ const spacerFlightBranchRow = 5
 // School — see resolveMarineCareerWithBudget's own doc comment for the
 // full shape; unlike Marine/Soldier, Spacer's own table already has a
 // Flight row, so this needs no Mod-0 gap-filling.
+//
+// The one-time branch-tied automatic skill at career start (#139) uses
+// spacerBranchNameAndMod(branchRow, commissioned) rather than always the
+// Enlisted name: term 1's own isOfficer state is exactly commissioned
+// (ResolveSpacerTerm's own entryCommissioned is commissioned &&
+// len(priorTerms)==0, and priorTerms is empty for term 1). A Service
+// Academy/NOTC Commission or Flight School entry forces isOfficer=true
+// before term 1 resolves (spacer_generate.go), so the granted skill must
+// come from the same Officer-side name term 1's own Branch actually
+// resolved to.
 func resolveSpacerCareerWithBudget(
 	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, commissioned, flightSchool bool,
 ) (Career, UPP) {
@@ -104,7 +117,8 @@ func resolveSpacerCareerWithBudget(
 	)
 	career.Terms = terms
 
-	grantBranchSkillToFirstTerm(r, &career, spacerBranchEnlistedNames[branchRow])
+	term1Branch, _ := spacerBranchNameAndMod(branchRow, commissioned)
+	grantBranchSkillToFirstTerm(r, &career, term1Branch)
 
 	// A Commissioned entry's own Officer1 skill is granted inside
 	// ResolveSpacerTerm instead (entryCommissioned above) — calling this
