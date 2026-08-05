@@ -51,13 +51,14 @@ func functionaryMusterOutRollCount(career Career) int {
 func ResolveFunctionaryMusterOut(r *dice.Roller, career Career, finalTier int) MusteringOut {
 	var out MusteringOut
 
-	dm := servedTermCount(career.Terms)
+	// dm and the roll count are the same value (functionaryMusterOutRollCount's
+	// own body is just servedTermCount(career.Terms)) — called once here
+	// and reused for both, rather than either calling it twice or
+	// inlining its body and leaving the named, separately-tested
+	// function (functionary_muster_out_test.go, its own "never doubled"
+	// invariant) orphaned from production.
+	dm := functionaryMusterOutRollCount(career)
 
-	// functionaryMusterOutRollCount(career) would recompute the same
-	// servedTermCount call dm already made; it stays a separate, directly
-	// tested function (functionary_muster_out_test.go) for its own
-	// documented "never doubled" invariant, but this loop reuses dm
-	// rather than calling it a second time for an identical result.
 	for range dm {
 		appendMusterOutRoll(r, &out, dm, functionaryMusterOutMoney[:], functionaryMusterOutBenefits[:])
 	}
