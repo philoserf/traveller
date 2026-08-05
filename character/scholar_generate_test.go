@@ -2,6 +2,7 @@ package character
 
 import (
 	"math/rand/v2"
+	"reflect"
 	"testing"
 
 	"github.com/philoserf/traveller/dice"
@@ -382,6 +383,50 @@ func TestResolveScholarTermPromotionUnblockedByPriorTenure(t *testing.T) {
 
 	if tier != 4 {
 		t.Errorf("tier = %d, want 4 (Associate Professor)", tier)
+	}
+}
+
+// TestResolveScholarTermDoesNotAliasPriorTermsSpareCapacity is the
+// regression test for issue #137: an earlier version computed pubs via
+// `scholarPublicationsTotal(append(priorTerms, term))`, which — whenever
+// priorTerms carried spare capacity, its usual growth pattern from
+// scholar_loop.go's own `priorTerms = append(priorTerms, term)` — wrote
+// term into priorTerms's own backing array one slot past its visible
+// length, aliasing memory the caller still owns. Harmless only because
+// the caller immediately overwrote that same slot with the real value
+// right after; a correctness landmine for any future refactor that
+// doesn't. priorTerms is built here via make(..., len, len+N) specifically
+// to carry spare capacity, mirroring that growth pattern.
+func TestResolveScholarTermDoesNotAliasPriorTermsSpareCapacity(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(2, 2))
+
+	priorTerms := make([]Term, 1, 4)
+	priorTerms[0] = Term{PublicationSucceeded: true}
+
+	if cap(priorTerms) <= len(priorTerms) {
+		t.Fatalf("fixture must carry spare capacity: len=%d cap=%d", len(priorTerms), cap(priorTerms))
+	}
+
+	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, priorTerms, "", new(int))
+	if term.RiskResult != Unharmed {
+		t.Fatalf("RiskResult = %v, want Unharmed (fixture sanity — this seed must clear Research)", term.RiskResult)
+	}
+
+	if len(priorTerms) != 1 {
+		t.Errorf("priorTerms len = %d, want 1 (unchanged)", len(priorTerms))
+	}
+
+	// Re-grown to its own full capacity, every one of priorTerms's spare
+	// slots must still be a zero Term. The aliasing bug wrote into the
+	// first one instead (append(priorTerms, term) landing there).
+	full := priorTerms[:cap(priorTerms)]
+	for i := len(priorTerms); i < len(full); i++ {
+		if !reflect.DeepEqual(full[i], Term{}) {
+			t.Errorf("priorTerms spare slot [%d] = %+v, want zero Term "+
+				"(ResolveScholarTerm must not append onto priorTerms's own backing array)", i, full[i])
+		}
 	}
 }
 

@@ -113,15 +113,26 @@ func scholarPublicationsTotal(terms []Term) int {
 	total := 0
 
 	for _, t := range terms {
-		switch {
-		case t.AwardWinning:
-			total += 2
-		case t.PublicationSucceeded:
-			total++
-		}
+		total += scholarPublicationDelta(t)
 	}
 
 	return total
+}
+
+// scholarPublicationDelta is scholarPublicationsTotal's own per-term
+// scale, factored out so a not-yet-appended term's contribution can be
+// added to an already-summed priorTerms total (see ResolveScholarTerm's
+// own pubs calculation) without appending onto — and so risking an
+// aliased write into — the caller-owned priorTerms slice.
+func scholarPublicationDelta(t Term) int {
+	switch {
+	case t.AwardWinning:
+		return 2
+	case t.PublicationSucceeded:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // hasTenure reports whether Tenure was ever granted — derived from
@@ -176,7 +187,7 @@ func ResolveScholarTerm(
 	cc := upp.Characteristics[ccPos]
 	upp.Characteristics[ccPos] = resolveScholarResearch(r, upp, cc, &term, waivers)
 
-	pubs := scholarPublicationsTotal(append(priorTerms, term))
+	pubs := scholarPublicationsTotal(priorTerms) + scholarPublicationDelta(term)
 
 	if tier == 3 && edu >= 10 && !hasTenure(priorTerms) {
 		term.TenureGranted = scholarWaivableRoll(r, upp, waivers, rollScholarTenure(r, pubs))
