@@ -396,7 +396,19 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // not substitute a Later Education Term for the caller's own normal one
 // — only checked here, not enforced, since this function has no
 // opinion about terms; laterEducationHook (career_loop.go) is what acts
-// on it.
+// on it. A rejection on a *later* attendance (prev.School != "", a real
+// earlier attendance already recorded) also restores School and Passes,
+// on top of the graduation fields below: nothing about the rejected
+// attempt actually happened beyond the application (and possibly a
+// Waiver) roll, so it must not overwrite the character's own real
+// School with one they were never admitted to, and a later
+// shouldAttemptLaterEducation call must not compare its own "is this
+// better than edu.School" escalate check against that wrong value.
+// Waivers still accumulates regardless — a Waiver attempt genuinely
+// happened. A rejected *first* attempt (prev.School == "") is
+// unaffected by this restore — see the finish closure's own comment for
+// why, and TestAttendInstitutionRejectedFirstAttemptStillNamesTheSchool
+// for the precedent being preserved.
 func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel, bool) {
 	// A whole-struct snapshot, not one local per restorable field — the
 	// restore below still names only the fields it means to touch (not
@@ -413,6 +425,20 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 	finish := func(upp UPP, admitted bool) (UPP, []SkillLevel, bool) {
 		granted := aggregateSkills(edu.Skills[before:])
 		edu.Skills = append(edu.Skills[:before:before], granted...)
+
+		// prev.School != "" — a real prior attendance, not this
+		// Education's zero value — distinguishes a rejected *later*
+		// attempt (restore, so the character's own already-real School
+		// isn't overwritten by one they were never admitted to) from a
+		// rejected *first* attempt (edu.School keeps naming the
+		// attempted institution, the same "names what was applied to"
+		// precedent step C has always used — Attended() reporting a
+		// rejected first application as still "attended" is existing,
+		// tested behavior this function must not change).
+		if !admitted && prev.School != "" {
+			edu.School = prev.School
+			edu.Passes = prev.Passes
+		}
 
 		if !edu.Graduated {
 			edu.Graduated = prev.Graduated

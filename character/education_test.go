@@ -736,6 +736,78 @@ func TestAttendInstitutionRejectedAdmissionReportsNotAdmitted(t *testing.T) {
 	}
 }
 
+// TestAttendInstitutionRejectedAdmissionRestoresSchoolAndPasses is the
+// regression test for a Copilot-review-caught bug (PR #167): a rejected
+// *later* application (admitted == false, on top of a real earlier
+// attendance already recorded) still unconditionally overwrote
+// edu.School to the rejected institution's own name and reset Passes to
+// 0, even though nothing about the attempt actually happened beyond the
+// application (and Waiver) roll. Left uncorrected, the character's own
+// real School (here, "College") would be silently replaced by a school
+// they were never admitted to, and a later shouldAttemptLaterEducation
+// call would compare its own escalate check against that wrong value
+// instead of what the character actually attended. Int=Edu=Soc=0 forces
+// both the ApplyCheck and its Waiver to fail unconditionally, regardless
+// of seed. See TestAttendInstitutionRejectedFirstAttemptStillNamesTheSchool
+// for the different, unaffected case — a character's very first
+// attendance, where edu.School has no real prior value to protect.
+func TestAttendInstitutionRejectedAdmissionRestoresSchoolAndPasses(t *testing.T) {
+	t.Parallel()
+
+	university, ok := chooseInstitution(eduUPP(20, 20, 20))
+	if !ok || university.Name != "University" {
+		t.Fatalf("chooseInstitution = %+v, %v, want University, true", university, ok)
+	}
+
+	edu := Education{School: "College", Passes: 4}
+
+	_, _, admitted := attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(0, 0, 0), university, &edu)
+
+	if admitted {
+		t.Fatal("admitted = true, want false (ApplyCheck and its Waiver both fail unconditionally)")
+	}
+
+	if edu.School != "College" {
+		t.Errorf("School = %q after a rejected application, want %q (unregressed)", edu.School, "College")
+	}
+
+	if edu.Passes != 4 {
+		t.Errorf("Passes = %d after a rejected application, want 4 (unregressed)", edu.Passes)
+	}
+}
+
+// TestAttendInstitutionRejectedFirstAttemptStillNamesTheSchool pins the
+// precedent the restore above must not disturb: for a character's very
+// first attendance (edu starts at its zero value, School == ""), a
+// rejected application still leaves edu.School naming the institution
+// applied to — Attended() (School != "") reporting a rejected first
+// application as still "attended" is long-established, tested behavior
+// (TestEducationReachesEveryGeneratedCharacter), not something the
+// later-attendance restore should change. The distinguishing signal is
+// exactly that: prev.School == "" means there was no real attendance to
+// protect by restoring.
+func TestAttendInstitutionRejectedFirstAttemptStillNamesTheSchool(t *testing.T) {
+	t.Parallel()
+
+	university, ok := chooseInstitution(eduUPP(20, 20, 20))
+	if !ok || university.Name != "University" {
+		t.Fatalf("chooseInstitution = %+v, %v, want University, true", university, ok)
+	}
+
+	var edu Education
+
+	_, _, admitted := attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(0, 0, 0), university, &edu)
+
+	if admitted {
+		t.Fatal("admitted = true, want false (ApplyCheck and its Waiver both fail unconditionally)")
+	}
+
+	if edu.School != "University" {
+		t.Errorf("School = %q after a rejected first application, want %q (Attended() must still report true)",
+			edu.School, "University")
+	}
+}
+
 // TestAttendInstitutionResetsPassesPerAttendance is the regression test
 // for another Copilot-review-caught bug (PR #162): Passes counts a
 // single attendance's own Pass/Fail rolls (runEducationYears's own doc
