@@ -67,16 +67,24 @@ func resolveScholarCareerWithBudget(
 				updatedUPP UPP
 			)
 
-			term, updatedUPP, tier = ResolveScholarTerm(r, upp, ccPos, edu, tier, priorTerms,
+			term, updatedUPP, tier = ResolveScholarTerm(r, upp, ccPos, int(upp.Characteristics[C5]), tier, priorTerms,
 				career.Major, &waivers)
 			priorTerms = append(priorTerms, term)
 
 			return term, updatedUPP
 		},
 		func(r *dice.Roller, upp UPP) bool {
-			// Continue is the last of p.76's six waivable events.
+			// Continue is the last of p.76's six waivable events. Edu comes
+			// from this closure's own upp, not the outer edu captured
+			// before the loop — resolveCareerLoop threads upp forward with
+			// any Personal-row Edu boost already applied
+			// (applyPersonalAwards, career_loop.go), and both Tenure/
+			// Promotion eligibility (ResolveScholarTerm) and this Continue
+			// check must see that current value, not the entry-time one.
+			// Only BeginScholar's entry gate above wants the stale,
+			// pre-career edu.
 			return scholarWaivableRoll(r, upp, &waivers,
-				continueScholar(r, edu, scholarPublicationsTotal(priorTerms)))
+				continueScholar(r, int(upp.Characteristics[C5]), scholarPublicationsTotal(priorTerms)))
 		},
 		maxTerms,
 		aging,
