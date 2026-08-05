@@ -738,15 +738,19 @@ func TestAttendInstitutionRejectedAdmissionReportsNotAdmitted(t *testing.T) {
 
 // TestAttendInstitutionRejectedAdmissionRestoresSchoolAndPasses is the
 // regression test for a Copilot-review-caught bug (PR #167): a rejected
-// application (admitted == false) still unconditionally overwrote
+// *later* application (admitted == false, on top of a real earlier
+// attendance already recorded) still unconditionally overwrote
 // edu.School to the rejected institution's own name and reset Passes to
 // 0, even though nothing about the attempt actually happened beyond the
-// application (and Waiver) roll. Left uncorrected, Education.Attended()
-// (School != "") would go true for a character who was never admitted
-// anywhere, and a later shouldAttemptLaterEducation call would compare
-// its own escalate check against a school the character never actually
-// attended. Int=Edu=Soc=0 forces both the ApplyCheck and its Waiver to
-// fail unconditionally, regardless of seed.
+// application (and Waiver) roll. Left uncorrected, the character's own
+// real School (here, "College") would be silently replaced by a school
+// they were never admitted to, and a later shouldAttemptLaterEducation
+// call would compare its own escalate check against that wrong value
+// instead of what the character actually attended. Int=Edu=Soc=0 forces
+// both the ApplyCheck and its Waiver to fail unconditionally, regardless
+// of seed. See TestAttendInstitutionRejectedFirstAttemptStillNamesTheSchool
+// for the different, unaffected case — a character's very first
+// attendance, where edu.School has no real prior value to protect.
 func TestAttendInstitutionRejectedAdmissionRestoresSchoolAndPasses(t *testing.T) {
 	t.Parallel()
 

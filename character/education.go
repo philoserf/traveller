@@ -396,14 +396,19 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // not substitute a Later Education Term for the caller's own normal one
 // — only checked here, not enforced, since this function has no
 // opinion about terms; laterEducationHook (career_loop.go) is what acts
-// on it. A rejection also restores School and Passes, on top of the
-// graduation fields below: nothing about a rejected attempt actually
-// happened beyond the application (and possibly a Waiver) roll, so
-// Education.Attended() (School != "") must not go true, and a later
+// on it. A rejection on a *later* attendance (prev.School != "", a real
+// earlier attendance already recorded) also restores School and Passes,
+// on top of the graduation fields below: nothing about the rejected
+// attempt actually happened beyond the application (and possibly a
+// Waiver) roll, so it must not overwrite the character's own real
+// School with one they were never admitted to, and a later
 // shouldAttemptLaterEducation call must not compare its own "is this
-// better than edu.School" escalate check against a school the
-// character was never actually admitted to. Waivers still accumulates
-// regardless — a Waiver attempt genuinely happened.
+// better than edu.School" escalate check against that wrong value.
+// Waivers still accumulates regardless — a Waiver attempt genuinely
+// happened. A rejected *first* attempt (prev.School == "") is
+// unaffected by this restore — see the finish closure's own comment for
+// why, and TestAttendInstitutionRejectedFirstAttemptStillNamesTheSchool
+// for the precedent being preserved.
 func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel, bool) {
 	// A whole-struct snapshot, not one local per restorable field — the
 	// restore below still names only the fields it means to touch (not
