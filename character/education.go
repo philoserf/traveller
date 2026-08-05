@@ -483,8 +483,9 @@ func resolveOneGraduateProgram(
 		upp.Characteristics[C5] = program.GraduationEdu
 	}
 
-	// Masters and Professors draw nothing here (rollInstitution misses on
-	// an unlisted school, p.234) — not a transcription gap. Book 1
+	// Masters and Professors draw nothing here — rollInstitution's chart
+	// lookup misses on an unlisted school name, returning (0, "", 0) and
+	// consuming no dice. Not a transcription gap. Book 1
 	// p.92-93's Educational Institution Chart has exactly twelve named
 	// sub-tables (ED5, Trade School, College, University, Medical
 	// School, Law School, Naval Academy, Military Academy, Flight
