@@ -7,11 +7,12 @@ import (
 	"github.com/philoserf/traveller/dice"
 )
 
-// countNonLaterEducationTerms is termsServed's own definition, computed
-// independently (a plain loop, not a call to the function under test),
-// so the sweeps below check termsServed against its own contract rather
-// than against len(terms) — which stopped being equivalent once Rogue
-// (#113 item 5's pilot) started producing real LaterEducation terms.
+// countNonLaterEducationTerms is servedTermCount's own definition,
+// computed independently (a plain loop, not a call to the function
+// under test), so the sweeps below check servedTermCount against its
+// own contract rather than against len(terms) — which stopped being
+// equivalent once Rogue (#113 item 5's pilot) started producing real
+// LaterEducation terms.
 func countNonLaterEducationTerms(terms []Term) int {
 	n := 0
 
@@ -25,10 +26,10 @@ func countNonLaterEducationTerms(terms []Term) int {
 }
 
 // TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters is the
-// termsServed sweep (#113 item 5, stage 1) generalized past its own
+// servedTermCount sweep (#113 item 5, stage 1) generalized past its own
 // original zero-behavior-change premise: it no longer assumes no
 // generator ever sets LaterEducation (Rogue now does), only that
-// termsServed always agrees with counting non-LaterEducation terms
+// servedTermCount always agrees with counting non-LaterEducation terms
 // directly, for every career on every generated character, standalone
 // or chained.
 func TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters(t *testing.T) {
@@ -55,8 +56,8 @@ func TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters(t *testing.T
 			c, _ := generate(dice.New(rand.NewPCG(seed, seed)))
 
 			for _, career := range c.Careers {
-				if got, want := termsServed(career.Terms), countNonLaterEducationTerms(career.Terms); got != want {
-					t.Errorf("%s: termsServed(Terms) = %d, want %d", career.Name, got, want)
+				if got, want := servedTermCount(career.Terms), countNonLaterEducationTerms(career.Terms); got != want {
+					t.Errorf("%s: servedTermCount(Terms) = %d, want %d", career.Name, got, want)
 				}
 
 				for _, term := range career.Terms {
@@ -108,8 +109,8 @@ func TestTermsServedExcludesLaterEducationAcrossCareerChains(t *testing.T) {
 			}
 
 			for _, career := range c.Careers {
-				if got, want := termsServed(career.Terms), countNonLaterEducationTerms(career.Terms); got != want {
-					t.Errorf("%v: %s: termsServed(Terms) = %d, want %d", careerNames, career.Name, got, want)
+				if got, want := servedTermCount(career.Terms), countNonLaterEducationTerms(career.Terms); got != want {
+					t.Errorf("%v: %s: servedTermCount(Terms) = %d, want %d", careerNames, career.Name, got, want)
 				}
 
 				checked++

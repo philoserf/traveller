@@ -31,7 +31,7 @@ func ResolveScholarMusterOut(r *dice.Roller, career Career, upp UPP) MusteringOu
 
 	startTier := scholarStartTier(int(upp.Characteristics[C5]))
 
-	dm := scholarRankTier(career.Terms, startTier) + termsServed(career.Terms)
+	dm := scholarRankTier(career.Terms, startTier) + servedTermCount(career.Terms)
 
 	for range musterOutRollCount(career, resolveFameStacks(scholarSegmentFameAwards(upp, career.Terms))) {
 		appendMusterOutRoll(r, &out, dm, scholarMusterOutMoney[:], scholarMusterOutBenefits[:])

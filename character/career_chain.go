@@ -731,7 +731,7 @@ func (acc *careerChainAccumulator) addSegment(seg careerSegment) {
 		return
 	}
 
-	acc.termsServed += termsServed(seg.Career.Terms)
+	acc.termsServed += servedTermCount(seg.Career.Terms)
 	acc.skills = append(acc.skills, seg.Skills...)
 	acc.medals = append(acc.medals, seg.Medals...)
 	acc.equipment = append(acc.equipment, seg.Equipment...)

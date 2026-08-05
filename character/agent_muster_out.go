@@ -19,7 +19,7 @@ var agentMusterOutBenefits = [12]string{
 func ResolveAgentMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	dm := termsServed(career.Terms) + agentCommendationCount(career.Terms)
+	dm := servedTermCount(career.Terms) + agentCommendationCount(career.Terms)
 
 	for range musterOutRollCount(career, resolveFameStacks(agentCareerFameAwards(career))) {
 		appendMusterOutRoll(r, &out, dm, agentMusterOutMoney[:], agentMusterOutBenefits[:])

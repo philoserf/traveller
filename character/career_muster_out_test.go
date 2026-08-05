@@ -564,7 +564,7 @@ func TestApplyRetirementPayZeroOnDeath(t *testing.T) {
 }
 
 // TestApplyRetirementPayExcludesLaterEducationTerms is the regression
-// test for the termsServed sweep (#113 item 5, stage 1): a Later
+// test for the servedTermCount sweep (#113 item 5, stage 1): a Later
 // Education term (p.59: "substitutes that process for the entire
 // term") is elapsed, not served, so it must count toward neither
 // retirementMinimumTerms's own eligibility gate nor the per-term pay
