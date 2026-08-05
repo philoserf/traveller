@@ -123,7 +123,7 @@ func TestBuildScholarCharacterQualified(t *testing.T) {
 // call sites; fixed there too so a chain segment and a standalone career
 // still produce the identical character from the identical seed.
 //
-// Seed 3 against Str/Dex/End/Int/Soc 8, Edu 7 (BeginScholar rolls
+// Seed 3 against Str/Dex/End/Int 8, Edu 7, Soc 8 (BeginScholar rolls
 // against Edu 7, tier starts at 0/Amateur): a 4-term career with a
 // Personal award raising Edu to 8 mid-career, but never a Promoted term
 // — Rank stays Amateur (tier 0) throughout. Confirmed by direct
