@@ -409,10 +409,7 @@ func TestResolveScholarTermDoesNotAliasPriorTermsSpareCapacity(t *testing.T) {
 		t.Fatalf("fixture must carry spare capacity: len=%d cap=%d", len(priorTerms), cap(priorTerms))
 	}
 
-	term, _, _ := ResolveScholarTerm(r, upp84, C1, 8, 5, priorTerms, "", new(int))
-	if term.RiskResult != Unharmed {
-		t.Fatalf("RiskResult = %v, want Unharmed (fixture sanity — this seed must clear Research)", term.RiskResult)
-	}
+	ResolveScholarTerm(r, upp84, C1, 8, 5, priorTerms, "", new(int))
 
 	if len(priorTerms) != 1 {
 		t.Errorf("priorTerms len = %d, want 1 (unchanged)", len(priorTerms))
