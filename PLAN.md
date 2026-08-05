@@ -140,6 +140,28 @@ next item depends on all of them:
   nothing toward the level-6 threshold #95 needs. That still rests
   entirely on #36b's own `Major+1 per Pass`.
 
+**#101** (PR #117) resolved the last two career-table cells still being
+discarded: "One Science" now draws from p.60's C-flagged Sciences block
+(#36a), and "Capital" — p.85's "World Knowledge (of world of highest
+held noble Land Grant) (value= 1D)" — records the 1D at the roll and
+substitutes the world name at final assembly, the same marker-then-
+substitute pattern #36b used for Major/Minor. World Knowledge entries
+appear in generated output for the first time (Noble, Agent). Worlds
+are identified by UWP (`World: A867A69-B`), the only identity this
+codebase gives them; #118 tracks giving worlds real names.
+
+**#102** (PR #119) transcribed Book 1 p.92-93's Educational Institution
+Chart (twelve sub-tables, a 1D name roll plus a rank die) and wired
+School Rank into every institution step C attends — 252 of 307
+graduates carry one, 500-seed sample. School _names_ mostly do not
+render: the chart's templates need a world/city/province/company/colour
+this codebase has no source for. The 1D that picks the template is
+still recorded (`Education.SchoolNameRoll`), so filling names in later
+costs no dice. Command College and ANM School are the two institutions
+whose names resolve completely today but aren't recorded yet (they'd
+need a name on `Term`, not `Education`); place names generally are
+#118.
+
 ## 1. #113 — the rest of Education
 
 The academic spine shipped (see above) and #36 closed with it. #113
@@ -163,24 +185,13 @@ its own rather than more of Education:
   has a caller yet; this is really a "generate non-Humans" item wearing
   an Education hat.
 
-Two smaller cells are also still unresolved and are cheap now.
-"One Science" has an enumerable list at last — p.60's C-flagged Sciences
-block — worth 15 cells. "Capital" is #101. Both draw a die, so both move
-every character's stream; do them together and measure once.
+Service Academy, Masters, Professors, Medical School, Law School and
+Flight School are all Educational Institution Chart entries (#102), so
+their names will hit the same #118 gap College and University already
+do — expect them to withhold names too until #118 lands, not a new
+defect in this item.
 
-## 2. #101 and #102 — the last two unresolved cells, and school names
-
-Both are cheap now and both draw a die, so both move every character's
-stream. Do them together and measure once.
-
-"One Science" finally has an enumerable list — p.60's C-flagged Sciences
-block — worth 15 cells. "Capital" is #101: Land Grant tracking has
-existed since PR #90, so the deferral comment saying otherwise is stale,
-though where the cell resolves needs deciding (the grants are not in
-view where the cell is rolled). #102 is the Educational Institution
-Chart, pure flavour but priced in dice.
-
-## 3. #96 — Land Grant scope deferrals
+## 2. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
