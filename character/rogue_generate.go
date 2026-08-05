@@ -44,11 +44,13 @@ var rogueSkillTable = [7][6]string{
 	{"One Art", "One Science", "Athlete", "Soldier Skill", "Starship Skill", "One Trade"},
 }
 
-// rogueSkillsPerTerm/rogueSuccessfulSchemeSkillBonus/roguePrisonSkillsPerTerm
-// are Book 1 p.84's own "B SKILL ELIGIBILITY" box. "Failed Scheme: 1" is
-// deliberately not modeled as a separate bonus — see this slice's own
-// plan-file Context for why a failed Risk roll uses the Prison-columns-
-// only skill roll unconditionally instead.
+// rogueSkillsPerTerm/rogueSuccessfulSchemeSkillBonus/rogueFailedSchemeSkillBonus/
+// roguePrisonSkillsPerTerm are Book 1 p.84's own "B SKILL ELIGIBILITY" box:
+// "Per Term 2, Failed Scheme 1, Successful Scheme 4, In Prison 2". Failed
+// Scheme IS modeled as its own additive bonus, not folded into the Prison
+// case — see rogueTermSkillCount and rollRogueTermSkills below for how the
+// four combine, including why a failed Risk roll (Imprisoned) and a prior
+// term's sentence (ServedYears) are tracked independently.
 const (
 	rogueSkillsPerTerm              = 2
 	rogueSuccessfulSchemeSkillBonus = 4
