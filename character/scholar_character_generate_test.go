@@ -123,19 +123,21 @@ func TestBuildScholarCharacterQualified(t *testing.T) {
 // call sites; fixed there too so a chain segment and a standalone career
 // still produce the identical character from the identical seed.
 //
-// Seed 3 against Str/Dex/End/Int 8, Edu 7, Soc 8 (BeginScholar rolls
-// against Edu 7, tier starts at 0/Amateur): a 4-term career with a
+// Seed 81 against Str/Dex/End/Int 8, Edu 7, Soc 8 (BeginScholar rolls
+// against Edu 7, tier starts at 0/Amateur): a 2-term career with a
 // Personal award raising Edu to 8 mid-career, but never a Promoted term
 // — Rank stays Amateur (tier 0) throughout. Confirmed by direct
-// comparison against the pre-fix implementation: it wrongly read the
-// post-career Edu 8 as the starting tier (scholarStartTier(8) = 1),
-// crediting a Rank-tier-1 Fame award and a +1 Mustering Out DM the
-// character never earned — Fame 6 pre-fix vs. the correct 4 post-fix.
+// comparison against the pre-fix implementation (with #138's later fix
+// still applied — #138 changes Scholar's term-by-term dice stream, so a
+// seed pinned before it landed no longer reproduces this bug on its
+// own): it wrongly read the post-career Edu 8 as the starting tier
+// (scholarStartTier(8) = 1), crediting a Rank-tier-1 Fame award the
+// character never earned — Fame 3 pre-fix vs. the correct 2 post-fix.
 func TestBuildScholarCharacterMusterOutUsesEntryTimeEdu(t *testing.T) {
 	t.Parallel()
 
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 7, 8}}
-	r := dice.New(rand.NewPCG(3, 3))
+	r := dice.New(rand.NewPCG(81, 81))
 
 	c, ok := buildScholarCharacter(r, upp, "hw", nil, Education{})
 
@@ -151,9 +153,9 @@ func TestBuildScholarCharacterMusterOutUsesEntryTimeEdu(t *testing.T) {
 		)
 	}
 
-	if c.Fame != 4 {
-		t.Errorf("Fame = %d, want 4 (6 was the pre-fix value: a spurious Rank-tier-1 Fame award "+
-			"plus a Mustering Out benefit reached only via the inflated DM the stale post-career Edu produced)",
+	if c.Fame != 2 {
+		t.Errorf("Fame = %d, want 2 (3 was the pre-fix value: a spurious Rank-tier-1 Fame award "+
+			"the stale post-career Edu credited for a promotion that never happened)",
 			c.Fame)
 	}
 }
