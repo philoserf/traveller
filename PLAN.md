@@ -202,31 +202,63 @@ OTC-vs-NOTC, Medical and Law don't actually dominate each other, so the
 pick is uniform-random instead, `rollScoutDuty`'s own convention for
 this shape of choice. Re-measured: Doctor 926, Attorney 948.
 
-Item 4 (the Tra path) and item 5 (retries and multiple schools) are
-what's left of #113 — see below.
+**#113, item 5** (PR #160, #161, #162 — three stages) shipped Later
+Education — p.59: "At the beginning of any term, the character may
+apply for any Educational Institution or Training, and if accepted
+substitutes that process for the entire term." Distinct from ANM
+School/Command College (assigned, don't consume a whole term) —
+`character/command_college.go`'s own doc comment already named this
+rule as the reason it avoided partial-term modeling, effectively a
+forward-note for this work.
 
-## 1. #113 — Later Education (item 5)
+Staged to keep the risky part isolated: stage 1 added `termsServed`
+(Later Education terms are elapsed, not served — every DM/roll-count/
+cash-amount keyed on career length needed the distinction, 13 files),
+stage 2 built the shared `beforeTerm` hook on `resolveCareerLoop` plus
+the gate (`shouldAttemptLaterEducation`: retry after a non-graduation,
+or escalate to a strictly better institution now reachable) fully
+tested but unwired, stage 3 wired the real mechanism into Rogue as the
+pilot. Both of the first two stages measured as truly inert before the
+third one changed anything.
 
-p.59: "Later Education or Training. Characters may suspend career
-resolution to return to school or training. At the beginning of any
-term, the character may apply for any Educational Institution or
-Training, and if accepted substitutes that process for the entire
-term." Voluntary, mid-career, and distinct from ANM School/Command
-College (assigned, don't consume a whole term) —
-`character/command_college.go`'s own doc comment already names this
-rule as the reason it avoided partial-term modeling.
+Rogue was the pilot because it has its own dedicated segment resolver
+— Scout/Marine/Soldier/Spacer/Agent share `resolveRiskCareerSegment`'s
+generic signature, which every implementor would have needed an unused
+`Education` parameter to accommodate just to pilot one of them.
 
-Item 4, the Tra path (Apprenticeship, Mentor, Training Course), stays
-out of scope: it needs non-Human generation, which doesn't exist
-anywhere in this codebase, and #113's own text says it "probably should
-not be built" until it does.
+The pilot PR caught a real bug before it shipped: `careerSegment` never
+carried a segment's own `Education` back out of a career chain, so a
+chain-resolved Rogue's Later Education attendance vanished at final
+assembly — `TestCareerChainSingleEntryMatchesLegacyGenerator` caught it
+immediately (chain and standalone diverged on the same seed). Fixed by
+returning `Education` from all nine `careerSegment` construction sites
+and threading it forward through the chain loop, which also mostly
+closed the "doesn't propagate to the next segment" gap rather than
+leaving it as a documented limitation.
 
-Service Academy, Masters, Professors, Medical School, Law School and
-Flight School are all Educational Institution Chart entries (#102), so
-their names will hit the same #118 gap College and University already
-do — not a new defect when Later Education can reach them.
+6,000-seed sweep of `GenerateRogueCharacter`: 32.0% elect Later
+Education at least once (~1.9 terms each, among those who do). Mean
+Skills 15.88 vs. 12.45 for those who don't (+27.5%); mean Fame 10.76
+vs. 5.52. Not purely causal — the gate's retry branch preferentially
+fires for characters who failed step C admission, a different starting
+population — but the magnitude is real.
 
-## 2. #96 — Land Grant scope deferrals
+Three follow-ups split out rather than folded into #113 itself, so the
+issue could close on the four pieces that actually shipped:
+
+- **#163** — item 4, the Tra path (Apprenticeship, Mentor, Training
+  Course). Needs non-Human generation, which doesn't exist anywhere in
+  this codebase; #113's own text already said this "probably should not
+  be built" until it does.
+- **#164** — wire Later Education into Entertainer/Citizen/Noble, which
+  hand-roll their own career loops instead of sharing
+  `resolveCareerLoop`.
+- **#165** — step C itself attending more than one institution in
+  sequence (e.g. ED5 raising Edu to 5, then continuing straight into
+  Trade School), distinct from Later Education's own mid-career
+  mechanism.
+
+## 1. #96 — Land Grant scope deferrals
 
 Preferred World, geodesic hex maps, Moot proxies and voting, and grant
 improvement. Independent of each other; none blocks anything above.
