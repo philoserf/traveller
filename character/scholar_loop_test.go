@@ -77,15 +77,7 @@ func TestResolveScholarCareerLoopUsesCurrentEduNotEntryEdu(t *testing.T) {
 
 	career, _ := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, Education{})
 
-	tenureGranted := false
-
-	for _, term := range career.Terms {
-		if term.TenureGranted {
-			tenureGranted = true
-		}
-	}
-
-	if !tenureGranted {
+	if !hasTenure(career.Terms) {
 		t.Error(
 			"no term granted Tenure, want at least one " +
 				"(seed 1's mid-career Personal Edu boost to 10 should make tier-3 Tenure reachable)",
