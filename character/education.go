@@ -303,10 +303,12 @@ type Education struct {
 	CommissionCareers []string
 	// Graduate is a University graduate's own follow-on program (#113) —
 	// Masters, Medical School, or Law School — gated on the degree
-	// University just produced. Nil for every other primary institution
-	// and for a University graduate who didn't qualify (or waive into)
-	// any of the three. Major/Minor/Waivers/Skills/CommissionCareers stay
-	// on Education itself, shared across the whole process; Graduate
+	// University just produced. Nil only for a non-University primary
+	// institution; every University graduate gets one attempt at a
+	// program, win or lose, so Graduate.Graduated == false is how an
+	// unqualified (and unwaived) attempt is represented, not a nil
+	// Graduate. Major/Minor/Waivers/Skills/CommissionCareers stay on
+	// Education itself, shared across the whole process; Graduate
 	// carries only what's specific to its own attendance.
 	Graduate *GraduateProgram
 }
