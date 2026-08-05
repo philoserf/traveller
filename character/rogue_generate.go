@@ -64,9 +64,9 @@ const (
 const rogueMaxPrisonYears = 4
 
 // rogueSentence resolves the length of the sentence a failed Scheme
-// earns, per that same line: "sum of negative Mods + Flux". mod is the
-// term's own combined Mod; negativeMods below only has an effect when
-// mod is negative.
+// earns, per Book 1 p.84's own "sum of negative Mods + Flux" (quoted in
+// full beside rogueMaxPrisonYears above). mod is the term's own combined
+// Mod; negativeMods below only has an effect when mod is negative.
 //
 // In production mod is always ResolveRogueTerm's termCount (rogue_loop.go),
 // which only ever increments — this codebase doesn't model Bravery/
