@@ -585,6 +585,14 @@ func runEducationYears(r *dice.Roller, upp UPP, school educationInstitution, edu
 // from the appropriate Skill and Knowledge list"; they cannot be the
 // same, which p.59 states outright.
 func awardEducationSkills(r *dice.Roller, school educationInstitution, edu *Education) {
+	// ED5 (MajorBonus==0, GrantsMajorMinor==false — the switch below
+	// matches neither case) has no Major/Minor mechanic in the book at
+	// all — p.60's "Edu less than 5... Check Int: if successful, Edu is
+	// raised to 5" — so this must not draw one, even on a Pass.
+	if school.MajorBonus == 0 && !school.GrantsMajorMinor {
+		return
+	}
+
 	if edu.Major == "" {
 		edu.Major = pickEducationSubject(r, "")
 	}
