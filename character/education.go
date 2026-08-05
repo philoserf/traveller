@@ -354,7 +354,7 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	var edu Education
 
-	upp, _ = attendInstitution(r, upp, school, &edu)
+	upp, _, _ = attendInstitution(r, upp, school, &edu)
 
 	return edu, upp
 }
@@ -364,13 +364,22 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // Later Education (item 5) needs, since p.59 lets a character attend
 // "one or more schools" and a second attendance must not discard what
 // the first one earned. edu.School is always overwritten to the
-// institution just attempted; School/Passes/Waivers/Honors/SchoolName
-// etc. are updated the same way (in the same fields) a first attendance
-// already used. Graduated and Degree are only ever set on success
-// (runEducationYears/applyGraduation never clear them on failure), so a
-// failed later attempt cannot regress a Degree an earlier one already
-// earned — an invariant to preserve deliberately, not an accident of
-// this extraction.
+// institution just attempted (even on rejection — the same "names what
+// was applied to" precedent a first, pre-career attendance already
+// established); Passes resets to 0, since it counts this attendance's
+// own Pass/Fail rolls, not a lifetime total.
+//
+// Graduated, Degree, Honors, SchoolName/Rank/NameRoll and Graduate are
+// snapshotted at entry and restored if this attempt does not itself
+// graduate — runEducationYears/applyGraduation only ever set them on
+// success, never clear them on failure, so without the restore a failed
+// later attempt would silently keep whatever an earlier, different
+// institution already earned while edu.School moved on to name the new
+// one. CommissionCareers is deliberately excluded: resolveOfficerTrainingCorps
+// grants it independently of whether the primary program graduates
+// ("regardless of whether the primary program itself Graduates", its
+// own doc comment), so restoring it here would wipe out a real
+// same-attempt OTC/NOTC commission whenever the primary degree failed.
 //
 // Also returns the skills this specific attendance granted — distinct
 // from edu.Skills, which accumulates across every attendance — so a
@@ -382,20 +391,37 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // 0, so this reduces exactly to the original "aggregate everything"
 // behavior — zero change for any character that never attends twice.
 //
-// Open question, deliberately not settled here: a failed later attempt
-// leaves edu.School naming the new (failed) institution while
-// edu.Graduated/edu.Degree still read true/whatever an earlier,
-// different institution actually earned — a "Graduated from University"
-// read that was really College.
-func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel) {
+// The third return value, admitted, is p.59's own "if accepted": a
+// rejected application (ApplyCheck failed and no Waiver saved it) must
+// not substitute a Later Education Term for the caller's own normal one
+// — only checked here, not enforced, since this function has no
+// opinion about terms; laterEducationHook (rogue_loop.go) is what acts
+// on it.
+func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel, bool) {
+	prevGraduated := edu.Graduated
+	prevDegree := edu.Degree
+	prevHonors := edu.Honors
+	prevSchoolNameRoll, prevSchoolName, prevSchoolRank := edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank
+	prevGraduate := edu.Graduate
+
 	edu.School = school.Name
+	edu.Passes = 0
+	edu.Graduated = false
 	before := len(edu.Skills)
 
-	finish := func(upp UPP) (UPP, []SkillLevel) {
+	finish := func(upp UPP, admitted bool) (UPP, []SkillLevel, bool) {
 		granted := aggregateSkills(edu.Skills[before:])
 		edu.Skills = append(edu.Skills[:before:before], granted...)
 
-		return upp, granted
+		if !edu.Graduated {
+			edu.Graduated = prevGraduated
+			edu.Degree = prevDegree
+			edu.Honors = prevHonors
+			edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = prevSchoolNameRoll, prevSchoolName, prevSchoolRank
+			edu.Graduate = prevGraduate
+		}
+
+		return upp, granted, admitted
 	}
 
 	// p.59: "To Apply (for Admission), a character must Check one of the
@@ -404,7 +430,7 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 	// example is exactly that: Eneri is rejected by the College of Regina
 	// on Check Edu, applies for a Waiver, and is admitted.
 	if len(school.ApplyCheck) > 0 && !checkAgainst(r, upp, school.ApplyCheck) && !tryWaiver(r, upp, &edu.Waivers) {
-		return finish(upp)
+		return finish(upp, false)
 	}
 
 	runEducationYears(r, upp, school, edu)
@@ -417,7 +443,7 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 	resolveOfficerTrainingCorps(r, upp, edu)
 
 	if !edu.Graduated {
-		return finish(upp)
+		return finish(upp, true)
 	}
 
 	upp = applyGraduation(upp, school, edu)
@@ -439,7 +465,7 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 
 	edu.SchoolNameRoll, edu.SchoolName, edu.SchoolRank = rollInstitution(r, chartName, edu.Major)
 
-	return finish(upp)
+	return finish(upp, true)
 }
 
 // resolveGraduateEducation is #113's own University-gated follow-on

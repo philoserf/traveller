@@ -685,7 +685,7 @@ func TestAttendInstitutionReturnsOnlyThisAttendancesSkills(t *testing.T) {
 	r := dice.New(rand.NewPCG(4, 4))
 
 	upp := eduUPP(20, 20, 20)
-	_, firstDelta := attendInstitution(r, upp, college, &edu)
+	_, firstDelta, _ := attendInstitution(r, upp, college, &edu)
 
 	if len(firstDelta) == 0 {
 		t.Fatal("first attendance's own delta is empty, want at least one skill (unfailable fixture)")
@@ -699,7 +699,7 @@ func TestAttendInstitutionReturnsOnlyThisAttendancesSkills(t *testing.T) {
 		)
 	}
 
-	_, secondDelta := attendInstitution(r, upp, university, &edu)
+	_, secondDelta, _ := attendInstitution(r, upp, university, &edu)
 
 	if len(secondDelta) == 0 {
 		t.Fatal("second attendance's own delta is empty, want at least one skill (unfailable fixture)")
@@ -708,5 +708,54 @@ func TestAttendInstitutionReturnsOnlyThisAttendancesSkills(t *testing.T) {
 	if len(edu.Skills) != len(firstDelta)+len(secondDelta) {
 		t.Errorf("len(edu.Skills) = %d, want %d (first delta) + %d (second delta) = %d, not double-counted",
 			len(edu.Skills), len(firstDelta), len(secondDelta), len(firstDelta)+len(secondDelta))
+	}
+}
+
+// TestAttendInstitutionRejectedAdmissionReportsNotAdmitted is the
+// regression test for a Copilot-review-caught bug (PR #162): the third
+// return value must be false when admission is rejected outright — p.59
+// "if accepted substitutes that process for the entire term" is a real
+// conditional, not automatic once shouldAttemptLaterEducation picks a
+// school. Int=Edu=Soc=0 forces both the ApplyCheck and its Waiver to
+// fail unconditionally (2D6 can never roll 0 or less), regardless of
+// seed.
+func TestAttendInstitutionRejectedAdmissionReportsNotAdmitted(t *testing.T) {
+	t.Parallel()
+
+	university, ok := chooseInstitution(eduUPP(20, 20, 20))
+	if !ok || university.Name != "University" {
+		t.Fatalf("chooseInstitution = %+v, %v, want University, true", university, ok)
+	}
+
+	var edu Education
+
+	_, _, admitted := attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(0, 0, 0), university, &edu)
+
+	if admitted {
+		t.Error("admitted = true, want false (ApplyCheck and its Waiver both fail unconditionally)")
+	}
+}
+
+// TestAttendInstitutionResetsPassesPerAttendance is the regression test
+// for another Copilot-review-caught bug (PR #162): Passes counts a
+// single attendance's own Pass/Fail rolls (runEducationYears's own doc
+// comment), not a lifetime total, so it must reset to 0 at the start of
+// each attendance rather than accumulating a stale value forward from
+// an earlier, different institution.
+func TestAttendInstitutionResetsPassesPerAttendance(t *testing.T) {
+	t.Parallel()
+
+	college, ok := chooseInstitution(eduUPP(20, 5, 20))
+	if !ok || college.Name != "College" {
+		t.Fatalf("chooseInstitution(Edu 5) = %+v, %v, want College, true", college, ok)
+	}
+
+	edu := Education{Passes: 100} // an implausible carryover value from a prior attendance
+
+	attendInstitution(dice.New(rand.NewPCG(4, 4)), eduUPP(20, 20, 20), college, &edu)
+
+	if edu.Passes != college.Rolls {
+		t.Errorf("Passes = %d, want %d (College's own Rolls — an unfailable fixture graduates every year)",
+			edu.Passes, college.Rolls)
 	}
 }

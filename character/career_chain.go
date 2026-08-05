@@ -299,12 +299,12 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 	aging := ctx.aging()
 
 	// &ctx.Education, not a chain-wide pointer: any Later Education
-	// attendance during this segment mutates this segment's own copy
-	// only. Book 1 lets a character return to school between careers
-	// too, but propagating a mutated Education forward to the next
-	// chain segment is unwired — the same accepted gap #113's own
-	// Commission-grant propagation already has (segmentContext.Education
-	// is fixed at chain setup), not something this pilot introduces.
+	// attendance during this segment mutates this segment's own copy.
+	// That mutation does reach both the next chain segment and the
+	// final character — careerSegment.Education carries it out, and
+	// GenerateCareerChainCharacter's own loop threads it forward as
+	// education = seg.Education after every segment (career_chain.go's
+	// own doc comment on that assignment has the details).
 	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms, aging, ctx.PriorCareers, &ctx.Education)
 	if aging.alive() {
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
