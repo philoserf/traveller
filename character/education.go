@@ -166,7 +166,7 @@ var educationInstitutions = []educationInstitution{
 // Degrees p.60's Graduation column confers.
 const (
 	educationDegreeBachelors = "BA"
-	educationDegreeHonours   = "Honors BA"
+	educationDegreeHonors    = "Honors BA"
 	educationDegreeMasters   = "MA"
 	educationDegreeDoctor    = "Doctor"
 	educationDegreeAttorney  = "Attorney"
@@ -216,12 +216,12 @@ type graduateProgramRow struct {
 // warns about, just introduced instead of inherited this time.
 var educationHonorsTierPrograms = []graduateProgramRow{
 	{
-		Name: "Medical School", RequiresDegree: educationDegreeHonours,
+		Name: "Medical School", RequiresDegree: educationDegreeHonors,
 		ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 4,
 		GraduationEdu: 10, Degree: educationDegreeDoctor, PerPassSkill: "Medic",
 	},
 	{
-		Name: "Law School", RequiresDegree: educationDegreeHonours,
+		Name: "Law School", RequiresDegree: educationDegreeHonors,
 		ApplyCheck: []Position{C4, C5}, PassCheck: []Position{C4, C5}, Rolls: 2,
 		GraduationEdu: 10, Degree: educationDegreeAttorney, PerPassSkill: "Advocate",
 	},
@@ -252,7 +252,7 @@ var professorsProgram = graduateProgramRow{
 // Bachelors" too, just a better one.
 func holdsDegree(edu Education, want string) bool {
 	if want == educationDegreeBachelors {
-		return edu.Degree == educationDegreeBachelors || edu.Degree == educationDegreeHonours
+		return edu.Degree == educationDegreeBachelors || edu.Degree == educationDegreeHonors
 	}
 
 	return edu.Degree == want
@@ -741,7 +741,7 @@ func resolveHonors(r *dice.Roller, upp UPP, school educationInstitution, edu *Ed
 	}
 
 	edu.Honors = true
-	edu.Degree = educationDegreeHonours
+	edu.Degree = educationDegreeHonors
 	edu.Skills = append(edu.Skills, skillLevel1(edu.Major, Skill))
 }
 

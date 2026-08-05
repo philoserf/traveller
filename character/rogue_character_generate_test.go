@@ -193,8 +193,8 @@ func TestGenerateRogueCharacterElectsLaterEducation(t *testing.T) {
 		t.Fatalf("laterEdTerms = %d, want 1", laterEdTerms)
 	}
 
-	if c.Education.School != "University" || !c.Education.Graduated || c.Education.Degree != educationDegreeHonours {
+	if c.Education.School != "University" || !c.Education.Graduated || c.Education.Degree != educationDegreeHonors {
 		t.Errorf("Education = %+v, want School=University Graduated=true Degree=%q",
-			c.Education, educationDegreeHonours)
+			c.Education, educationDegreeHonors)
 	}
 }

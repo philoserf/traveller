@@ -267,7 +267,7 @@ func TestServiceAcademyGrantsCommissionOnGraduation(t *testing.T) {
 	// fixture also clears the optional Honors roll (resolveHonors), the
 	// same non-determinism TestDegreeProgramGrantsMajorPerPassAndMinorPerTwo
 	// already accounts for.
-	if !edu.Graduated || (edu.Degree != educationDegreeBachelors && edu.Degree != educationDegreeHonours) {
+	if !edu.Graduated || (edu.Degree != educationDegreeBachelors && edu.Degree != educationDegreeHonors) {
 		t.Fatalf("Graduated = %v Degree = %q, want a BA or Honors BA", edu.Graduated, edu.Degree)
 	}
 
@@ -369,8 +369,8 @@ func TestHoldsDegree(t *testing.T) {
 		ok   bool
 	}{
 		{"plain BA satisfies BA", educationDegreeBachelors, educationDegreeBachelors, true},
-		{"Honors BA satisfies BA", educationDegreeHonours, educationDegreeBachelors, true},
-		{"plain BA does not satisfy Honors BA", educationDegreeBachelors, educationDegreeHonours, false},
+		{"Honors BA satisfies BA", educationDegreeHonors, educationDegreeBachelors, true},
+		{"plain BA does not satisfy Honors BA", educationDegreeBachelors, educationDegreeHonors, false},
 		{"MA satisfies MA", educationDegreeMasters, educationDegreeMasters, true},
 		{"no degree satisfies nothing", "", educationDegreeBachelors, false},
 	}
@@ -394,7 +394,7 @@ func TestHoldsDegree(t *testing.T) {
 func TestResolveGraduateEducationOnlyAppliesToUniversity(t *testing.T) {
 	t.Parallel()
 
-	edu := Education{School: "College", Degree: educationDegreeHonours}
+	edu := Education{School: "College", Degree: educationDegreeHonors}
 	r := dice.New(rand.NewPCG(1, 1))
 
 	resolveGraduateEducation(r, eduUPP(20, 9, 20), &edu)
@@ -420,7 +420,7 @@ func TestResolveGraduateEducationReachesHonorsTierWithHonors(t *testing.T) {
 	sawMedical, sawLaw := false, false
 
 	for seed := uint64(1); seed <= 200; seed++ {
-		edu := Education{School: "University", Degree: educationDegreeHonours, Minor: "Robotics"}
+		edu := Education{School: "University", Degree: educationDegreeHonors, Minor: "Robotics"}
 		r := dice.New(rand.NewPCG(seed, seed))
 
 		upp := resolveGraduateEducation(r, eduUPP(20, 9, 20), &edu)
@@ -469,7 +469,7 @@ func TestResolveGraduateEducationReachesHonorsTierWithHonors(t *testing.T) {
 func TestMedicalSchoolGrantsMedicPerPass(t *testing.T) {
 	t.Parallel()
 
-	edu := Education{School: "University", Degree: educationDegreeHonours}
+	edu := Education{School: "University", Degree: educationDegreeHonors}
 
 	var grad GraduateProgram
 
