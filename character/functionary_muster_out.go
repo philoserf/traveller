@@ -35,7 +35,7 @@ var functionaryMusterOutBenefits = [11]string{
 // equivalent at all (no Mods, no characteristic reduction), so doubling
 // here would be a real bug, not a faithful reuse of the shared helper.
 func functionaryMusterOutRollCount(career Career) int {
-	return len(career.Terms)
+	return termsServed(career.Terms)
 }
 
 // ResolveFunctionaryMusterOut resolves Book 1 p.87's own Muster Out
@@ -51,7 +51,7 @@ func functionaryMusterOutRollCount(career Career) int {
 func ResolveFunctionaryMusterOut(r *dice.Roller, career Career, finalTier int) MusteringOut {
 	var out MusteringOut
 
-	dm := len(career.Terms)
+	dm := termsServed(career.Terms)
 
 	for range functionaryMusterOutRollCount(career) {
 		appendMusterOutRoll(r, &out, dm, functionaryMusterOutMoney[:], functionaryMusterOutBenefits[:])
@@ -60,12 +60,12 @@ func ResolveFunctionaryMusterOut(r *dice.Roller, career Career, finalTier int) M
 	// p.70: "a Functionary receives Cr15,000 per year (which replaces a
 	// Citizen's pension, if any)." That replacement is resolved where a
 	// character's careers are combined — this resolver sees only one.
-	if len(career.Terms) > 0 {
+	if dm > 0 {
 		applyPension(&out, functionaryPensionRate)
 	}
 
-	if len(career.Terms) > 0 {
-		out.Automatics = append(out.Automatics, fmt.Sprintf("Gold Watch (Cr%d)", 100*len(career.Terms)))
+	if dm > 0 {
+		out.Automatics = append(out.Automatics, fmt.Sprintf("Gold Watch (Cr%d)", 100*dm))
 
 		if finalTier >= 6 {
 			out.Automatics = append(out.Automatics, "Directorship")

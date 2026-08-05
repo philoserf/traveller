@@ -35,27 +35,27 @@ var citizenMusterOutBenefits = [11]string{
 // all (established across every prior Citizen slice), so neither p.65's
 // Disability Muster Out ("Double Benefits") nor p.69's "Dying During
 // Character Generation" (zero rolls, void the attempt) can ever apply
-// here — the roll count is simply len(career.Terms), with no
+// here — the roll count is simply termsServed(career.Terms), with no
 // branching logic that would justify its own helper function.
 //
 // Each roll independently picks the Money or Benefits column via a
 // uniform random pick (p.68, the same open-player-choice resolution
 // ResolveScoutMusterOut already uses), then rolls rollCitizenMusterOutRow
-// with dm = len(career.Terms) (p.78's "DM +Terms +Terms" — uniform for
-// both columns, unlike Scout's Benefits-column +Fame/2, so there's no
-// Fame-dependent gap to document here).
+// with dm = termsServed(career.Terms) (p.78's "DM +Terms +Terms" —
+// uniform for both columns, unlike Scout's Benefits-column +Fame/2, so
+// there's no Fame-dependent gap to document here).
 func ResolveCitizenMusterOut(r *dice.Roller, career Career) MusteringOut {
 	var out MusteringOut
 
-	dm := len(career.Terms)
+	dm := termsServed(career.Terms)
 
-	for range len(career.Terms) {
+	for range dm {
 		appendMusterOutRoll(r, &out, dm, citizenMusterOutMoney[:], citizenMusterOutBenefits[:])
 	}
 
 	// p.70: "Any character who has been a Citizen or Functionary for at
 	// least one Term is eligible for a Citizen's Pension."
-	if len(career.Terms) > 0 {
+	if dm > 0 {
 		applyPension(&out, citizenPensionRate)
 	}
 

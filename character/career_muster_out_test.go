@@ -562,3 +562,27 @@ func TestApplyRetirementPayZeroOnDeath(t *testing.T) {
 		t.Errorf("RetirementPay = %d, want 0 for a character whose last term ended in Death", out.RetirementPay)
 	}
 }
+
+// TestApplyRetirementPayExcludesLaterEducationTerms is the regression
+// test for the termsServed sweep (#113 item 5, stage 1): a Later
+// Education term (p.59: "substitutes that process for the entire
+// term") is elapsed, not served, so it must count toward neither
+// retirementMinimumTerms's own eligibility gate nor the per-term pay
+// rate. No generator can produce a LaterEducation term yet — this
+// constructs one directly, the same synthetic-Career style
+// TestApplyRetirementPayZeroOnDeath already uses.
+func TestApplyRetirementPayExcludesLaterEducationTerms(t *testing.T) {
+	t.Parallel()
+
+	terms := append(make([]Term, retirementMinimumTerms), Term{LaterEducation: true})
+	career := Career{Terms: terms}
+
+	out := MusteringOut{}
+	applyRetirementPay(&out, career, false)
+
+	want := retirementMinimumTerms * enlistedRetirementRate
+	if out.RetirementPay != want {
+		t.Errorf("RetirementPay = %d, want %d (%d served terms, not %d elapsed)",
+			out.RetirementPay, want, retirementMinimumTerms, len(terms))
+	}
+}

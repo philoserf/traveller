@@ -23,7 +23,7 @@ var merchantMusterOutBenefits = [12]string{
 }
 
 // ResolveMerchantMusterOut mirrors ResolveMarineMusterOut's own body
-// (marine_muster_out.go) exactly — dm := len(career.Terms), +tier if
+// (marine_muster_out.go) exactly — dm := termsServed(career.Terms), +tier if
 // Officer — taking the final (isOfficer, tier) directly from
 // ResolveMerchantCareer's own return instead of recomputing via
 // rankState (Merchant's own variable start config isn't a fit for it).
@@ -39,7 +39,7 @@ var merchantMusterOutBenefits = [12]string{
 func ResolveMerchantMusterOut(r *dice.Roller, career Career, isOfficerAtEnd bool, tierAtEnd int) MusteringOut {
 	var out MusteringOut
 
-	dm := len(career.Terms)
+	dm := termsServed(career.Terms)
 	if isOfficerAtEnd {
 		dm += tierAtEnd
 	}

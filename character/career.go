@@ -88,6 +88,33 @@ type Term struct {
 	// still carries the display string beside it. Craftsman only, and nil
 	// for a term whose creation attempt failed. See masterpiece.go.
 	Masterpiece *Masterpiece
+	// LaterEducation marks a term spent on p.59's "Later Education or
+	// Training" instead of ordinary career resolution: "At the beginning
+	// of any term, the character may apply for any Educational
+	// Institution or Training, and if accepted substitutes that process
+	// for the entire term." Elapsed, not served — see termsServed below.
+	LaterEducation bool
+}
+
+// termsServed excludes LaterEducation terms from a count of terms of
+// service. Every DM, roll count, and cash amount in this package that
+// scales with "how long this character served" is really counting
+// service, not elapsed time — Book 1 never spends a term of career
+// service on Later Education; p.59 says explicitly that it "substitutes
+// that process for the entire term", separate from career resolution.
+// len(terms) still answers "how many terms elapsed", which is what
+// Aging and the maxCareerTerms budget both want; termsServed answers
+// "how many of those were actually served".
+func termsServed(terms []Term) int {
+	n := 0
+
+	for _, t := range terms {
+		if !t.LaterEducation {
+			n++
+		}
+	}
+
+	return n
 }
 
 // MusteringOut is the benefits package awarded when a character leaves a career.

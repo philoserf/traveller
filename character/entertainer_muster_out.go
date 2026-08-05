@@ -26,7 +26,7 @@ var entertainerMusterOutBenefits = [13]string{
 func ResolveEntertainerMusterOut(r *dice.Roller, career Career, fame int) MusteringOut {
 	var out MusteringOut
 
-	dm := fame/3 + len(career.Terms)
+	dm := fame/3 + termsServed(career.Terms)
 
 	for range musterOutRollCount(career, fame) {
 		appendMusterOutRoll(r, &out, dm, entertainerMusterOutMoney[:], entertainerMusterOutBenefits[:])
