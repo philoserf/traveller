@@ -32,7 +32,10 @@ func buildScholarCharacter(
 
 	career, careerUPP := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &aging, education)
 	if aging.alive() {
-		career.MusteringOut = ResolveScholarMusterOut(r, career, careerUPP)
+		// upp, not careerUPP — ResolveScholarMusterOut needs entry-time
+		// Edu to know Scholar's starting rank tier (its own doc comment),
+		// not the post-career value.
+		career.MusteringOut = ResolveScholarMusterOut(r, career, upp)
 	}
 
 	// careerUPP, not the original upp — carries forward any Risk-reduced
@@ -54,7 +57,10 @@ func buildScholarCharacter(
 	fameAwards := bonuses.FameAwards
 
 	if survivedCareer {
-		fameAwards = append(fameAwards, scholarSegmentFameAwards(careerUPP, career.Terms)...)
+		// upp, not careerUPP — same entry-time-Edu requirement as
+		// ResolveScholarMusterOut above: scholarSegmentFameAwards derives
+		// the Rank Fame award's starting tier from it too.
+		fameAwards = append(fameAwards, scholarSegmentFameAwards(upp, career.Terms)...)
 	}
 
 	fame := resolveFameStacks(fameAwards)
