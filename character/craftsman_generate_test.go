@@ -407,3 +407,86 @@ func TestResolveCraftsmanTermPerfectMasterpiece(t *testing.T) {
 		t.Errorf("RewardResult = %q, want %q", term.RewardResult, want)
 	}
 }
+
+// TestCraftsmanTermFameAwardsReportsOneAwardPerTerm is #126's regression:
+// craftsmanCareerFame used to be the only Craftsman Fame source, and it
+// collapsed every term's own award into a single pre-summed int, which
+// defeated fame.go's resolveFameStacks cap (a lone artificially-large
+// "award" becomes both the sum AND the highest single award, so
+// resolveFameStacks returns it uncapped). craftsmanTermFameAwards must
+// report Book 1 p.91's "Craftsman Masterpieces x3, Perfect Masterpieces
+// x5" as one award per qualifying term instead: 3 for an ordinary
+// Masterpiece, 3+5=8 for a Perfect one (a Perfect Masterpiece is a
+// Masterpiece too, so it earns both rows), and no award for a term with
+// no RewardResult or "None".
+func TestCraftsmanTermFameAwardsReportsOneAwardPerTerm(t *testing.T) {
+	t.Parallel()
+
+	terms := []Term{
+		{RewardResult: ""},
+		{RewardResult: "None"},
+		{RewardResult: "Masterpiece (Cr170000)"},
+		{RewardResult: "Masterpiece (Cr190000)"},
+		{RewardResult: "Perfect Masterpiece (Cr720000)", Masterpiece: &Masterpiece{Perfect: true}},
+	}
+
+	got := craftsmanTermFameAwards(terms)
+	want := []int{3, 3, 8}
+
+	if len(got) != len(want) {
+		t.Fatalf(
+			"craftsmanTermFameAwards(...) = %v, want %v (one entry per qualifying term, not a collapsed total)",
+			got,
+			want,
+		)
+	}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("craftsmanTermFameAwards(...)[%d] = %d, want %d", i, got[i], want[i])
+		}
+	}
+
+	// craftsmanCareerFame must still equal the same terms' total, for
+	// craftsman_muster_out.go's own musterOutRollCount call — only the
+	// FameAwards shape (career_chain.go's resolveCraftsmanSegment) was
+	// wrong, not the total itself.
+	if gotTotal, wantTotal := craftsmanCareerFame(terms), 14; gotTotal != wantTotal {
+		t.Errorf("craftsmanCareerFame(...) = %d, want %d", gotTotal, wantTotal)
+	}
+}
+
+// TestCraftsmanTermFameAwardsCapCorrectlyUnderFameStacks is #126's own
+// reproduction: a Craftsman segment with several qualifying terms whose
+// raw Fame total exceeds Book 1 p.91's Fame Stacks cap of 20
+// (fameStackCap, fame.go), but where no single term's own award comes
+// anywhere near 20. Pre-fix, craftsmanCareerFame's pre-summed total was
+// appended to FameAwards as one entry, so resolveFameStacks saw a
+// single 21+ "award" and returned it uncapped (it is simultaneously the
+// sum and the highest). Reported as individual per-term awards, the cap
+// binds as the book describes.
+func TestCraftsmanTermFameAwardsCapCorrectlyUnderFameStacks(t *testing.T) {
+	t.Parallel()
+
+	// Seven non-Perfect Masterpieces: 7*3 = 21, one over the cap, with
+	// every individual award (3) far below it — the exact scenario the
+	// issue describes.
+	terms := make([]Term, 7)
+	for i := range terms {
+		terms[i] = Term{RewardResult: "Masterpiece (Cr1)"}
+	}
+
+	awards := craftsmanTermFameAwards(terms)
+
+	if rawSum := sumInts(awards); rawSum <= fameStackCap {
+		t.Fatalf("test case is not actually over the cap: raw sum = %d", rawSum)
+	}
+
+	if got := resolveFameStacks(awards); got != fameStackCap {
+		t.Errorf(
+			"resolveFameStacks(craftsmanTermFameAwards(...)) = %d, want the Book 1 p.91 cap of %d",
+			got,
+			fameStackCap,
+		)
+	}
+}

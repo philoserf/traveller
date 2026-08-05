@@ -495,10 +495,21 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 		}
 	}
 
+	// Individual per-term awards, appended rather than pre-summed, so
+	// the Fame Stacks cap — applied once, across every segment, in
+	// assembleChainCharacter — sees them as the book counts them (#126;
+	// see resolveNobleSegment's own comment below for the same shape,
+	// and craftsmanTermFameAwards' own doc comment for the award
+	// formula). Fame here is this segment's own running sum, same as
+	// every other segment resolver (e.g. resolveNobleSegment below) —
+	// resolveFameStacks itself only runs once, on the full chain.
+	fameAwards := bonuses.FameAwards
+	fameAwards = append(fameAwards, craftsmanTermFameAwards(career.Terms)...)
+
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: true,
-		Fame:       bonuses.Fame + craftsmanCareerFame(career.Terms),
-		FameAwards: append(bonuses.FameAwards, craftsmanCareerFame(career.Terms)), Cash: bonuses.Cash,
+		Fame:       sumInts(fameAwards),
+		FameAwards: fameAwards, Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Equipment: equipment,
 		Masterpieces: masterpiecesFromTerms(career.Terms), LandGrants: bonuses.LandGrants,
 	}
