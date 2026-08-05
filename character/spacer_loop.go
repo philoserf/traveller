@@ -114,6 +114,7 @@ func resolveSpacerCareerWithBudget(
 		maxTerms,
 		aging,
 		collegeCheck,
+		nil,
 	)
 	career.Terms = terms
 

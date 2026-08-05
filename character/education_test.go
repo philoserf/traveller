@@ -591,3 +591,73 @@ func TestResolveGraduateEducationChainsProfessorsAfterMasters(t *testing.T) {
 		t.Errorf("Edu = %v after Professors graduation, want at least 12", upp.Characteristics[C5])
 	}
 }
+
+// TestShouldAttemptLaterEducationRetriesAfterFailure is p.59's own
+// Later Education "retry" case: a character who never graduated (here,
+// never attended at all — Education{}) and still qualifies for
+// something should be offered it.
+func TestShouldAttemptLaterEducationRetriesAfterFailure(t *testing.T) {
+	t.Parallel()
+
+	school, ok := shouldAttemptLaterEducation(eduUPP(7, 2, 7), Education{})
+	if !ok || school.Name != "ED5" {
+		t.Errorf("shouldAttemptLaterEducation = %+v, %v, want ED5, true", school, ok)
+	}
+}
+
+// TestShouldAttemptLaterEducationEscalatesToABetterInstitution is the
+// "escalate" case: a character who already graduated College, but whose
+// Edu has since grown enough to qualify for University (strictly better
+// in educationInstitutions's own preference order), should be offered
+// the upgrade.
+func TestShouldAttemptLaterEducationEscalatesToABetterInstitution(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "College", Degree: educationDegreeBachelors, Graduated: true}
+
+	school, ok := shouldAttemptLaterEducation(eduUPP(7, 9, 7), edu)
+	if !ok || school.Name != "University" {
+		t.Errorf("shouldAttemptLaterEducation = %+v, %v, want University, true", school, ok)
+	}
+}
+
+// TestShouldAttemptLaterEducationDeclinesWithoutABetterOption confirms
+// the gate doesn't fire every term forever: a graduate whose Edu hasn't
+// grown past what their current School already qualifies for has
+// nothing better to reach.
+func TestShouldAttemptLaterEducationDeclinesWithoutABetterOption(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "College", Degree: educationDegreeBachelors, Graduated: true}
+
+	if school, ok := shouldAttemptLaterEducation(eduUPP(7, 5, 7), edu); ok {
+		t.Errorf("shouldAttemptLaterEducation = %+v, true, want false (College is still the best reachable)", school)
+	}
+}
+
+// TestAttendInstitutionDoesNotRegressAnExistingDegree is
+// attendInstitution's own stated invariant: a second attendance that
+// fails admission outright must not clear a Degree an earlier,
+// different attendance already earned. Int=Edu=Soc=0 forces both the
+// ApplyCheck and its Waiver to fail unconditionally (2D6 can never roll
+// 0 or less), regardless of seed.
+func TestAttendInstitutionDoesNotRegressAnExistingDegree(t *testing.T) {
+	t.Parallel()
+
+	edu := Education{School: "College", Degree: educationDegreeBachelors, Graduated: true}
+	university, ok := chooseInstitution(eduUPP(20, 20, 20))
+
+	if !ok || university.Name != "University" {
+		t.Fatalf("chooseInstitution = %+v, %v, want University, true", university, ok)
+	}
+
+	attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(0, 0, 0), university, &edu)
+
+	if edu.Degree != educationDegreeBachelors {
+		t.Errorf(
+			"Degree = %q after a failed later attempt, want %q (unregressed)",
+			edu.Degree,
+			educationDegreeBachelors,
+		)
+	}
+}

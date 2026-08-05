@@ -287,6 +287,14 @@ func writeCareer(b *strings.Builder, c character.Career) {
 // two call sites for a given career can't silently drift apart the way
 // two independent string literals could.
 func termOutcomeLine(c character.Career, i int, t character.Term) string {
+	// Later Education (p.59) can occur inside any of the careers that
+	// offer it, so it's checked before any career-specific dispatch
+	// below — a term spent at school has no Controlling Characteristic,
+	// Risk, or Reward to report, only the institution attended.
+	if t.LaterEducation {
+		return fmt.Sprintf("Term %d: Later Education — %s", i+1, t.LaterEducationSchool)
+	}
+
 	// Entertainer has no Controlling Characteristic at all (Risk & Reward
 	// targets Talent, not a UPP position) — t.ControllingCharacteristic
 	// is never set for its own terms, so positionAbbrev's own zero-value

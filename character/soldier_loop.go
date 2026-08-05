@@ -81,6 +81,7 @@ func resolveSoldierCareerWithBudget(
 		maxTerms,
 		aging,
 		collegeCheck,
+		nil,
 	)
 	career.Terms = terms
 
