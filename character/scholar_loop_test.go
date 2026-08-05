@@ -54,6 +54,45 @@ func TestResolveScholarCareerRespectsMaxTermsCap(t *testing.T) {
 	}
 }
 
+// TestResolveScholarCareerLoopUsesCurrentEduNotEntryEdu is the
+// regression test for #138: the term-resolve and Continue closures
+// inside resolveScholarCareerWithBudget used to close over edu as
+// captured before the term loop began, instead of deriving it from the
+// closure's own upp parameter (which resolveCareerLoop threads forward
+// with any Personal-row Edu boost already applied, applyPersonalAwards).
+// Since Tenure requires tier == 3 && edu >= 10, a character who enters
+// at Edu 9 (tier 1, auto-begin) could never reach Tenure under the stale
+// value even after a mid-career Personal-row Edu boost to 10 — Book 1
+// p.76's own "Promotion beyond Scholar3 not possible without Tenure"
+// then permanently caps them at Assistant Professor. Seed 1 against Edu
+// 9 was confirmed by direct comparison against the pre-fix
+// implementation: the character gains a Personal Edu boost to 10 mid-
+// career and, only with the fix, reaches a term where Tenure is rolled
+// for and succeeds.
+func TestResolveScholarCareerLoopUsesCurrentEduNotEntryEdu(t *testing.T) {
+	t.Parallel()
+
+	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 9, 8}}
+	r := dice.New(rand.NewPCG(1, 1))
+
+	career, _ := resolveScholarCareerWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, Education{})
+
+	tenureGranted := false
+
+	for _, term := range career.Terms {
+		if term.TenureGranted {
+			tenureGranted = true
+		}
+	}
+
+	if !tenureGranted {
+		t.Error(
+			"no term granted Tenure, want at least one " +
+				"(seed 1's mid-career Personal Edu boost to 10 should make tier-3 Tenure reachable)",
+		)
+	}
+}
+
 // TestResolveScholarCareerPersistsRiskReductionOntoReturnedUPP is the
 // regression test for a code-review-caught bug: ResolveScholarCareer
 // used to return only Career, silently discarding resolveCareerLoop's
