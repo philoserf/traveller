@@ -38,6 +38,16 @@ type careerSegment struct {
 	// the chain because p.68 retains them at Mustering Out, so a later
 	// career never takes them away.
 	LandGrants []LandGrant
+	// Education is this segment's own ctx.Education, returned back out
+	// so GenerateCareerChainCharacter can carry a Later Education
+	// mutation (#113 item 5) both into the final Character and forward
+	// into the next segment's own ctx.Education — segmentContext is
+	// otherwise built fresh, by value, per segment. Every adapter
+	// returns it, even the ones that never mutate it (a plain pass-
+	// through of what they were given), so the chain loop's own
+	// education = seg.Education never zeroes it out for a career that
+	// doesn't yet offer Later Education.
+	Education Education
 }
 
 func segmentEndsCareerResolution(seg careerSegment) bool {
@@ -201,6 +211,7 @@ func resolveRiskCareerSegment(
 		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: careerWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
+		Education: ctx.Education,
 	}
 }
 
@@ -287,7 +298,14 @@ func resolveAgentSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms, aging, ctx.PriorCareers)
+	// &ctx.Education, not a chain-wide pointer: any Later Education
+	// attendance during this segment mutates this segment's own copy
+	// only. Book 1 lets a character return to school between careers
+	// too, but propagating a mutated Education forward to the next
+	// chain segment is unwired — the same accepted gap #113's own
+	// Commission-grant propagation already has (segmentContext.Education
+	// is fixed at chain setup), not something this pilot introduces.
+	career, careerUPP := resolveRogueCareerAndUPPWithBudget(r, upp, maxTerms, aging, ctx.PriorCareers, &ctx.Education)
 	if aging.alive() {
 		career.MusteringOut = ResolveRogueMusterOut(r, career)
 	}
@@ -316,6 +334,7 @@ func resolveRogueSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		Cash:       cash,
 		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 		LandGrants: bonuses.LandGrants,
+		Education:  ctx.Education,
 	}
 }
 
@@ -358,6 +377,7 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: careerWoundBadges(career),
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Medals: allMedalsFromTerms(career.Terms),
+		Education: ctx.Education,
 	}
 }
 
@@ -384,6 +404,7 @@ func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 		Career: career, UPP: boostedUPP, Survived: ok,
 		Fame: fame + bonuses.Fame, FameAwards: append(bonuses.FameAwards, fame), Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), LandGrants: bonuses.LandGrants,
+		Education: ctx.Education,
 	}
 }
 
@@ -433,7 +454,8 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 	return careerSegment{
 		Career: career, UPP: boostedUPP, Survived: ok, LandGrants: append(landGrants, bonuses.LandGrants...),
 		Fame: fame, FameAwards: fameAwards, Cash: bonuses.Cash, WoundBadges: careerWoundBadges(career),
-		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Skills:    append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
+		Education: ctx.Education,
 	}
 }
 
@@ -455,6 +477,7 @@ func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 		Career: career, UPP: boostedUPP, Survived: true,
 		Fame: bonuses.Fame, FameAwards: bonuses.FameAwards, Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), LandGrants: bonuses.LandGrants,
+		Education: ctx.Education,
 	}
 }
 
@@ -481,6 +504,7 @@ func resolveFunctionarySegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 		Career: career, UPP: boostedUPP, Survived: true,
 		Fame: bonuses.Fame, FameAwards: bonuses.FameAwards, Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), LandGrants: bonuses.LandGrants,
+		Education: ctx.Education,
 	}
 }
 
@@ -527,6 +551,7 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 		FameAwards: fameAwards, Cash: bonuses.Cash,
 		Skills: append(allSkillsFromTerms(career.Terms), bonuses.Skills...), Equipment: equipment,
 		Masterpieces: masterpiecesFromTerms(career.Terms), LandGrants: bonuses.LandGrants,
+		Education: ctx.Education,
 	}
 }
 
@@ -563,6 +588,7 @@ func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentConte
 		Cash:       bonuses.Cash,
 		Skills:     append(allSkillsFromTerms(career.Terms), bonuses.Skills...),
 		LandGrants: append(landGrants, bonuses.LandGrants...),
+		Education:  ctx.Education,
 	}
 }
 
@@ -868,6 +894,12 @@ func GenerateCareerChainCharacter(r *dice.Roller, careerNames []string, ageTarge
 		seg := careerChainRegistry[name](r, upp, maxTerms,
 			chainSegmentContext(&aging, &acc, precedingCareer, education))
 		upp = seg.UPP
+		// A Later Education attendance (#113 item 5) mutates the
+		// segment's own copy of Education, not the chain-wide one
+		// chainSegmentContext built by value — carried forward here so
+		// the next segment sees it too, and so the final Character
+		// below reflects it even for a single-segment chain.
+		education = seg.Education
 		acc.addSegment(seg)
 
 		// Checked before the zero-term continue below, not after it: a

@@ -661,3 +661,52 @@ func TestAttendInstitutionDoesNotRegressAnExistingDegree(t *testing.T) {
 		)
 	}
 }
+
+// TestAttendInstitutionReturnsOnlyThisAttendancesSkills is the
+// regression test for attendInstitution's own delta return value: a
+// second attendance's own returned skills must not repeat the first
+// attendance's, since edu.Skills already carries those and a Later
+// Education Term's SkillsAwarded must not double-grant them.
+func TestAttendInstitutionReturnsOnlyThisAttendancesSkills(t *testing.T) {
+	t.Parallel()
+
+	college, ok := chooseInstitution(eduUPP(20, 5, 20))
+	if !ok || college.Name != "College" {
+		t.Fatalf("chooseInstitution(Edu 5) = %+v, %v, want College, true", college, ok)
+	}
+
+	university, ok := chooseInstitution(eduUPP(20, 20, 20))
+	if !ok || university.Name != "University" {
+		t.Fatalf("chooseInstitution(Edu 20) = %+v, %v, want University, true", university, ok)
+	}
+
+	var edu Education
+
+	r := dice.New(rand.NewPCG(4, 4))
+
+	upp := eduUPP(20, 20, 20)
+	_, firstDelta := attendInstitution(r, upp, college, &edu)
+
+	if len(firstDelta) == 0 {
+		t.Fatal("first attendance's own delta is empty, want at least one skill (unfailable fixture)")
+	}
+
+	if len(edu.Skills) != len(firstDelta) {
+		t.Fatalf(
+			"edu.Skills = %+v after one attendance, want it to equal the returned delta %+v",
+			edu.Skills,
+			firstDelta,
+		)
+	}
+
+	_, secondDelta := attendInstitution(r, upp, university, &edu)
+
+	if len(secondDelta) == 0 {
+		t.Fatal("second attendance's own delta is empty, want at least one skill (unfailable fixture)")
+	}
+
+	if len(edu.Skills) != len(firstDelta)+len(secondDelta) {
+		t.Errorf("len(edu.Skills) = %d, want %d (first delta) + %d (second delta) = %d, not double-counted",
+			len(edu.Skills), len(firstDelta), len(secondDelta), len(firstDelta)+len(secondDelta))
+	}
+}

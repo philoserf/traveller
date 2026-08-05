@@ -7,16 +7,31 @@ import (
 	"github.com/philoserf/traveller/dice"
 )
 
-// TestTermsServedMatchesLenTermsUntilLaterEducationExists is the
-// zero-behavior-change proof for the termsServed sweep (#113 item 5,
-// stage 1): no generator sets Term.LaterEducation yet, so
-// termsServed(terms) must equal len(terms) for every career on every
-// generated character, standalone or chained. Once Later Education
-// actually elects a term (a later stage of #113), this test's own
-// premise breaks and it must be narrowed to non-education terms —
-// that's expected, not a regression, and the comment should say so
-// then.
-func TestTermsServedMatchesLenTermsUntilLaterEducationExists(t *testing.T) {
+// countNonLaterEducationTerms is termsServed's own definition, computed
+// independently (a plain loop, not a call to the function under test),
+// so the sweeps below check termsServed against its own contract rather
+// than against len(terms) — which stopped being equivalent once Rogue
+// (#113 item 5's pilot) started producing real LaterEducation terms.
+func countNonLaterEducationTerms(terms []Term) int {
+	n := 0
+
+	for _, t := range terms {
+		if !t.LaterEducation {
+			n++
+		}
+	}
+
+	return n
+}
+
+// TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters is the
+// termsServed sweep (#113 item 5, stage 1) generalized past its own
+// original zero-behavior-change premise: it no longer assumes no
+// generator ever sets LaterEducation (Rogue now does), only that
+// termsServed always agrees with counting non-LaterEducation terms
+// directly, for every career on every generated character, standalone
+// or chained.
+func TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters(t *testing.T) {
 	t.Parallel()
 
 	generators := []func(r *dice.Roller) (Character, bool){
@@ -33,15 +48,21 @@ func TestTermsServedMatchesLenTermsUntilLaterEducationExists(t *testing.T) {
 		GenerateSpacerCharacter,
 	}
 
-	checked := 0
+	checked, sawLaterEducation := 0, false
 
 	for _, generate := range generators {
 		for seed := uint64(1); seed <= 200; seed++ {
 			c, _ := generate(dice.New(rand.NewPCG(seed, seed)))
 
 			for _, career := range c.Careers {
-				if got, want := termsServed(career.Terms), len(career.Terms); got != want {
-					t.Errorf("%s: termsServed(Terms) = %d, want %d (len)", career.Name, got, want)
+				if got, want := termsServed(career.Terms), countNonLaterEducationTerms(career.Terms); got != want {
+					t.Errorf("%s: termsServed(Terms) = %d, want %d", career.Name, got, want)
+				}
+
+				for _, term := range career.Terms {
+					if term.LaterEducation {
+						sawLaterEducation = true
+					}
 				}
 
 				checked++
@@ -52,12 +73,16 @@ func TestTermsServedMatchesLenTermsUntilLaterEducationExists(t *testing.T) {
 	if checked == 0 {
 		t.Fatal("no careers checked — generators list is empty or produced nothing")
 	}
+
+	if !sawLaterEducation {
+		t.Error("no LaterEducation term appeared across 200 Rogue seeds — the pilot wiring may not be firing")
+	}
 }
 
-// TestTermsServedMatchesLenTermsAcrossCareerChains is the same proof
-// for career_chain.go's own accumulator, since chained careers are
-// assembled differently than standalone ones.
-func TestTermsServedMatchesLenTermsAcrossCareerChains(t *testing.T) {
+// TestTermsServedExcludesLaterEducationAcrossCareerChains is the same
+// proof for career_chain.go's own accumulator, since chained careers
+// are assembled differently than standalone ones.
+func TestTermsServedExcludesLaterEducationAcrossCareerChains(t *testing.T) {
 	t.Parallel()
 
 	chains := [][]string{
@@ -78,8 +103,8 @@ func TestTermsServedMatchesLenTermsAcrossCareerChains(t *testing.T) {
 			}
 
 			for _, career := range c.Careers {
-				if got, want := termsServed(career.Terms), len(career.Terms); got != want {
-					t.Errorf("%v: %s: termsServed(Terms) = %d, want %d (len)", careerNames, career.Name, got, want)
+				if got, want := termsServed(career.Terms), countNonLaterEducationTerms(career.Terms); got != want {
+					t.Errorf("%v: %s: termsServed(Terms) = %d, want %d", careerNames, career.Name, got, want)
 				}
 
 				checked++
