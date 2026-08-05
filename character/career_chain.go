@@ -384,10 +384,12 @@ func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmen
 
 // resolveMerchantSegment mirrors buildMerchantCharacter's own body
 // (merchant_character_generate.go), stopping short of finalizeAging.
-// buildMerchantCharacter's own comment notes BeginMerchant never fails,
-// so len(career.Terms) > 0 used to be unconditional — that stops being
-// true once maxTerms can be 0 (an exhausted -age budget), so this
-// checks explicitly rather than indexing career.Terms unconditionally.
+// BeginMerchant never fails, so len(career.Terms) > 0 would be
+// unconditional if maxTerms were always positive — but here maxTerms is
+// chain-supplied and can be 0 (an exhausted -age budget), so this checks
+// explicitly rather than indexing career.Terms unconditionally.
+// buildMerchantCharacter guards identically even though its own
+// hardcoded maxCareerTerms keeps this path unreachable there today.
 func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 

@@ -129,9 +129,13 @@ func buildMerchantCharacter(r *dice.Roller, upp UPP, homeworld string, homeworld
 	skills := append(slices.Clone(homeworldSkills), allSkillsFromTerms(career.Terms)...)
 	skills = append(skills, bonuses.Skills...)
 
-	// len(career.Terms) > 0 is unconditionally true (BeginMerchant never
-	// fails) — ok collapses to "didn't die on the last term."
-	survivedCareer := career.Terms[len(career.Terms)-1].RiskResult != Dead
+	// This call always passes maxCareerTerms and a fresh agingSimulation{}
+	// (whose zero-value alive() is always true), so career.Terms can't
+	// actually be empty on this path today. Guard anyway to mirror
+	// resolveMerchantSegment's identical guard (career_chain.go), which
+	// needs it because its chain-supplied maxTerms can be 0 — staying
+	// safe if this call site ever threads through a reduced budget too.
+	survivedCareer := len(career.Terms) > 0 && career.Terms[len(career.Terms)-1].RiskResult != Dead
 
 	// Fame is rolled before the birthdate, matching resolveMerchantSegment
 	// (career_chain.go) so both generation paths draw the Ship Owner die
