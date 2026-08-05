@@ -144,15 +144,16 @@ next item depends on all of them:
 discarded: "One Science" now draws from p.60's C-flagged Sciences block
 (#36a), and "Capital" — p.85's "World Knowledge (of world of highest
 held noble Land Grant) (value= 1D)" — records the 1D at the roll and
-substitutes the world name at final assembly, the same marker-then-
+substitutes the world UWP at final assembly, the same marker-then-
 substitute pattern #36b used for Major/Minor. World Knowledge entries
 appear in generated output for the first time (Noble, Agent). Worlds
 are identified by UWP (`World: A867A69-B`), the only identity this
 codebase gives them; #118 tracks giving worlds real names.
 
 **#102** (PR #119) transcribed Book 1 p.92-93's Educational Institution
-Chart (twelve sub-tables, a 1D name roll plus a rank die) and wired
-School Rank into every institution step C attends — 252 of 307
+Chart (twelve sub-tables, a 1D name roll plus a rank value — a die for
+eleven of them, ED5's own "Rank= Inconsequential" for the twelfth) and
+wired School Rank into every institution step C attends — 252 of 307
 graduates carry one, 500-seed sample. School _names_ mostly do not
 render: the chart's templates need a world/city/province/company/colour
 this codebase has no source for. The 1D that picks the template is
