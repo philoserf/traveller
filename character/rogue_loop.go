@@ -136,12 +136,21 @@ func laterEducationHook(education *Education) beforeTerm {
 			return Term{}, upp, false
 		}
 
-		updatedUPP, skills := attendInstitution(r, upp, school, education)
+		updatedUPP, skills, admitted := attendInstitution(r, upp, school, education)
+
+		// p.59: "if accepted substitutes that process for the entire
+		// term." A rejected application does not consume the term —
+		// resolveCareerLoop falls through to the ordinary resolveTerm
+		// path for this iteration instead, the same as if Later
+		// Education had never been offered.
+		if !admitted {
+			return Term{}, updatedUPP, false
+		}
 
 		return Term{
 			Length:               4,
 			LaterEducation:       true,
-			LaterEducationSchool: education.School,
+			LaterEducationSchool: school.Name,
 			SkillsAwarded:        skills,
 		}, updatedUPP, true
 	}
