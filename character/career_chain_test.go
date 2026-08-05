@@ -972,6 +972,61 @@ func TestCareerChainCraftsmanSegmentProducesEquipmentAndFame(t *testing.T) {
 	}
 }
 
+// TestCareerChainCraftsmanSegmentFameAwardsRespectFameStacksCap is #126's
+// reproduction through the actual production path: assembleChainCharacter
+// (career_chain.go) feeds every segment's own FameAwards into
+// resolveFameStacks exactly once, at the end of the whole chain
+// (fame.go's own Book 1 p.91 "sum ... to 20; beyond 20, only the
+// highest Fame applies"). This fixture's 14-term career (also exercised
+// by TestCareerChainCraftsmanSegmentProducesEquipmentAndFame) produces
+// seven ordinary Masterpieces (+3 each) and seven Perfect ones (+8
+// each) — a raw total of 77, comfortably past the cap of 20, with every
+// individual award (3 or 8) nowhere near it. Pre-fix,
+// resolveCraftsmanSegment appended that 77 to FameAwards as a single
+// collapsed entry, so resolveFameStacks saw one "award" that was
+// simultaneously the sum and the highest, and returned it unchanged
+// (77, not 20) — this test caught that red before the fix landed.
+func TestCareerChainCraftsmanSegmentFameAwardsRespectFameStacksCap(t *testing.T) {
+	t.Parallel()
+
+	ctx := segmentContext{SkillsSoFar: craftsmanHighSkillFixture}
+
+	seg := resolveCraftsmanSegment(dice.New(rand.NewPCG(1, 1)), uppCraftsman12, maxCareerTerms, ctx)
+
+	// The cap assertion this test exists for, checked first so it is
+	// the one that actually goes red pre-fix rather than being
+	// short-circuited by one of the shape checks below (both encode the
+	// same bug, but this is the one the fix is about).
+	if rawSum := sumInts(seg.FameAwards); rawSum <= fameStackCap {
+		t.Fatalf("fixture is not actually over the cap: raw FameAwards sum = %d, want > %d", rawSum, fameStackCap)
+	}
+
+	if got := resolveFameStacks(seg.FameAwards); got != fameStackCap {
+		t.Errorf(
+			"resolveFameStacks(seg.FameAwards) = %d, want the Book 1 p.91 Fame Stacks cap of %d (raw sum is %d)",
+			got, fameStackCap, sumInts(seg.FameAwards),
+		)
+	}
+
+	// Shape checks: confirm the cap held for the right reason (many
+	// small individual awards), not by accident.
+	if len(seg.FameAwards) < 2 {
+		t.Errorf(
+			"FameAwards = %v, want one entry per qualifying term (this fixture has several), not a single collapsed total",
+			seg.FameAwards,
+		)
+	}
+
+	for _, award := range seg.FameAwards {
+		if award > 8 {
+			t.Errorf(
+				"FameAwards contains %d, want each individual award capped at 8 (3 base, +5 more if Perfect)",
+				award,
+			)
+		}
+	}
+}
+
 // TestCareerChainAgingDeathIsNotASuccessfulAttempt is #60's regression
 // through a public generation path, and PR #69's own review finding
 // alongside it: a character killed by Aging (Book 1 p.89) must report

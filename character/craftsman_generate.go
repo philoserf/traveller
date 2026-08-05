@@ -289,26 +289,41 @@ func termMasterpieceIsPerfect(t Term) bool {
 	return t.Masterpiece != nil && t.Masterpiece.Perfect
 }
 
-// craftsmanCareerFame is Book 1 p.91's own two-row, additive Fame
+// craftsmanCareerFame totals craftsmanTermFameAwards' own individual
+// awards, for the places (craftsman_muster_out.go's own musterOutRollCount
+// call) that still need a single per-career figure rather than the
+// awards themselves. Matches rankBasedCareerFame's own sumInts-over-
+// awards shape (career_rank.go).
+func craftsmanCareerFame(terms []Term) int {
+	return sumInts(craftsmanTermFameAwards(terms))
+}
+
+// craftsmanTermFameAwards is Book 1 p.91's own two-row, additive Fame
 // entry: "Craftsman = Masterpieces x3" and "Craftsman = Perfect
 // Masterpieces x5" — a Perfect Masterpiece is a subset of Masterpieces,
 // not a separate exclusive category (unlike Rogue's own Successful-xor-
 // Failed Scheme shape), so it contributes to BOTH rows: 3+5=8 total,
-// versus 3 for a non-perfect one.
-func craftsmanCareerFame(terms []Term) int {
-	fame := 0
+// versus 3 for a non-perfect one. One award per qualifying term,
+// reported separately rather than pre-summed, so the Fame Stacks cap
+// (fame.go's own resolveFameStacks, Book 1 p.91) sees them as the book
+// counts them — see #126, where a single collapsed total defeated the
+// cap entirely.
+func craftsmanTermFameAwards(terms []Term) []int {
+	var awards []int
 
 	for _, t := range terms {
 		if t.RewardResult == "" || t.RewardResult == "None" {
 			continue
 		}
 
-		fame += 3
+		fame := 3
 
 		if termMasterpieceIsPerfect(t) {
 			fame += 5
 		}
+
+		awards = append(awards, fame)
 	}
 
-	return fame
+	return awards
 }
