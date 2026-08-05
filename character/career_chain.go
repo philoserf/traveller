@@ -404,7 +404,15 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 
 	fameAwards := bonuses.FameAwards
 	if ok {
-		fameAwards = append(fameAwards, merchantCareerFame(tier)+merchantShipOwnerFame(r, career))
+		// Two separate p.91 awards, appended individually rather than
+		// pre-summed, so the Fame Stacks cap sees them as the book counts
+		// them (fame.go's own resolveFameStacks) — mirrors
+		// buildMerchantCharacter (merchant_character_generate.go) and
+		// resolveNobleSegment below.
+		fameAwards = append(fameAwards, merchantCareerFame(tier))
+		if owner := merchantShipOwnerFame(r, career); owner > 0 {
+			fameAwards = append(fameAwards, owner)
+		}
 	}
 
 	fame := sumInts(fameAwards)
