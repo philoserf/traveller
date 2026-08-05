@@ -395,7 +395,7 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // rejected application (ApplyCheck failed and no Waiver saved it) must
 // not substitute a Later Education Term for the caller's own normal one
 // — only checked here, not enforced, since this function has no
-// opinion about terms; laterEducationHook (rogue_loop.go) is what acts
+// opinion about terms; laterEducationHook (career_loop.go) is what acts
 // on it.
 func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu *Education) (UPP, []SkillLevel, bool) {
 	// A whole-struct snapshot, not one local per restorable field — the

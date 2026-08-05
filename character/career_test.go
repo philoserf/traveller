@@ -25,14 +25,14 @@ func countNonLaterEducationTerms(terms []Term) int {
 	return n
 }
 
-// TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters is the
+// TestServedTermCountExcludesLaterEducationAcrossGeneratedCharacters is the
 // servedTermCount sweep (#113 item 5, stage 1) generalized past its own
 // original zero-behavior-change premise: it no longer assumes no
 // generator ever sets LaterEducation (Rogue now does), only that
 // servedTermCount always agrees with counting non-LaterEducation terms
 // directly, for every career on every generated character, standalone
 // or chained.
-func TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters(t *testing.T) {
+func TestServedTermCountExcludesLaterEducationAcrossGeneratedCharacters(t *testing.T) {
 	t.Parallel()
 
 	generators := []func(r *dice.Roller) (Character, bool){
@@ -85,10 +85,10 @@ func TestTermsServedExcludesLaterEducationAcrossGeneratedCharacters(t *testing.T
 	}
 }
 
-// TestTermsServedExcludesLaterEducationAcrossCareerChains is the same
+// TestServedTermCountExcludesLaterEducationAcrossCareerChains is the same
 // proof for career_chain.go's own accumulator, since chained careers
 // are assembled differently than standalone ones.
-func TestTermsServedExcludesLaterEducationAcrossCareerChains(t *testing.T) {
+func TestServedTermCountExcludesLaterEducationAcrossCareerChains(t *testing.T) {
 	t.Parallel()
 
 	chains := [][]string{
