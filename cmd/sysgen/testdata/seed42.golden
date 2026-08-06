@@ -1,0 +1,42 @@
+# C6A3664-5 System
+
+## Mainworld
+
+**Orbit:** 1 (0.4 AU)
+
+**UWP:** C6A3664-5
+
+**Trade Codes:** Fl Ni Tz Ho
+
+**Bases:** None
+
+**PBG:** 630
+
+**Travel Zone:** Green
+
+### Extensions
+
+- **Importance:** -2
+- **Economic:** Resources 4, Labor 5, Infrastructure 0, Efficiency +0
+- **Cultural:** Heterogeneity 11, Acceptance 4, Strangeness 4, Symbols 4
+
+## System
+
+### Primary: K9 V (HZ orbit 2)
+
+- Orbit 0: D400000-0 — Va Ba Tz
+- Orbit 1: C6A3664-5 — Fl Ni Tz Ho (Mainworld)
+- Orbit 2: DCB4000-8 — Fl Di
+- Orbit 3: C6A2037-6 — Fl He Co
+- Orbit 4: A69A000-0 — Wa Ba Fr
+  - Close satellite: C579000-0 — Ba Fr
+  - Far satellite: D520000-7 — De He Di Po
+  - Far satellite: A000556-C — As Va Ni
+- Orbit 5: C000434-A — As Va Ni
+- Orbit 6: C00048B-C — As Va Ni
+- Orbit 7: C0005AE-9 — As Va Ni Fo
+- Orbit 8: A000468-B — As Va Ni
+- Orbit 9: B9CA454-C — Fl Ni Fr
+- Orbit 10: A00059B-F — As Va Ni Da
+
+_(seed: 42)_

@@ -47,6 +47,25 @@ func main() {
 	}
 }
 
+// seedExplicit reports whether -seed was actually passed on the command
+// line, as opposed to holding its zero-value default — mirroring the
+// fs.Visit idiom dice.SeedFlag() uses against the global flag package,
+// scoped here to a subcommand's own FlagSet. Needed because the API
+// distinguishes an omitted seed (server picks one) from an explicit
+// seed of 0 (dice.ResolveSeed honors it), and comparing *seed != 0
+// can't tell those two cases apart.
+func seedExplicit(fs *flag.FlagSet) bool {
+	set := false
+
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "seed" {
+			set = true
+		}
+	})
+
+	return set
+}
+
 func runHealthz(args []string) error {
 	fs := flag.NewFlagSet("healthz", flag.ExitOnError)
 	addr := fs.String("server", "http://localhost:8080", "traveller API server address")
@@ -68,14 +87,14 @@ func runHealthz(args []string) error {
 func runWorld(args []string) error {
 	fs := flag.NewFlagSet("world", flag.ExitOnError)
 	addr := fs.String("server", "http://localhost:8080", "traveller API server address")
-	seed := fs.Int64("seed", 0, "seed to request (0 = server picks)")
+	seed := fs.Int64("seed", 0, "seed to request (omit the flag entirely to let the server pick)")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("client: parsing flags: %w", err)
 	}
 
 	url := *addr + "/worlds/random"
-	if *seed != 0 {
+	if seedExplicit(fs) {
 		url += "?seed=" + strconv.FormatInt(*seed, 10)
 	}
 
@@ -102,14 +121,14 @@ func runWorld(args []string) error {
 func runSystem(args []string) error {
 	fs := flag.NewFlagSet("system", flag.ExitOnError)
 	addr := fs.String("server", "http://localhost:8080", "traveller API server address")
-	seed := fs.Int64("seed", 0, "seed to request (0 = server picks)")
+	seed := fs.Int64("seed", 0, "seed to request (omit the flag entirely to let the server pick)")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("client: parsing flags: %w", err)
 	}
 
 	url := *addr + "/systems/random"
-	if *seed != 0 {
+	if seedExplicit(fs) {
 		url += "?seed=" + strconv.FormatInt(*seed, 10)
 	}
 
@@ -174,7 +193,7 @@ func printSystem(sys api.SystemResponse) {
 func runSector(args []string) error {
 	fs := flag.NewFlagSet("sector", flag.ExitOnError)
 	addr := fs.String("server", "http://localhost:8080", "traveller API server address")
-	seed := fs.Int64("seed", 0, "seed to request (0 = server picks)")
+	seed := fs.Int64("seed", 0, "seed to request (omit the flag entirely to let the server pick)")
 	name := fs.String("name", "", "sector name")
 	density := fs.String("density", "", "System Presence density (default: Standard)")
 	subsector := fs.String("subsector", "", "single letter A-P — limit output to that 80-hex block only")
@@ -189,7 +208,7 @@ func runSector(args []string) error {
 	}
 
 	query := neturl.Values{}
-	if *seed != 0 {
+	if seedExplicit(fs) {
 		query.Set("seed", strconv.FormatInt(*seed, 10))
 	}
 
