@@ -410,17 +410,23 @@ func TestAgingDeathStopsServiceAndMusterOut(t *testing.T) {
 			return len(c.Terms)
 		},
 		"hand-rolled Citizen": func(a *agingSimulation) int {
-			c, _ := resolveCitizenCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+			c, _ := resolveCitizenCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a, nil)
 
 			return len(c.Terms)
 		},
 		"hand-rolled Noble": func(a *agingSimulation) int {
-			c, _, _ := resolveNobleCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+			c, _, _ := resolveNobleCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a, nil)
 
 			return len(c.Terms)
 		},
 		"hand-rolled Entertainer": func(a *agingSimulation) int {
-			c, _, _ := resolveEntertainerCareerAndUPPWithBudget(dice.New(rand.NewPCG(1, 1)), upp, maxCareerTerms, a)
+			c, _, _ := resolveEntertainerCareerAndUPPWithBudget(
+				dice.New(rand.NewPCG(1, 1)),
+				upp,
+				maxCareerTerms,
+				a,
+				nil,
+			)
 
 			return len(c.Terms)
 		},
@@ -497,7 +503,7 @@ func TestFailedBeginAttemptsCostAYear(t *testing.T) {
 
 		// Noble's Begin is Soc B+ — a threshold, not an attempt. There is
 		// no roll to fail, so p.65's per-attempt year never applies.
-		c, ok := buildNobleCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil)
+		c, ok := buildNobleCharacter(dice.New(rand.NewPCG(1, 1)), zero, "hw", nil, nil)
 		if ok || len(c.Careers[0].Terms) != 0 {
 			t.Fatal("fixture qualified, want Soc below B")
 		}

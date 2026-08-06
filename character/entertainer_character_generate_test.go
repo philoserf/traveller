@@ -25,7 +25,7 @@ func TestBuildEntertainerCharacterTalentExhaustedIsStillAlive(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(21, 21))
 
-	c, ok := buildEntertainerCharacter(r, upp, "hw", nil)
+	c, ok := buildEntertainerCharacter(r, upp, "hw", nil, nil)
 
 	if !ok {
 		t.Fatal("ok = false, want true (Talent exhaustion is not physical death)")
@@ -61,7 +61,7 @@ func TestBuildEntertainerCharacterNeverQualifiedStillSetsFame(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(6, 6))
 
-	c, ok := buildEntertainerCharacter(r, upp, "hw", nil)
+	c, ok := buildEntertainerCharacter(r, upp, "hw", nil, nil)
 
 	if ok {
 		t.Error("ok = true, want false (BeginEntertainer's own roll fails)")
@@ -96,7 +96,7 @@ func TestBuildEntertainerCharacterQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(14, 14))
 
-	c, ok := buildEntertainerCharacter(r, upp, "hw", homeworldSkills)
+	c, ok := buildEntertainerCharacter(r, upp, "hw", homeworldSkills, nil)
 
 	if !ok {
 		t.Fatal("ok = false, want true")
@@ -150,5 +150,49 @@ func TestGenerateEntertainerCharacterProducesAHumanCharacter(t *testing.T) {
 
 	if len(c.Careers) != 1 || c.Careers[0].Name != EntertainerCareerName {
 		t.Errorf("Careers = %+v, want one Career named %q", c.Careers, EntertainerCareerName)
+	}
+}
+
+// TestGenerateEntertainerCharacterElectsLaterEducation is #164's own
+// end-to-end regression test, mirroring the pilot's
+// TestGenerateRogueCharacterElectsLaterEducation (rogue_character_generate_test.go):
+// seed 1 confirmed by direct inspection to elect Later Education twice
+// (Service Academy, then University). Pins that the mechanism actually
+// fires through the real standalone generator for a hand-rolled loop —
+// not just resolveCareerLoop's shared hook in isolation — and that Fame/
+// Talent are untouched by a Later Education term (no Risk/Reward or Flux
+// roll happens during one).
+func TestGenerateEntertainerCharacterElectsLaterEducation(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(1, 1))
+
+	c, ok := GenerateEntertainerCharacter(r)
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	var laterEdTerms, skillsAwarded int
+
+	for _, term := range c.Careers[0].Terms {
+		if !term.LaterEducation {
+			continue
+		}
+
+		laterEdTerms++
+
+		if term.LaterEducationSchool == "" {
+			t.Error("a Later Education term has an empty LaterEducationSchool")
+		}
+
+		skillsAwarded += len(term.SkillsAwarded)
+	}
+
+	if laterEdTerms != 2 {
+		t.Fatalf("laterEdTerms = %d, want 2", laterEdTerms)
+	}
+
+	if skillsAwarded == 0 {
+		t.Error("no Later Education term awarded any skills")
 	}
 }

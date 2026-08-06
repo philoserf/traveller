@@ -56,7 +56,7 @@ func citizenLifeSuccessCount(terms []Term) int {
 // internal UPP-returning resolver. The public compatibility wrapper
 // returns only Career.
 func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
-	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, nil)
 
 	return career
 }
@@ -67,19 +67,29 @@ func ResolveCitizenCareer(r *dice.Roller, upp UPP) Career {
 // (career_loop.go) for why. Citizen is the guaranteed fallback for the
 // multi-career chain (character/career_chain.go), so its own hand-rolled
 // loop needs the same -age-target treatment even though it doesn't
-// itself call resolveCareerLoop.
+// itself call resolveCareerLoop. No production caller needs Education
+// threaded through this specific wrapper (only its own budget-truncation
+// test does), so it passes nil rather than growing a new parameter.
 func resolveCitizenCareerWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) Career {
-	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	career, _ := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms, aging, nil)
 
 	return career
 }
 
-func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation) (Career, UPP) {
+// education is #164's own wiring — nil for callers with no Education
+// context, mirroring resolveRogueCareerAndUPPWithBudget's own education
+// parameter (rogue_loop.go). Citizen has no resolveCareerLoop to hand
+// this to, so the laterEducationHook check is inlined below instead.
+func resolveCitizenCareerAndUPPWithBudget(
+	r *dice.Roller, upp UPP, maxTerms int, aging *agingSimulation, education *Education,
+) (Career, UPP) {
 	career := Career{Name: CitizenCareerName}
 
 	if !BeginCitizen() {
 		return career, upp
 	}
+
+	hook := laterEducationHook(education)
 
 	usedThisCycle := make(map[Position]bool, len(citizenLifePositions))
 
@@ -88,13 +98,27 @@ func resolveCitizenCareerAndUPPWithBudget(r *dice.Roller, upp UPP, maxTerms int,
 			break
 		}
 
-		ccPos := nextCC(upp, citizenLifePositions, usedThisCycle)
+		var (
+			term    Term
+			elected bool
+		)
 
-		term, jobSkill, hobbySkill := ResolveCitizenTerm(
-			r, upp, ccPos, citizenLifeSuccessCount(career.Terms), career.JobSkill, career.HobbySkill)
+		if hook != nil {
+			term, upp, elected = hook(r, upp)
+		}
+
+		if !elected {
+			ccPos := nextCC(upp, citizenLifePositions, usedThisCycle)
+
+			var jobSkill, hobbySkill string
+
+			term, jobSkill, hobbySkill = ResolveCitizenTerm(
+				r, upp, ccPos, citizenLifeSuccessCount(career.Terms), career.JobSkill, career.HobbySkill)
+			career.JobSkill, career.HobbySkill = jobSkill, hobbySkill
+		}
+
 		upp = applyPersonalAwards(upp, term.SkillsAwarded)
 		career.Terms = append(career.Terms, term)
-		career.JobSkill, career.HobbySkill = jobSkill, hobbySkill
 
 		upp = aging.advanceTerm(r, upp)
 		if !aging.alive() {

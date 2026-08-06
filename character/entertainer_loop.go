@@ -24,16 +24,23 @@ func continueEntertainer(r *dice.Roller, fame int) bool {
 // !RiskResult.Survived() || Disabled || !continueCareer stop condition)
 // minus the CC-rotation this career doesn't have.
 func ResolveEntertainerCareer(r *dice.Roller, upp UPP) (Career, int) {
-	career, fame, _ := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{})
+	career, fame, _ := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &agingSimulation{}, nil)
 
 	return career, fame
 }
 
+// education is #164's own wiring — nil for callers with no Education
+// context (ResolveEntertainerCareer, test-only), mirroring
+// resolveRogueCareerAndUPPWithBudget's own education parameter
+// (rogue_loop.go). Entertainer has no resolveCareerLoop to hand this to
+// (see ResolveEntertainerCareer's own doc comment), so the
+// laterEducationHook check is inlined below instead.
 func resolveEntertainerCareerAndUPPWithBudget(
 	r *dice.Roller,
 	upp UPP,
 	maxTerms int,
 	aging *agingSimulation,
+	education *Education,
 ) (Career, int, UPP) {
 	career := Career{Name: EntertainerCareerName}
 
@@ -53,6 +60,8 @@ func resolveEntertainerCareerAndUPPWithBudget(
 		return career, fame, upp
 	}
 
+	hook := laterEducationHook(education)
+
 	var terms []Term
 
 	for range maxTerms {
@@ -60,9 +69,22 @@ func resolveEntertainerCareerAndUPPWithBudget(
 			break
 		}
 
-		var term Term
+		var (
+			term    Term
+			elected bool
+		)
 
-		term, fame, talent = ResolveEntertainerTerm(r, fame, talent)
+		if hook != nil {
+			term, upp, elected = hook(r, upp)
+		}
+
+		if !elected {
+			// Fame/Talent are untouched by a Later Education term — p.59
+			// substitutes "that process for the entire term," and neither
+			// the Risk/Reward roll nor its own Flux happens.
+			term, fame, talent = ResolveEntertainerTerm(r, fame, talent)
+		}
+
 		upp = applyPersonalAwards(upp, term.SkillsAwarded)
 		terms = append(terms, term)
 
