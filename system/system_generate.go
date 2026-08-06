@@ -139,9 +139,10 @@ func placeMainworld(r *dice.Roller, orbits []Orbit, primary Star, mainworld worl
 	)
 
 	if slices.Contains(mw.TradeCodes, world.AsteroidBelt) {
-		// "If the Mainworld is an Asteroid Belt, it is placed using the
-		// Belt Column of the Basic Placement Chart without regard to
-		// Habitable Zone" — skips Table 2B's HZ+Var roll entirely.
+		// Book 3 p.21: "If the Mainworld is an Asteroid Belt, it is placed
+		// using the Belt Column of the Basic Placement Chart without
+		// regard to Habitable Zone" — skips Table 2B's HZ+Var roll
+		// entirely.
 		orbitNumber = hzOrbit + rollBeltOffset(r)
 	} else {
 		dm := 0

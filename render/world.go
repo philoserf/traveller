@@ -1,7 +1,6 @@
 // Package render turns domain values into human-readable text. Kept
 // separate from the domain packages (world, character, starship) so they
-// stay pure data with no presentation concerns — see cmd/worldgen's
-// former Printf block, which this package replaces.
+// stay pure data with no presentation concerns.
 package render
 
 import (

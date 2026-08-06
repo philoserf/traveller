@@ -2,7 +2,7 @@ package character
 
 import "github.com/philoserf/traveller/dice"
 
-// QREBS is Book 1's own five-dimension description of an object:
+// QREBS is Book 1 p.163's own five-dimension description of an object:
 // "Objects are (or can be) described in the QREBS system to indicate
 // their level of Quality, Reliability, Ease of Use, Burden, and Safety."
 //
@@ -23,7 +23,7 @@ func (q QREBS) Values() []int {
 	return []int{q.Quality, q.Reliability, q.EaseOfUse, q.Burden, q.Safety}
 }
 
-// Book 1's own QREBS allocation scale: "Allocate the Master Points to
+// Book 1 p.75's own QREBS allocation scale: "Allocate the Master Points to
 // QREBS (for the ranges -5 to +5, -5 = 1 point; +5 = 11 points)."
 //
 // So a dimension set to v costs v + qrebsPointOffset points, every

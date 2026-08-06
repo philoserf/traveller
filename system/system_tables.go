@@ -8,7 +8,7 @@ import "github.com/philoserf/traveller/dice"
 // the system. Flux for Companions for each Star present." — read here as
 // one independent Flux roll per candidate position, each checked against
 // this same threshold, rather than a single roll deciding all three at
-// once (matching the page 21 narrative's "up to eight stars: a Primary
+// once (matching the narrative on Book 3 p.21, "up to eight stars: a Primary
 // and a Companion, a Close star... and its Companion, ...", i.e. up to
 // two stars — itself and one Companion — per one of four positions).
 const starPresenceFlux = 3

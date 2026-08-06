@@ -48,6 +48,11 @@ Two properties of those extracts matter when transcribing a table:
 - **The book contradicts itself.** When two passages disagree, look for a printed
   value table or worked example that only one reading reproduces, and record which
   won and why in the doc comment.
+- **Recovering a printed page number from a line number.** `pdftotext -layout`
+  emits a form-feed (`\f`) at every page break, so a passage's printed page is
+  `(count of \f in the extract strictly before its line) + 1`. Cite the page,
+  never the extract's line number — the extract is git-ignored and regenerated,
+  so line numbers don't survive a re-run of `task text`.
 
 ## Architecture
 
