@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"time"
@@ -13,8 +14,12 @@ import (
 )
 
 func main() {
+	addr := flag.String("addr", ":8080", "address to listen on")
+
+	flag.Parse()
+
 	srv := &http.Server{
-		Addr:              ":8080",
+		Addr:              *addr,
 		Handler:           api.NewMux(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
