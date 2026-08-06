@@ -36,6 +36,14 @@ const (
 // ever entering go test's usual m.Run() — realMain may itself call
 // os.Exit on an error path, which is fine: that only ends this child
 // process, not the parent test process that's waiting on it.
+//
+// Skipping m.Run() in the child path matters beyond speed: testing's
+// own flag.Parse() call (registering -test.v, -test.run, etc.) lives
+// inside m.Run(), not before TestMain runs. Since the child never calls
+// m.Run(), that parse never happens, and realMain's own flag.Parse()
+// (e.g. dice.SeedFlag(), or cmd/server's -addr) is the first and only
+// one to consume args — so Run/RunBackground's args reach the command
+// under test exactly as if a user had typed them.
 func Main(m *testing.M, realMain func()) {
 	if os.Getenv(childEnvVar) == childEnvVal {
 		realMain()

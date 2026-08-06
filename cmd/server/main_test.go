@@ -21,9 +21,13 @@ func TestMain(m *testing.M) {
 // it. Collision risk is accepted the same way a fixed 8080 default is.
 const testAddr = "127.0.0.1:18080"
 
+// TestHealthz intentionally doesn't call t.Parallel(): it binds the
+// fixed testAddr, and running in parallel with -count>1 or a future
+// sibling test would risk two server instances racing for the same
+// port.
+//
+//nolint:paralleltest // binds a fixed port (testAddr); parallel runs would race for it.
 func TestHealthz(t *testing.T) {
-	t.Parallel()
-
 	clitest.RunBackground(t, "-addr", testAddr)
 
 	deadline := time.Now().Add(5 * time.Second)
