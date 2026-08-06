@@ -37,10 +37,10 @@ func candidatesFromHexes(hexes []Hex) []capitalCandidate {
 }
 
 // bestCandidate returns the candidate with the highest Importance
-// (nil/"" if candidates is empty). Ties break by TradeCodes count (Book
-// 3's own "most Trade Classifications" rule), then by Location
-// ascending — the book doesn't specify further, so Location keeps this
-// fully deterministic per seed.
+// (nil/"" if candidates is empty). Ties break by TradeCodes count
+// (Book 3 p.18's own "most Trade Classifications" rule), then by
+// Location ascending — the book doesn't specify further, so Location
+// keeps this fully deterministic per seed.
 func bestCandidate(candidates []capitalCandidate) (*world.World, string) {
 	var best capitalCandidate
 
@@ -65,7 +65,7 @@ func bestCandidate(candidates []capitalCandidate) (*world.World, string) {
 // winning mainworld's TradeCodes in place: the single most-Important
 // inhabited hex in each of the 16 subsectors gets SubsectorCapital, and
 // the single most-Important inhabited hex sector-wide gets SectorCapital
-// — Book 3's own "Capitals... established by Importance" rule. The
+// — Book 3 p.18's own "Capitals... established by Importance" rule. The
 // sector-wide winner is found among the 16 subsector winners rather than
 // rescanning all 1280 hexes: whichever subsector contains the sector's
 // best world necessarily reports it as that subsector's own winner too
