@@ -69,17 +69,21 @@ ehex, dice          primitives: extended-hex digits (0-9,A-Z less I/O); the dice
   └─ character      chargen: UPP, careers, skills, mustering out  (largest by far, ~26k lines)
   └─ starship       types and constants; generation not yet built
 render              text output for character/sector/system/world
-api                 HTTP handlers (see README for the endpoint table)
-cmd/*               chargen, secgen, shipgen, sysgen, worldgen, server, client
+cmd/*               chargen, secgen, shipgen, sysgen, worldgen — see README for the command table
 ```
+
+No HTTP API: `cmd/server`/`cmd/client`/`api` existed briefly and were retired (#178) — every
+`cmd/*` generator calls its package directly and prints Markdown. Revisit only if a concrete
+non-Go or remote consumer actually needs one; until then it's speculative infrastructure.
 
 `character` is where nearly all the complexity lives — see `character/CLAUDE.md` for
 its file-naming convention.
 
 ### Generation is seeded and reproducible
 
-Everything generative takes a `*dice.Roller` built from an explicit seed. The API
-echoes the resolved seed back so a result can be reproduced; CLIs take `-seed`.
+Everything generative takes a `*dice.Roller` built from an explicit seed. Every
+implemented `cmd/*` generator (all but `shipgen`, a stub — #6) takes `-seed` and echoes
+the resolved seed back in its output so a result can be reproduced.
 
 **The reproducibility contract is the dice stream, not just the output.** This has
 concrete consequences:

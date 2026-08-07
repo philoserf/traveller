@@ -41,9 +41,9 @@ const (
 // own flag.Parse() call (registering -test.v, -test.run, etc.) lives
 // inside m.Run(), not before TestMain runs. Since the child never calls
 // m.Run(), that parse never happens, and realMain's own flag.Parse()
-// (e.g. dice.SeedFlag(), or cmd/server's -addr) is the first and only
-// one to consume args — so Run/RunBackground's args reach the command
-// under test exactly as if a user had typed them.
+// (e.g. dice.SeedFlag()) is the first and only one to consume args — so
+// Run's args reach the command under test exactly as if a user had
+// typed them.
 func Main(m *testing.M, realMain func()) {
 	if os.Getenv(childEnvVar) == childEnvVal {
 		realMain()
@@ -95,45 +95,6 @@ func Run(t *testing.T, args ...string) Result {
 	}
 
 	return Result{Stdout: stdout.String(), Stderr: stderr.String(), ExitCode: exitCode}
-}
-
-// Background is a subprocess started by RunBackground and left running
-// — for a command like cmd/server that doesn't exit on its own.
-type Background struct {
-	cmd *exec.Cmd
-}
-
-// RunBackground starts the test binary re-exec'd as the command under
-// test (same mechanism as Run) but does not wait for it to exit; the
-// caller is responsible for polling whatever readiness signal the
-// command under test exposes. The process is killed via t.Cleanup.
-func RunBackground(t *testing.T, args ...string) *Background {
-	t.Helper()
-
-	//nolint:gosec // os.Args[0] is this test binary's own path, not external input.
-	cmd := exec.CommandContext(context.Background(), os.Args[0], args...)
-
-	cmd.Env = append(os.Environ(), childEnvVar+"="+childEnvVal)
-
-	if err := cmd.Start(); err != nil {
-		t.Fatalf("clitest: starting background subprocess: %v", err)
-	}
-
-	bg := &Background{cmd: cmd}
-	t.Cleanup(bg.Kill)
-
-	return bg
-}
-
-// Kill terminates the background process and waits for it to exit.
-// Safe to call more than once (via t.Cleanup and explicitly).
-func (b *Background) Kill() {
-	if b.cmd.Process == nil {
-		return
-	}
-
-	_ = b.cmd.Process.Kill()
-	_ = b.cmd.Wait()
 }
 
 // AssertExitCode fails the test if r.ExitCode != want.

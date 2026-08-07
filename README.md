@@ -2,29 +2,30 @@
 
 [![CI](https://github.com/philoserf/traveller/actions/workflows/ci.yml/badge.svg)](https://github.com/philoserf/traveller/actions/workflows/ci.yml)
 
-An API-first implementation of the Traveller5 (T5) tabletop RPG rules.
+A Go library implementation of the Traveller5 (T5) tabletop RPG rules.
 Types first, then tools: domain types for worlds, characters, and
 starships live in the `world`, `character`, and `starship` packages,
 built on a shared `ehex` (extended-hex) primitive.
 
-## API
+## Commands
 
-`go run ./cmd/server` starts the HTTP API on `:8080`. All endpoints are
-read-only `GET`s returning JSON; an omitted `seed` resolves to a
-time-derived one, which the response always echoes back so the result
-can be reproduced later. Handler behavior is also documented via Go doc
-comments in `api/*.go` (`go doc ./api`).
+Each command's own `main.go` doc comment is the authoritative
+description of what it produces; this is a quick index. Every
+implemented generator (all but `shipgen`, see below) takes `-seed`
+(omit it to derive one from the current time; the rendered output
+always echoes back the seed used, so a result can be reproduced later)
+and prints Markdown to stdout.
 
-| Endpoint              | Query params                                                                                                               | Response          |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `GET /healthz`        | —                                                                                                                          | `healthzResponse` |
-| `GET /worlds/random`  | `seed`                                                                                                                     | `WorldResponse`   |
-| `GET /systems/random` | `seed`                                                                                                                     | `SystemResponse`  |
-| `GET /sectors/random` | `seed`, `name` (default "Unnamed"), `density` (default "Standard" — see `sector.Density`), `subsector` (single letter A-P) | `SectorResponse`  |
+| Run                     | Generates                         | Other flags                                         |
+| ----------------------- | --------------------------------- | --------------------------------------------------- |
+| `go run ./cmd/worldgen` | a world (UWP, trade codes, bases) | —                                                   |
+| `go run ./cmd/sysgen`   | a world plus its full star system | —                                                   |
+| `go run ./cmd/secgen`   | a 32×40 sector                    | `-name`, `-density`, `-subsector`, `-format`        |
+| `go run ./cmd/chargen`  | a character                       | `-career` (single or comma-separated chain), `-age` |
+| `go run ./cmd/shipgen`  | not yet implemented (#6)          | —                                                   |
 
-A bad `seed`/`density`/`subsector` responds `400` with
-`{"error": "..."}` (`errorResponse`). `cmd/client` is a CLI that talks to
-this same API — see its `-h` output for each subcommand's flags.
+`go doc ./world`, `./system`, `./sector`, `./character` document the
+generation logic itself.
 
 ## Development
 

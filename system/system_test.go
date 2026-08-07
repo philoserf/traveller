@@ -106,8 +106,8 @@ func TestSystemBodiesSortsSatellitesCloseToFar(t *testing.T) {
 // TestSystemBodiesIncludesFreestandingMainworld confirms a non-satellite
 // mainworld's Orbit is no longer excluded from bodiesByRole — it flows
 // through the same bucketing as every other top-level body, so callers
-// (render.System, the API's toSystemResponse) can fold it into their
-// normal body listing rather than needing a separate code path for it.
+// (render.System) can fold it into their normal body listing rather than
+// needing a separate code path for it.
 func TestSystemBodiesIncludesFreestandingMainworld(t *testing.T) {
 	t.Parallel()
 
