@@ -23,7 +23,7 @@ import (
 func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildNobleCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildNobleCharacter(r, upp, homeworld, homeworldSkills, &education)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -34,10 +34,12 @@ func GenerateNobleCharacter(r *dice.Roller) (Character, bool) {
 // buildCitizenCharacter's own split for testability. WoundBadges is left
 // at its zero value — correct for Noble, not a gap: Return & Intrigue
 // has no wound mechanic to count.
-func buildNobleCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel) (Character, bool) {
+func buildNobleCharacter(
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, education *Education,
+) (Character, bool) {
 	var aging agingSimulation
 
-	career, careerUPP, landGrants := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	career, careerUPP, landGrants := resolveNobleCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging, education)
 	if aging.alive() {
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}

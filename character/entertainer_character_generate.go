@@ -13,7 +13,7 @@ import (
 func GenerateEntertainerCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildEntertainerCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildEntertainerCharacter(r, upp, homeworld, homeworldSkills, &education)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -30,10 +30,11 @@ func buildEntertainerCharacter(
 	upp UPP,
 	homeworld string,
 	homeworldSkills []SkillLevel,
+	education *Education,
 ) (Character, bool) {
 	var aging agingSimulation
 
-	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging, education)
 	if aging.alive() {
 		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 	}

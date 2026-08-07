@@ -26,7 +26,7 @@ func TestBuildCitizenCharacterUPPExactlyUnchangedBelowAgingOnset(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(21, 21))
 
-	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil, nil)
 
 	if len(c.Careers[0].Terms) != 1 {
 		t.Fatalf("seed 21: len(Terms) = %d, want 1 (fixture assumption broke)", len(c.Careers[0].Terms))
@@ -54,7 +54,7 @@ func TestBuildCitizenCharacterUPPBoundedWithAgingBuffer(t *testing.T) {
 	for _, seed := range []uint64{1, 2, 3} {
 		r := dice.New(rand.NewPCG(seed, seed))
 
-		c, _ := buildCitizenCharacter(r, upp, "hw", nil)
+		c, _ := buildCitizenCharacter(r, upp, "hw", nil, nil)
 
 		for i, v := range c.UPP.Characteristics[:5] {
 			// Upper bound is the Human cap, not ehex.Max. This test was
@@ -77,7 +77,7 @@ func TestBuildCitizenCharacterHomeworldEqualsBirthworld(t *testing.T) {
 
 	r := dice.New(rand.NewPCG(3, 4))
 
-	c, _ := buildCitizenCharacter(r, UPP{}, "some-uwp", nil)
+	c, _ := buildCitizenCharacter(r, UPP{}, "some-uwp", nil, nil)
 
 	if c.Homeworld != "some-uwp" || c.Birthworld != "some-uwp" {
 		t.Errorf("Homeworld = %q, Birthworld = %q, want both %q", c.Homeworld, c.Birthworld, "some-uwp")
@@ -92,7 +92,7 @@ func TestBuildCitizenCharacterSkillsIncludeHomeworldSkills(t *testing.T) {
 	r := dice.New(rand.NewPCG(7, 7))
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 
-	c, _ := buildCitizenCharacter(r, upp, "hw", homeworldSkills)
+	c, _ := buildCitizenCharacter(r, upp, "hw", homeworldSkills, nil)
 
 	// Seed 7 confirmed by direct inspection to re-grant "Vacc Suit"
 	// during the career itself, merging with the homeworld grant via
@@ -120,12 +120,12 @@ func TestBuildCitizenCharacterDoesNotAliasHomeworldSkills(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 
 	r1 := dice.New(rand.NewPCG(7, 7))
-	c1, _ := buildCitizenCharacter(r1, upp, "hw", shared)
+	c1, _ := buildCitizenCharacter(r1, upp, "hw", shared, nil)
 
 	before := slices.Clone(c1.Skills)
 
 	r2 := dice.New(rand.NewPCG(9, 9))
-	_, _ = buildCitizenCharacter(r2, upp, "hw", shared)
+	_, _ = buildCitizenCharacter(r2, upp, "hw", shared, nil)
 
 	if !slices.Equal(c1.Skills, before) {
 		t.Errorf(
@@ -146,7 +146,7 @@ func TestBuildCitizenCharacterFixedZeroValueFields(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil, nil)
 
 	if c.Species != "Human" {
 		t.Errorf("Species = %q, want %q", c.Species, "Human")
@@ -182,7 +182,7 @@ func TestBuildCitizenCharacterAppliesMusteringOutCash(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil, nil)
 
 	wantCash := 0
 
@@ -211,7 +211,7 @@ func TestBuildCitizenCharacterSetsAgeAndLifeStage(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil, nil)
 
 	terms := len(c.Careers[0].Terms)
 
@@ -234,7 +234,7 @@ func TestBuildCitizenCharacterSetsBirthdate(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 8}}
 	r := dice.New(rand.NewPCG(5, 5))
 
-	c, _ := buildCitizenCharacter(r, upp, "hw", nil)
+	c, _ := buildCitizenCharacter(r, upp, "hw", nil, nil)
 
 	assertBirthdateFormat(t, c.Birthdate, c.Age)
 }
@@ -295,5 +295,49 @@ func TestGenerateCitizenCharacterManySeedsInvariants(t *testing.T) {
 		if c.WoundBadges != 0 {
 			t.Fatalf("seed %d: WoundBadges = %d, want 0", seed, c.WoundBadges)
 		}
+	}
+}
+
+// TestGenerateCitizenCharacterElectsLaterEducation is #164's own
+// end-to-end regression test, mirroring the pilot's
+// TestGenerateRogueCharacterElectsLaterEducation (rogue_character_generate_test.go):
+// seed 1 confirmed by direct inspection to elect Later Education three
+// times (Service Academy twice, then University). One of the three
+// attempts is admitted with zero skills awarded — a legitimate outcome,
+// not a fixture bug — so this asserts skills were awarded across the
+// Later Education terms as a whole rather than requiring every one to
+// individually award something.
+func TestGenerateCitizenCharacterElectsLaterEducation(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(1, 1))
+
+	c, ok := GenerateCitizenCharacter(r)
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	var laterEdTerms, skillsAwarded int
+
+	for _, term := range c.Careers[0].Terms {
+		if !term.LaterEducation {
+			continue
+		}
+
+		laterEdTerms++
+
+		if term.LaterEducationSchool == "" {
+			t.Error("a Later Education term has an empty LaterEducationSchool")
+		}
+
+		skillsAwarded += len(term.SkillsAwarded)
+	}
+
+	if laterEdTerms != 3 {
+		t.Fatalf("laterEdTerms = %d, want 3", laterEdTerms)
+	}
+
+	if skillsAwarded == 0 {
+		t.Error("no Later Education term awarded any skills")
 	}
 }

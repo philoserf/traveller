@@ -25,7 +25,7 @@ import (
 func GenerateCitizenCharacter(r *dice.Roller) (Character, bool) {
 	upp, homeworld, homeworldSkills, education := generateStart(r)
 
-	c, ok := buildCitizenCharacter(r, upp, homeworld, homeworldSkills)
+	c, ok := buildCitizenCharacter(r, upp, homeworld, homeworldSkills, &education)
 	c = applyEducation(c, education)
 
 	return c, ok
@@ -39,11 +39,11 @@ func GenerateCitizenCharacter(r *dice.Roller) (Character, bool) {
 // count. Character.UPP comes from finalizeAging after career Personal
 // awards, Mustering Out characteristic boosts, and Aging reductions.
 func buildCitizenCharacter(
-	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel,
+	r *dice.Roller, upp UPP, homeworld string, homeworldSkills []SkillLevel, education *Education,
 ) (Character, bool) {
 	var aging agingSimulation
 
-	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging)
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxCareerTerms, &aging, education)
 	if aging.alive() {
 		career.MusteringOut = ResolveCitizenMusterOut(r, career)
 	}

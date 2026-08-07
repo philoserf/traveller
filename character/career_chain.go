@@ -391,7 +391,9 @@ func resolveScholarSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCon
 func resolveEntertainerSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	// &ctx.Education, not a chain-wide pointer: see resolveRogueSegment's
+	// own comment above for why a segment-scoped copy is correct here.
+	career, fame, careerUPP := resolveEntertainerCareerAndUPPWithBudget(r, upp, maxTerms, aging, &ctx.Education)
 	if aging.alive() {
 		career.MusteringOut = ResolveEntertainerMusterOut(r, career, fame)
 	}
@@ -466,7 +468,9 @@ func resolveMerchantSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentCo
 func resolveCitizenSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	// &ctx.Education, not a chain-wide pointer: see resolveRogueSegment's
+	// own comment above for why a segment-scoped copy is correct here.
+	career, careerUPP := resolveCitizenCareerAndUPPWithBudget(r, upp, maxTerms, aging, &ctx.Education)
 	if aging.alive() {
 		career.MusteringOut = ResolveCitizenMusterOut(r, career)
 	}
@@ -558,7 +562,9 @@ func resolveCraftsmanSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentC
 func resolveNobleSegment(r *dice.Roller, upp UPP, maxTerms int, ctx segmentContext) careerSegment {
 	aging := ctx.aging()
 
-	career, careerUPP, landGrants := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms, aging)
+	// &ctx.Education, not a chain-wide pointer: see resolveRogueSegment's
+	// own comment above for why a segment-scoped copy is correct here.
+	career, careerUPP, landGrants := resolveNobleCareerAndUPPWithBudget(r, upp, maxTerms, aging, &ctx.Education)
 	if aging.alive() {
 		career.MusteringOut = ResolveNobleMusterOut(r, career)
 	}

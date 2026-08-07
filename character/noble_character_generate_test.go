@@ -20,7 +20,7 @@ func TestBuildNobleCharacterNeverQualified(t *testing.T) {
 	upp := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 8, 10}} // Soc 10 < B
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildNobleCharacter(r, upp, "hw", nil)
+	c, ok := buildNobleCharacter(r, upp, "hw", nil, nil)
 
 	if ok {
 		t.Error("ok = true, want false (Soc below B)")
@@ -57,7 +57,7 @@ func TestBuildNobleCharacterQualified(t *testing.T) {
 	homeworldSkills := []SkillLevel{{Name: "Vacc Suit", Level: 1, Kind: Skill}}
 	r := dice.New(rand.NewPCG(1, 1))
 
-	c, ok := buildNobleCharacter(r, upp, "hw", homeworldSkills)
+	c, ok := buildNobleCharacter(r, upp, "hw", homeworldSkills, nil)
 
 	if !ok {
 		t.Fatal("ok = false, want true (Soc qualifies and the fixture guarantees at least one term)")
@@ -96,5 +96,48 @@ func TestBuildNobleCharacterQualified(t *testing.T) {
 	// subtract, so >= nobleBaseFame alone still holds.
 	if want := nobleBaseFame(upp.Characteristics[C6]); c.Fame < want {
 		t.Errorf("Fame = %d, want >= %d (nobleBaseFame)", c.Fame, want)
+	}
+}
+
+// TestGenerateNobleCharacterElectsLaterEducation is #164's own
+// end-to-end regression test, mirroring the pilot's
+// TestGenerateRogueCharacterElectsLaterEducation (rogue_character_generate_test.go).
+// Seed 33 confirmed by direct inspection to produce a one-term career
+// that is itself a Later Education term (University) — the sharpest
+// version of the Rank regression this wiring had to avoid: Return &
+// Intrigue's Elevation logic never runs for this character at all, so
+// Character.Rank has to come from the ladder position BeginNoble already
+// established (Book 1 p.65: "Nobles begin with rank equal to their
+// Social Standing"), not from anything term.Elevated touched. Before the
+// fix (term.Rank scoped inside the skipped branch), this seed would have
+// reported an empty Rank despite legitimately holding a title.
+func TestGenerateNobleCharacterElectsLaterEducation(t *testing.T) {
+	t.Parallel()
+
+	r := dice.New(rand.NewPCG(33, 33))
+
+	c, ok := GenerateNobleCharacter(r)
+	if !ok {
+		t.Fatal("ok = false, want true")
+	}
+
+	if len(c.Careers[0].Terms) != 1 || !c.Careers[0].Terms[0].LaterEducation {
+		t.Fatalf("Terms = %+v, want exactly one Later Education term (fixture assumption broke)", c.Careers[0].Terms)
+	}
+
+	term := c.Careers[0].Terms[0]
+
+	if term.LaterEducationSchool == "" {
+		t.Error("LaterEducationSchool is empty")
+	}
+
+	if len(term.SkillsAwarded) == 0 {
+		t.Error("the Later Education term awarded no skills")
+	}
+
+	if c.Rank == "" {
+		t.Error(
+			"Rank is empty, want the ladder title BeginNoble established (a career that never Elevated still holds one)",
+		)
 	}
 }
