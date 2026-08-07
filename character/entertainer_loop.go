@@ -78,10 +78,19 @@ func resolveEntertainerCareerAndUPPWithBudget(
 			term, upp, elected = hook(r, upp)
 		}
 
-		if !elected {
+		if elected {
 			// Fame/Talent are untouched by a Later Education term — p.59
 			// substitutes "that process for the entire term," and neither
-			// the Risk/Reward roll nor its own Flux happens.
+			// the Risk/Reward roll nor its own Flux happens. Recorded on
+			// the term itself, not just carried in the fame/talent
+			// locals: ResolveEntertainerCareer's own doc comment describes
+			// the returned Fame as "the last term's own FameAfterTerm",
+			// which would be false for a term left at its zero value —
+			// the same class of gap term.Rank had for Noble before this
+			// same PR fixed it there.
+			term.FameAfterTerm = fame
+			term.TalentAfterTerm = talent
+		} else {
 			term, fame, talent = ResolveEntertainerTerm(r, fame, talent)
 		}
 
