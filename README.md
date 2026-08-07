@@ -16,13 +16,13 @@ takes `-seed`
 always echoes back the seed used, so a result can be reproduced later)
 and prints Markdown to stdout.
 
-| Command        | Generates                         | Other flags                                         |
-| -------------- | --------------------------------- | --------------------------------------------------- |
-| `cmd/worldgen` | a world (UWP, trade codes, bases) | —                                                   |
-| `cmd/sysgen`   | a world plus its full star system | —                                                   |
-| `cmd/secgen`   | a 32×40 sector                    | `-name`, `-density`, `-subsector`, `-format`        |
-| `cmd/chargen`  | a character                       | `-career` (single or comma-separated chain), `-age` |
-| `cmd/shipgen`  | not yet implemented (#6)          | —                                                   |
+| Run                     | Generates                         | Other flags                                         |
+| ----------------------- | --------------------------------- | --------------------------------------------------- |
+| `go run ./cmd/worldgen` | a world (UWP, trade codes, bases) | —                                                   |
+| `go run ./cmd/sysgen`   | a world plus its full star system | —                                                   |
+| `go run ./cmd/secgen`   | a 32×40 sector                    | `-name`, `-density`, `-subsector`, `-format`        |
+| `go run ./cmd/chargen`  | a character                       | `-career` (single or comma-separated chain), `-age` |
+| `go run ./cmd/shipgen`  | not yet implemented (#6)          | —                                                   |
 
 `go doc ./world`, `./system`, `./sector`, `./character` document the
 generation logic itself.

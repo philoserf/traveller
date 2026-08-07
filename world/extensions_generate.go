@@ -9,8 +9,8 @@ import (
 
 // importanceBonusTradeCodes are the trade codes that each add +1 to Ix.
 // Package-level rather than a literal inside computeImportance so it isn't
-// reallocated on every call — computeImportance runs once per Generate(),
-// which runs once per /worlds/random request.
+// reallocated on every call — computeImportance runs once per Generate()
+// call, once per world generated.
 var importanceBonusTradeCodes = []TradeCode{Agricultural, PreAgricultural, HighPopulation, Industrial, Rich}
 
 // computeImportance computes a world's Importance (Ix): a sum of modifiers

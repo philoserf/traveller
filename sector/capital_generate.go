@@ -79,9 +79,9 @@ func bestCandidate(candidates []capitalCandidate) (*world.World, string) {
 //
 // Not reproducible from HexSeed alone, unlike everything else about a
 // generated hex: capital status depends on comparing Importance across
-// the WHOLE sector, information a standalone single-hex reroll (e.g. via
-// GET /systems/random?seed=<hex seed>) doesn't have access to. This is
-// expected, not a reproducibility bug — see
+// the WHOLE sector, information a standalone single-hex reroll (e.g.
+// system.GenerateSystem called directly with just that hex's own seed)
+// doesn't have access to. This is expected, not a reproducibility bug — see
 // TestGenerateSectorHexIsIndependentlyReproducible, which only compares
 // UWP for exactly this reason.
 func assignCapitals(sec Sector) {
