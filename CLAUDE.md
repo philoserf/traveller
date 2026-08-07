@@ -81,9 +81,9 @@ its file-naming convention.
 
 ### Generation is seeded and reproducible
 
-Everything generative takes a `*dice.Roller` built from an explicit seed. Every `cmd/*`
-generator takes `-seed` and echoes the resolved seed back in its output so a result can
-be reproduced.
+Everything generative takes a `*dice.Roller` built from an explicit seed. Every
+implemented `cmd/*` generator (all but `shipgen`, a stub — #6) takes `-seed` and echoes
+the resolved seed back in its output so a result can be reproduced.
 
 **The reproducibility contract is the dice stream, not just the output.** This has
 concrete consequences:

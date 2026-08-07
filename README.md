@@ -10,8 +10,8 @@ built on a shared `ehex` (extended-hex) primitive.
 ## Commands
 
 Each command's own `main.go` doc comment is the authoritative
-description of what it produces; this is a quick index. Every generator
-takes `-seed`
+description of what it produces; this is a quick index. Every
+implemented generator (all but `shipgen`, see below) takes `-seed`
 (omit it to derive one from the current time; the rendered output
 always echoes back the seed used, so a result can be reproduced later)
 and prints Markdown to stdout.
