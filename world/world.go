@@ -47,9 +47,9 @@ func stringsOf[T ~string](vals []T) []string {
 // the shared display convention package render's prose output
 // (TradeCodeStrings and BaseStrings alike) uses so an empty field reads
 // as an explicit "None" rather than silently going blank. The Second
-// Survey Format table renderers (render.SectorCompact, cmd/client's
-// printSectorHex) use BasesOrDash for Bases instead — see its own doc
-// comment for why a table needs a different placeholder than prose does.
+// Survey Format table renderer (render.SectorCompact) uses BasesOrDash
+// for Bases instead — see its own doc comment for why a table needs a
+// different placeholder than prose does.
 func JoinOrNone(items []string) string {
 	if len(items) == 0 {
 		return "None"
