@@ -157,19 +157,21 @@ func TestGenerateRogueCharacterProducesAHumanCharacter(t *testing.T) {
 }
 
 // TestGenerateRogueCharacterElectsLaterEducation is the pilot's own
-// end-to-end regression test (#113 item 5, stage 3): seed 15 confirmed
-// by direct inspection to elect Later Education exactly once, at
-// University, graduating with Honors. Pins that the mechanism actually
-// fires through the real standalone generator — not just the shared
-// resolveCareerLoop hook in isolation — and that the final
-// Character.Education reflects the attendance rather than the stale
-// pre-career snapshot (the bug TestCareerChainSingleEntryMatchesLegacyGenerator's
-// own rogue case caught: careerSegment used to drop a segment's Later
-// Education mutation entirely).
+// end-to-end regression test (#113 item 5, stage 3): seed 3 confirmed by
+// direct inspection to elect Later Education exactly once, at
+// University. Pins that the mechanism actually fires through the real
+// standalone generator — not just the shared resolveCareerLoop hook in
+// isolation — and that the final Character.Education reflects the
+// attendance rather than the stale pre-career snapshot (the bug
+// TestCareerChainSingleEntryMatchesLegacyGenerator's own rogue case
+// caught: careerSegment used to drop a segment's Later Education
+// mutation entirely). Re-seeded from the original seed 15 when #165
+// (step C's own multi-institution escalation) shifted what that seed's
+// pre-career Education looked like.
 func TestGenerateRogueCharacterElectsLaterEducation(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(15, 15))
+	r := dice.New(rand.NewPCG(3, 3))
 
 	c, _ := GenerateRogueCharacter(r)
 

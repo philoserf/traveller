@@ -55,17 +55,30 @@ func TestInstitutionChoiceFollowsThePrerequisites(t *testing.T) {
 // TestEd5RaisesEduToFive is p.60's own "A character with Edu less than 5
 // can attempt the ED5 program... Check Int: if successful, Edu is raised
 // to 5" — the one institution that exists to lift a character over the
-// Trade School floor.
+// Trade School floor. Calls attendInstitution directly rather than
+// resolveEducation: since #165, Edu 5 immediately qualifies for College
+// too, and resolveEducation's own escalation loop would keep going —
+// this test wants ED5 in isolation, which
+// TestResolveEducationCascadesThroughMultipleInstitutions covers instead.
 func TestEd5RaisesEduToFive(t *testing.T) {
 	t.Parallel()
 
+	ed5, ok := chooseInstitution(eduUPP(20, 2, 7))
+	if !ok || ed5.Name != "ED5" {
+		t.Fatalf("chooseInstitution(Edu 2) = %+v, %v, want ED5, true", ed5, ok)
+	}
+
 	// Int 20 cannot fail a 2D check; Int 1 cannot pass one.
-	edu, upp := resolveEducation(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 7))
+	var edu Education
+
+	upp, _, _ := attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 7), ed5, &edu)
 	if !edu.Graduated || upp.Characteristics[C5] != 5 {
 		t.Errorf("Edu = %v graduated=%v, want Edu 5 after ED5", upp.Characteristics[C5], edu.Graduated)
 	}
 
-	edu, upp = resolveEducation(dice.New(rand.NewPCG(1, 1)), eduUPP(1, 2, 1))
+	edu = Education{}
+	upp, _, _ = attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(1, 2, 1), ed5, &edu)
+
 	if edu.Graduated || upp.Characteristics[C5] != 2 {
 		t.Errorf("Edu = %v graduated=%v, want an unchanged Edu 2 after failing ED5",
 			upp.Characteristics[C5], edu.Graduated)
@@ -77,11 +90,20 @@ func TestEd5RaisesEduToFive(t *testing.T) {
 // first Pass, before the switch that's supposed to gate it on
 // MajorBonus/GrantsMajorMinor — so ED5 (which has neither, p.60) drew a
 // College-column Major subject and rolled a die for it despite having no
-// Major/Minor mechanic of its own anywhere in the book.
+// Major/Minor mechanic of its own anywhere in the book. Calls
+// attendInstitution directly for the same reason
+// TestEd5RaisesEduToFive does.
 func TestEd5AwardsNoMajor(t *testing.T) {
 	t.Parallel()
 
-	edu, upp := resolveEducation(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 7))
+	ed5, ok := chooseInstitution(eduUPP(20, 2, 7))
+	if !ok || ed5.Name != "ED5" {
+		t.Fatalf("chooseInstitution(Edu 2) = %+v, %v, want ED5, true", ed5, ok)
+	}
+
+	var edu Education
+
+	upp, _, _ := attendInstitution(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 7), ed5, &edu)
 	if edu.School != "ED5" || !edu.Graduated {
 		t.Fatalf("School = %q graduated=%v, want ED5 graduated (Int 20 cannot fail a 2D check)",
 			edu.School, edu.Graduated)
@@ -93,6 +115,52 @@ func TestEd5AwardsNoMajor(t *testing.T) {
 
 	if edu.Major != "" {
 		t.Errorf("Major = %q, want \"\" (ED5 has no Major/Minor mechanic, p.60)", edu.Major)
+	}
+}
+
+// TestResolveEducationCascadesThroughMultipleInstitutions is #165's own
+// motivating case, p.59: "A character may attend one or more schools."
+// Seed 1 against an unfailable-but-for-Edu character (Int/Soc 20, Edu 2)
+// was confirmed by direct inspection to cascade ED5 (Edu 2->5) -> College
+// (graduates, Edu->8) -> University (graduates, Edu->9, then Graduation's
+// own "already at this level" bump to A) — three institutions in one
+// step C, none of them individually reachable from the starting Edu.
+func TestResolveEducationCascadesThroughMultipleInstitutions(t *testing.T) {
+	t.Parallel()
+
+	edu, upp := resolveEducation(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 20))
+
+	if edu.School != "University" || !edu.Graduated {
+		t.Fatalf("School = %q Graduated = %v, want University graduated", edu.School, edu.Graduated)
+	}
+
+	if upp.Characteristics[C5] < 9 {
+		t.Errorf("Edu = %v, want at least 9 after cascading through ED5/College/University", upp.Characteristics[C5])
+	}
+}
+
+// TestResolveEducationStopsOnRejectedEscalation is the "no Retry" half
+// of #165's design: shouldAttemptLaterEducation's own Retry branch would
+// keep re-offering a rejected escalation every term, which is fine
+// mid-career (bounded by resolveCareerLoop's own maxTerms) but would
+// spin forever in step C's own unbounded loop — see resolveEducation's
+// doc comment. Seed 137 against eduUPP(6, 6, 2) was confirmed by direct
+// inspection to graduate Service Academy (Edu 6->8) but get rejected on
+// the resulting University escalation attempt; this pins that the
+// character's final Education still reports Service Academy rather than
+// either retrying forever or silently reporting University anyway.
+func TestResolveEducationStopsOnRejectedEscalation(t *testing.T) {
+	t.Parallel()
+
+	edu, upp := resolveEducation(dice.New(rand.NewPCG(137, 137)), eduUPP(6, 6, 2))
+
+	if edu.School != "Service Academy" || !edu.Graduated {
+		t.Fatalf("School = %q Graduated = %v, want Service Academy graduated (fixture assumption broke)",
+			edu.School, edu.Graduated)
+	}
+
+	if upp.Characteristics[C5] != 8 {
+		t.Errorf("Edu = %v, want 8 (Service Academy's own GraduationEdu, no further increase)", upp.Characteristics[C5])
 	}
 }
 
@@ -252,12 +320,23 @@ func TestEducationReachesEveryGeneratedCharacter(t *testing.T) {
 // Naval Academy graduate may choose a Marine Commission instead)." Edu 6
 // (above College's Edu 5+ floor, below University's Edu 7+) isolates
 // Service Academy per the preference-order ruling recorded in
-// educationInstitutions's own doc comment.
+// educationInstitutions's own doc comment. Calls attendInstitution
+// directly rather than resolveEducation: since #165, graduating Service
+// Academy raises Edu to 8, which qualifies for University too, and
+// resolveEducation's own escalation loop would keep going — this test
+// wants Service Academy's own Commission grant in isolation.
 func TestServiceAcademyGrantsCommissionOnGraduation(t *testing.T) {
 	t.Parallel()
 
+	serviceAcademy, ok := chooseInstitution(eduUPP(20, 6, 20))
+	if !ok || serviceAcademy.Name != "Service Academy" {
+		t.Fatalf("chooseInstitution(Edu 6) = %+v, %v, want Service Academy, true", serviceAcademy, ok)
+	}
+
+	var edu Education
+
 	// Int and Edu of 20 pass every check, so all four years are Passes.
-	edu, upp := resolveEducation(dice.New(rand.NewPCG(6, 6)), eduUPP(20, 6, 20))
+	upp, _, _ := attendInstitution(dice.New(rand.NewPCG(6, 6)), eduUPP(20, 6, 20), serviceAcademy, &edu)
 
 	if edu.School != "Service Academy" {
 		t.Fatalf("School = %q, want Service Academy", edu.School)
@@ -309,11 +388,22 @@ func TestServiceAcademyNoCommissionWithoutGraduation(t *testing.T) {
 // isolates College (below Service Academy's Edu 6+ floor). This codebase
 // always volunteers for NOTC over OTC (resolveOfficerTrainingCorps's own
 // doc comment), so an unfailable fixture earns NOTC's own Navy-or-Marine
-// Commission and "Ship Skill-1" grant.
+// Commission and "Ship Skill-1" grant. Calls attendInstitution directly
+// rather than resolveEducation: since #165, graduating College raises
+// Edu to 8, which qualifies for University too, and resolveEducation's
+// own escalation loop would keep going — this test wants College's own
+// OTC/NOTC grant in isolation.
 func TestOfficerTrainingCorpsGrantsCommissionsAtCollege(t *testing.T) {
 	t.Parallel()
 
-	edu, _ := resolveEducation(dice.New(rand.NewPCG(9, 9)), eduUPP(20, 5, 20))
+	college, ok := chooseInstitution(eduUPP(20, 5, 20))
+	if !ok || college.Name != "College" {
+		t.Fatalf("chooseInstitution(Edu 5) = %+v, %v, want College, true", college, ok)
+	}
+
+	var edu Education
+
+	attendInstitution(dice.New(rand.NewPCG(9, 9)), eduUPP(20, 5, 20), college, &edu)
 
 	if edu.School != "College" {
 		t.Fatalf("School = %q, want College", edu.School)

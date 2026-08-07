@@ -346,6 +346,21 @@ func (e Education) Attended() bool {
 // bar is ED5's "Edu 4 -", and every character sits either under that or
 // over Trade School's "Edu 5+", so in practice one institution always
 // applies. The nil return is kept anyway rather than assumed away.
+//
+// Loops on institutionEscalation after the first attendance — p.59: "A
+// character may attend one or more schools" — so a character whose
+// graduation raises Edu enough to qualify for something better (the
+// book's own example: ED5 raising Edu to 5, then continuing straight
+// into College) keeps going instead of stopping at the first school.
+// institutionEscalation alone, not shouldAttemptLaterEducation's own
+// Retry branch — see that function's own doc comment for why Retry
+// doesn't belong here. Provably terminates without an explicit cap:
+// educationInstitutions is a fixed list, and each escalation must move
+// strictly earlier in it, so this runs at most len(educationInstitutions)
+// times. A rejected attempt never escalates either — chooseInstitution
+// depends only on upp, which a rejection never changes, so it returns
+// the same institution again and institutionEscalation's own current ==
+// next comparison blocks.
 func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	school, ok := chooseInstitution(upp)
 	if !ok {
@@ -355,6 +370,29 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	var edu Education
 
 	upp, _, _ = attendInstitution(r, upp, school, &edu)
+
+	// tried, not edu.School: a rejected attempt restores edu.School to
+	// whatever it was before (attendInstitution's own documented
+	// behavior — correct there, since a rejection didn't actually
+	// happen), so re-deriving the index from edu.School after a
+	// rejection would offer the identical rejected escalation again
+	// forever, since neither it nor upp changed. tried is this loop's
+	// own record of the best (lowest) index attempted so far, updated
+	// whether or not the attempt was admitted, so it strictly decreases
+	// every iteration and the loop still terminates in at most
+	// len(educationInstitutions) steps even when every escalation past
+	// the first is rejected.
+	tried := educationInstitutionIndex(school.Name)
+
+	for {
+		next, ok := institutionEscalation(upp, tried)
+		if !ok {
+			break
+		}
+
+		upp, _, _ = attendInstitution(r, upp, next, &edu)
+		tried = educationInstitutionIndex(next.Name)
+	}
 
 	return edu, upp
 }
@@ -851,11 +889,20 @@ func educationInstitutionIndex(school string) int {
 // Two cases:
 //
 //   - Retry: the character's last attendance didn't graduate, and
-//     chooseInstitution(upp) still returns something.
-//   - Escalate: chooseInstitution(upp) now returns an institution
-//     strictly better than edu.School — earlier in
-//     educationInstitutions's own preference order, reachable because
-//     Edu grew via a Personal award since the character last attended.
+//     chooseInstitution(upp) still returns something. Only offered here
+//     — mid-career, where the outer resolveCareerLoop's own maxTerms
+//     bounds how many times a term can be spent this way, including
+//     re-offering an escalation the character was rejected from at a
+//     prior term (a reasonable reading of "may apply... at the
+//     beginning of any term", not a bug: the character keeps trying).
+//     Step C (resolveEducation) has no such outer bound, which is why
+//     its own multi-institution loop (#165) uses institutionEscalation
+//     with its own locally-tracked, monotonically-decreasing index
+//     instead of re-deriving one from edu.School every iteration — see
+//     resolveEducation's own doc comment for why re-deriving it would
+//     retry a rejected escalation forever.
+//   - Escalate: institutionEscalation reports true — see its own doc
+//     comment.
 //
 // Pure: draws no dice, so a character this declines costs nothing to
 // the dice stream. Graduate-tier programs (Masters/Professors/Medical/
@@ -864,26 +911,49 @@ func educationInstitutionIndex(school string) int {
 // Later Education is #113's own open question, not decided by this
 // function; see PLAN.md.
 //
-// Unwired: nothing calls this yet. It exists, and is tested, ahead of
-// the beforeTerm hook that will use it, so the hook's own wiring PR is
-// pure plumbing rather than also introducing new decision logic.
+// Wired into laterEducationHook (career_loop.go, #164's own beforeTerm
+// hook) and, via institutionEscalation alone, into resolveEducation's
+// own step-C loop (#165).
 func shouldAttemptLaterEducation(upp UPP, edu Education) (educationInstitution, bool) {
+	if !edu.Graduated {
+		return chooseInstitution(upp)
+	}
+
+	return institutionEscalation(upp, educationInstitutionIndex(edu.School))
+}
+
+// institutionEscalation is shouldAttemptLaterEducation's own Escalate
+// case, split out because resolveEducation's own step-C loop (#165)
+// wants Escalate without Retry: chooseInstitution(upp) now returns an
+// institution strictly better than currentIndex — earlier in
+// educationInstitutions's own preference order, reachable because Edu
+// grew via a graduation or Personal award since currentIndex was set.
+// Pure: draws no dice.
+//
+// Takes currentIndex rather than deriving it from an Education itself,
+// because the two callers need different sources for it.
+// shouldAttemptLaterEducation passes educationInstitutionIndex(edu.School)
+// — correct there, since re-offering the same rejected escalation at a
+// later term is intended (see that function's own doc comment).
+// resolveEducation instead passes its own locally-tracked floor, which
+// only ever moves down regardless of whether an attempt was admitted —
+// deriving it from edu.School there would break the very termination
+// guarantee this function exists to provide, since a rejected
+// escalation restores edu.School to what it was before the rejected
+// attempt (attendInstitution's own documented behavior), offering the
+// identical rejected escalation again on the next loop iteration.
+func institutionEscalation(upp UPP, currentIndex int) (educationInstitution, bool) {
+	if currentIndex < 0 {
+		return educationInstitution{}, false
+	}
+
 	school, ok := chooseInstitution(upp)
 	if !ok {
 		return educationInstitution{}, false
 	}
 
-	if !edu.Graduated {
-		return school, true
-	}
-
-	current := educationInstitutionIndex(edu.School)
-	if current < 0 {
-		return educationInstitution{}, false
-	}
-
 	next := educationInstitutionIndex(school.Name)
-	if next < 0 || next >= current {
+	if next < 0 || next >= currentIndex {
 		return educationInstitution{}, false
 	}
 
