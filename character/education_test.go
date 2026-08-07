@@ -15,6 +15,22 @@ func eduUPP(intChar, edu, soc ehex.Value) UPP {
 	return UPP{Characteristics: [6]ehex.Value{0, 0, 0, intChar, edu, soc}}
 }
 
+// chooseNamedInstitution looks up the institution chooseInstitution
+// picks for upp and fails the test if it isn't want — the shared
+// preamble for every test that isolates one institution via
+// attendInstitution directly rather than resolveEducation's own
+// cascade (#165).
+func chooseNamedInstitution(t *testing.T, upp UPP, want string) educationInstitution {
+	t.Helper()
+
+	school, ok := chooseInstitution(upp)
+	if !ok || school.Name != want {
+		t.Fatalf("chooseInstitution(%+v) = %+v, %v, want %s, true", upp, school, ok, want)
+	}
+
+	return school
+}
+
 // TestInstitutionChoiceFollowsThePrerequisites is p.60's Pre-Requisites
 // column — "Edu 5+" for College, "Edu 6+" for Service Academy, "Edu 7+"
 // for University, "Edu 4 -" for ED5 — and this codebase's resolution of
@@ -63,10 +79,7 @@ func TestInstitutionChoiceFollowsThePrerequisites(t *testing.T) {
 func TestEd5RaisesEduToFive(t *testing.T) {
 	t.Parallel()
 
-	ed5, ok := chooseInstitution(eduUPP(20, 2, 7))
-	if !ok || ed5.Name != "ED5" {
-		t.Fatalf("chooseInstitution(Edu 2) = %+v, %v, want ED5, true", ed5, ok)
-	}
+	ed5 := chooseNamedInstitution(t, eduUPP(20, 2, 7), "ED5")
 
 	// Int 20 cannot fail a 2D check; Int 1 cannot pass one.
 	var edu Education
@@ -96,10 +109,7 @@ func TestEd5RaisesEduToFive(t *testing.T) {
 func TestEd5AwardsNoMajor(t *testing.T) {
 	t.Parallel()
 
-	ed5, ok := chooseInstitution(eduUPP(20, 2, 7))
-	if !ok || ed5.Name != "ED5" {
-		t.Fatalf("chooseInstitution(Edu 2) = %+v, %v, want ED5, true", ed5, ok)
-	}
+	ed5 := chooseNamedInstitution(t, eduUPP(20, 2, 7), "ED5")
 
 	var edu Education
 
@@ -161,6 +171,78 @@ func TestResolveEducationStopsOnRejectedEscalation(t *testing.T) {
 
 	if upp.Characteristics[C5] != 8 {
 		t.Errorf("Edu = %v, want 8 (Service Academy's own GraduationEdu, no further increase)", upp.Characteristics[C5])
+	}
+}
+
+// TestResolveEducationRestoresTrueGraduationAfterAFailedLaterAttempt is
+// the regression test for a bug #165's own cascade loop exposed:
+// attendInstitution's restore-on-non-graduation branch only ever ran
+// against a zero-value prev before this issue (resolveEducation called
+// it exactly once), so an admitted-but-failed *later* attempt's own
+// restore was never exercised against a prev holding a real prior
+// graduation. Seeds 102 and 106 against eduUPP(2, 2, 2) were confirmed
+// by direct inspection to graduate ED5 (Edu 2->5), escalate into
+// College, get admitted, and then fail every Pass check there with no
+// Waiver rescue. Before the fix, the restore only touched
+// Graduated/Degree/etc (restoring them to ED5's true, real values) but
+// left edu.School at "College" — the failed attempt's own name — a
+// self-contradictory "College, Graduated" with an empty Degree and zero
+// Passes. The fix restores School/Passes together with the graduation
+// fields whenever this attempt doesn't graduate and a real prior
+// attendance exists to revert to.
+func TestResolveEducationRestoresTrueGraduationAfterAFailedLaterAttempt(t *testing.T) {
+	t.Parallel()
+
+	for _, seed := range []uint64{102, 106} {
+		edu, upp := resolveEducation(dice.New(rand.NewPCG(seed, seed)), eduUPP(2, 2, 2))
+
+		if edu.School != "ED5" {
+			t.Fatalf("seed=%d: School = %q, want ED5 (fixture assumption broke — a failed College attempt "+
+				"must not leave School naming it)", seed, edu.School)
+		}
+
+		if !edu.Graduated {
+			t.Errorf("seed=%d: Graduated = false, want true (ED5's own real graduation, restored)", seed)
+		}
+
+		if upp.Characteristics[C5] != 5 {
+			t.Errorf("seed=%d: Edu = %v, want 5 (ED5's own GraduationEdu — the failed College "+
+				"attempt must not have applied its own)", seed, upp.Characteristics[C5])
+		}
+	}
+}
+
+// TestResolveEducationMergesSkillsAcrossCascadedInstitutions is the
+// regression test for the other bug the same cascade loop exposed:
+// attendInstitution only ever aggregated a single attendance's own
+// delta before appending it to edu.Skills, never re-merging against
+// what was already there — harmless while resolveEducation called it at
+// most once, but a character who continues the same Major across two
+// cascaded institutions (awardEducationSkills only ever picks a Major
+// once) ended up with two separate same-named entries instead of one
+// summed one, violating aggregateSkills' own contract. Seed 1 against
+// eduUPP(20, 2, 20) — the same seed
+// TestResolveEducationCascadesThroughMultipleInstitutions pins — was
+// confirmed by direct inspection to grant the same Major/OTC-NOTC skills
+// at both College and University.
+func TestResolveEducationMergesSkillsAcrossCascadedInstitutions(t *testing.T) {
+	t.Parallel()
+
+	edu, _ := resolveEducation(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 2, 20))
+
+	seen := map[string]bool{}
+
+	for _, s := range edu.Skills {
+		if seen[s.Name] {
+			t.Fatalf("Skills = %+v, want no repeated skill name (each cascaded institution's own grant "+
+				"of the same skill must sum into one entry, not sit beside a duplicate)", edu.Skills)
+		}
+
+		seen[s.Name] = true
+	}
+
+	if len(edu.Skills) == 0 {
+		t.Fatal("Skills is empty, want at least one grant from an unfailable cascade")
 	}
 }
 
@@ -328,10 +410,7 @@ func TestEducationReachesEveryGeneratedCharacter(t *testing.T) {
 func TestServiceAcademyGrantsCommissionOnGraduation(t *testing.T) {
 	t.Parallel()
 
-	serviceAcademy, ok := chooseInstitution(eduUPP(20, 6, 20))
-	if !ok || serviceAcademy.Name != "Service Academy" {
-		t.Fatalf("chooseInstitution(Edu 6) = %+v, %v, want Service Academy, true", serviceAcademy, ok)
-	}
+	serviceAcademy := chooseNamedInstitution(t, eduUPP(20, 6, 20), "Service Academy")
 
 	var edu Education
 
@@ -396,10 +475,7 @@ func TestServiceAcademyNoCommissionWithoutGraduation(t *testing.T) {
 func TestOfficerTrainingCorpsGrantsCommissionsAtCollege(t *testing.T) {
 	t.Parallel()
 
-	college, ok := chooseInstitution(eduUPP(20, 5, 20))
-	if !ok || college.Name != "College" {
-		t.Fatalf("chooseInstitution(Edu 5) = %+v, %v, want College, true", college, ok)
-	}
+	college := chooseNamedInstitution(t, eduUPP(20, 5, 20), "College")
 
 	var edu Education
 
@@ -756,7 +832,12 @@ func TestAttendInstitutionDoesNotRegressAnExistingDegree(t *testing.T) {
 // regression test for attendInstitution's own delta return value: a
 // second attendance's own returned skills must not repeat the first
 // attendance's, since edu.Skills already carries those and a Later
-// Education Term's SkillsAwarded must not double-grant them.
+// Education Term's SkillsAwarded must not double-grant them. edu.Skills
+// itself is asserted separately, against the *merged* total (#165: a
+// second attendance's own Major continuation — awardEducationSkills
+// only ever picks a Major once, so College and University here grant
+// the same subject — must sum into one entry there, not sit beside a
+// second one of the same name).
 func TestAttendInstitutionReturnsOnlyThisAttendancesSkills(t *testing.T) {
 	t.Parallel()
 
@@ -795,9 +876,9 @@ func TestAttendInstitutionReturnsOnlyThisAttendancesSkills(t *testing.T) {
 		t.Fatal("second attendance's own delta is empty, want at least one skill (unfailable fixture)")
 	}
 
-	if len(edu.Skills) != len(firstDelta)+len(secondDelta) {
-		t.Errorf("len(edu.Skills) = %d, want %d (first delta) + %d (second delta) = %d, not double-counted",
-			len(edu.Skills), len(firstDelta), len(secondDelta), len(firstDelta)+len(secondDelta))
+	want := aggregateSkills(append(slices.Clone(firstDelta), secondDelta...))
+	if !slices.Equal(edu.Skills, want) {
+		t.Errorf("edu.Skills = %+v, want the two deltas merged by name/kind: %+v", edu.Skills, want)
 	}
 }
 

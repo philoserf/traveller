@@ -353,14 +353,9 @@ func (e Education) Attended() bool {
 // book's own example: ED5 raising Edu to 5, then continuing straight
 // into College) keeps going instead of stopping at the first school.
 // institutionEscalation alone, not shouldAttemptLaterEducation's own
-// Retry branch — see that function's own doc comment for why Retry
-// doesn't belong here. Provably terminates without an explicit cap:
-// educationInstitutions is a fixed list, and each escalation must move
-// strictly earlier in it, so this runs at most len(educationInstitutions)
-// times. A rejected attempt never escalates either — chooseInstitution
-// depends only on upp, which a rejection never changes, so it returns
-// the same institution again and institutionEscalation's own current ==
-// next comparison blocks.
+// Retry branch — see institutionEscalation's own doc comment for the
+// termination argument and why this loop tracks its own tried index
+// rather than reading edu.School.
 func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 	school, ok := chooseInstitution(upp)
 	if !ok {
@@ -371,17 +366,9 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 
 	upp, _, _ = attendInstitution(r, upp, school, &edu)
 
-	// tried, not edu.School: a rejected attempt restores edu.School to
-	// whatever it was before (attendInstitution's own documented
-	// behavior — correct there, since a rejection didn't actually
-	// happen), so re-deriving the index from edu.School after a
-	// rejection would offer the identical rejected escalation again
-	// forever, since neither it nor upp changed. tried is this loop's
-	// own record of the best (lowest) index attempted so far, updated
-	// whether or not the attempt was admitted, so it strictly decreases
-	// every iteration and the loop still terminates in at most
-	// len(educationInstitutions) steps even when every escalation past
-	// the first is rejected.
+	// tried is this loop's own locally-tracked index — see
+	// institutionEscalation's own doc comment for why it must not be
+	// re-derived from edu.School on every iteration.
 	tried := educationInstitutionIndex(school.Name)
 
 	for {
@@ -402,10 +389,19 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // Later Education (item 5) needs, since p.59 lets a character attend
 // "one or more schools" and a second attendance must not discard what
 // the first one earned. edu.School is always overwritten to the
-// institution just attempted (even on rejection — the same "names what
-// was applied to" precedent a first, pre-career attendance already
-// established); Passes resets to 0, since it counts this attendance's
-// own Pass/Fail rolls, not a lifetime total.
+// institution just attempted at entry (even on rejection — the same
+// "names what was applied to" precedent a first, pre-career attendance
+// already established) — finish() below restores it, along with Passes,
+// on any *later* attempt (prev.School != "") that does not itself
+// graduate, whether rejected outright or admitted-but-failed, so School
+// and Graduated/Degree/etc. never end up describing two different
+// attendances at once (#165 found this the hard way: before the
+// restore covered the admitted-but-failed case too, a character
+// admitted to and then failing a second institution reported that
+// institution's name alongside the *first* institution's true
+// Graduated/Degree — a graduated-looking transcript for a school they
+// never passed). Passes resets to 0 at entry either way, since it
+// counts this attendance's own Pass/Fail rolls, not a lifetime total.
 //
 // Graduated, Degree, Honors, SchoolName/Rank/NameRoll and Graduate are
 // snapshotted at entry and restored if this attempt does not itself
@@ -423,11 +419,15 @@ func resolveEducation(r *dice.Roller, upp UPP) (Education, UPP) {
 // from edu.Skills, which accumulates across every attendance — so a
 // Later Education Term can carry only what it itself earned, not the
 // character's whole education history. before/finish isolate that: only
-// the tail appended since this call began is aggregated and folded back
-// in, so an earlier attendance's own entries are never re-merged by a
-// later one. For a first (and today, only) attendance before is always
-// 0, so this reduces exactly to the original "aggregate everything"
-// behavior — zero change for any character that never attends twice.
+// the tail appended since this call began is aggregated on its own for
+// the return value, then merged back into the full edu.Skills (not just
+// appended) so a skill granted by two separate attendances — e.g.
+// OTC/NOTC's "Starship Skill-1" at both College and a later University
+// escalation (#165) — lands as one summed entry there too, matching
+// aggregateSkills' own contract everywhere else it's used. A first
+// attendance has an empty prefix, so this reduces exactly to the
+// original "aggregate everything" behavior — zero change for a
+// character who never attends twice.
 //
 // The third return value, admitted, is p.59's own "if accepted": a
 // rejected application (ApplyCheck failed and no Waiver saved it) must
@@ -462,23 +462,35 @@ func attendInstitution(r *dice.Roller, upp UPP, school educationInstitution, edu
 
 	finish := func(upp UPP, admitted bool) (UPP, []SkillLevel, bool) {
 		granted := aggregateSkills(edu.Skills[before:])
-		edu.Skills = append(edu.Skills[:before:before], granted...)
+		edu.Skills = aggregateSkills(append(edu.Skills[:before:before], granted...))
 
-		// prev.School != "" — a real prior attendance, not this
-		// Education's zero value — distinguishes a rejected *later*
-		// attempt (restore, so the character's own already-real School
-		// isn't overwritten by one they were never admitted to) from a
-		// rejected *first* attempt (edu.School keeps naming the
-		// attempted institution, the same "names what was applied to"
-		// precedent step C has always used — Attended() reporting a
-		// rejected first application as still "attended" is existing,
-		// tested behavior this function must not change).
-		if !admitted && prev.School != "" {
-			edu.School = prev.School
-			edu.Passes = prev.Passes
-		}
-
+		// !edu.Graduated, not !admitted: an admitted-but-failed later
+		// attempt (ran the Pass/Fail rolls, never passed enough, no
+		// Waiver rescue) needs this restore exactly as much as an
+		// outright rejection does — School and the graduation fields
+		// below must describe the same attendance, or a character
+		// admitted to and then failing a second institution would
+		// report that institution's name alongside the *first*
+		// institution's true Graduated/Degree/etc, a graduated-looking
+		// transcript for a school they never passed (#165 caught this:
+		// before the restore covered this case too, the only way
+		// attendInstitution had ever been called was once against a
+		// fresh Education{}, where prev.Graduated is always false and
+		// this branch is a no-op either way — #165's own cascade loop
+		// was the first caller to make prev carry a real prior
+		// graduation into a second call). prev.School != "" — a real
+		// prior attendance, not this Education's zero value —
+		// distinguishes this from a first attempt that merely failed to
+		// graduate (edu.School correctly keeps naming the attempted
+		// institution there, same "names what was applied to"
+		// precedent, and Graduated/Degree/etc. correctly stay at their
+		// blank zero values since prev itself was blank).
 		if !edu.Graduated {
+			if prev.School != "" {
+				edu.School = prev.School
+				edu.Passes = prev.Passes
+			}
+
 			edu.Graduated = prev.Graduated
 			edu.Degree = prev.Degree
 			edu.Honors = prev.Honors
@@ -895,12 +907,8 @@ func educationInstitutionIndex(school string) int {
 //     re-offering an escalation the character was rejected from at a
 //     prior term (a reasonable reading of "may apply... at the
 //     beginning of any term", not a bug: the character keeps trying).
-//     Step C (resolveEducation) has no such outer bound, which is why
-//     its own multi-institution loop (#165) uses institutionEscalation
-//     with its own locally-tracked, monotonically-decreasing index
-//     instead of re-deriving one from edu.School every iteration — see
-//     resolveEducation's own doc comment for why re-deriving it would
-//     retry a rejected escalation forever.
+//     Step C (resolveEducation) has no such outer bound, so it uses
+//     institutionEscalation directly instead — see its own doc comment.
 //   - Escalate: institutionEscalation reports true — see its own doc
 //     comment.
 //
@@ -941,7 +949,10 @@ func shouldAttemptLaterEducation(upp UPP, edu Education) (educationInstitution, 
 // guarantee this function exists to provide, since a rejected
 // escalation restores edu.School to what it was before the rejected
 // attempt (attendInstitution's own documented behavior), offering the
-// identical rejected escalation again on the next loop iteration.
+// identical rejected escalation again on the next loop iteration. As
+// long as a caller's own index only moves down, resolveEducation's loop
+// provably terminates without an explicit cap: educationInstitutions is
+// a fixed list, so it runs at most len(educationInstitutions) times.
 func institutionEscalation(upp UPP, currentIndex int) (educationInstitution, bool) {
 	if currentIndex < 0 {
 		return educationInstitution{}, false
