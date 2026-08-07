@@ -102,7 +102,7 @@ func TestBuildNobleCharacterQualified(t *testing.T) {
 // TestGenerateNobleCharacterElectsLaterEducation is #164's own
 // end-to-end regression test, mirroring the pilot's
 // TestGenerateRogueCharacterElectsLaterEducation (rogue_character_generate_test.go).
-// Seed 33 confirmed by direct inspection to produce a one-term career
+// Seed 556 confirmed by direct inspection to produce a one-term career
 // that is itself a Later Education term (University) — the sharpest
 // version of the Rank regression this wiring had to avoid: Return &
 // Intrigue's Elevation logic never runs for this character at all, so
@@ -110,11 +110,13 @@ func TestBuildNobleCharacterQualified(t *testing.T) {
 // established (Book 1 p.65: "Nobles begin with rank equal to their
 // Social Standing"), not from anything term.Elevated touched. Before the
 // fix (term.Rank scoped inside the skipped branch), this seed would have
-// reported an empty Rank despite legitimately holding a title.
+// reported an empty Rank despite legitimately holding a title. Re-seeded
+// from the original seed 33 when #165 (step C's own multi-institution
+// escalation) shifted what that seed's pre-career Education looked like.
 func TestGenerateNobleCharacterElectsLaterEducation(t *testing.T) {
 	t.Parallel()
 
-	r := dice.New(rand.NewPCG(33, 33))
+	r := dice.New(rand.NewPCG(556, 556))
 
 	c, ok := GenerateNobleCharacter(r)
 	if !ok {

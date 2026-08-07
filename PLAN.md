@@ -36,10 +36,6 @@ two Dukes each share a Soc.
 
 ## Remaining work
 
-- **#165** — step C itself attending more than one institution in
-  sequence (e.g. ED5 raising Edu to 5, then continuing straight into
-  Trade School), distinct from Later Education's own mid-career
-  mechanism.
 - **#163** — the Tra path (Apprenticeship, Mentor, Training Course).
   Needs non-Human generation, which doesn't exist anywhere in this
   codebase; probably should not be built until it does.
