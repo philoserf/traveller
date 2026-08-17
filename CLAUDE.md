@@ -4,22 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-```sh
-task                 # = task check: fmt:check, vet, lint, test, build (what CI runs)
-task fmt             # auto-format; mutates files, not part of `task`/CI
-task text            # regenerate reference/*.txt from reference/*.pdf
-task brew            # install go, golangci-lint, go-task, poppler (once)
-```
-
-`Taskfile.yml` is the single source of truth for "passing" — `.github/workflows/ci.yml`
-runs the same `task check`, nothing CI-only. Run `task check` before opening a PR.
-
-Single test / package:
-
-```sh
-go test ./character/ -run TestQREBSPointScaleMatchesTheBook -v
-go test ./character/                                   # one package
-```
+Run `task --list` for available commands. Run `task check` before opening a PR.
 
 `golangci-lint fmt ./...` is the formatter (gofumpt/goimports/golines). Plain `gofmt`
 is not enough — `fmt:check` will still fail on long lines and import grouping.
