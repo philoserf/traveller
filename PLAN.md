@@ -36,14 +36,7 @@ two Dukes each share a Soc.
 
 ## Remaining work
 
-- **#163** — Training Course. Reachable by Humans via p.59's "Edu/2 in
-  lieu of Training" fallback (`Tra 5+` becomes `Edu >= 9`, ceiling
-  division per p.52). A second, structurally distinct institution table
-  — repeatable enroll-and-roll loop with a cross-attempt Mod and a
-  permanent bar on failure, not another `educationInstitutions` row.
-  Tried by `laterEducationHook` only when the existing academic Later
-  Education path has nothing to offer. In progress.
-- **#186** — Apprenticeship. Split from #163 2026-08-19: pre-career
+- **#186** — Apprenticeship. Split from #163 (shipped in #188) 2026-08-19: pre-career
   (resolves before CharGen step C, not through Later Education), no
   prerequisite, automatic apply. Under this repo's "toward the better
   outcome" convention that means every character attempts it — needs an
