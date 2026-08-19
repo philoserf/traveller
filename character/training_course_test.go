@@ -64,13 +64,15 @@ func TestTrainingCourseEligibleAfterAPass(t *testing.T) {
 // failed "Check Int to enroll" (p.62-63) costs nothing beyond the roll —
 // no TrainingCourse entry is appended, and the character isn't barred.
 // Int=0 forces the enroll check to fail unconditionally (2D6 can never
-// roll 0 or less), regardless of seed.
+// roll 0 or less), regardless of seed. Edu is irrelevant here — the
+// function returns before ever reading it — so it's left at a plausible
+// in-range value rather than an arbitrary one.
 func TestAttemptTrainingCourseRejectedEnrollmentRecordsNoAttempt(t *testing.T) {
 	t.Parallel()
 
 	var edu Education
 
-	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(0, 250, 0), &edu)
+	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(0, 10, 0), &edu)
 
 	if admitted {
 		t.Error("admitted = true, want false (Int=0 fails the enroll check unconditionally)")
@@ -86,14 +88,16 @@ func TestAttemptTrainingCourseRejectedEnrollmentRecordsNoAttempt(t *testing.T) {
 }
 
 // TestAttemptTrainingCourseSuccessGrantsSkillAndSchoolName is the
-// unfailable-fixture pass case: Int and Edu both far above any 2D6 roll
-// guarantee enrollment and a Pass on the very first attempt (Mod 0).
+// unfailable-fixture pass case: Int=20 guarantees enrollment (2D6 maxes
+// at 12), and Edu=24 gives a Tra-in-lieu target of 12 — also above any
+// possible 2D6 roll — guaranteeing a Pass on the very first attempt
+// (Mod 0).
 func TestAttemptTrainingCourseSuccessGrantsSkillAndSchoolName(t *testing.T) {
 	t.Parallel()
 
 	var edu Education
 
-	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(250, 250, 0), &edu)
+	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 24, 0), &edu)
 
 	if !admitted {
 		t.Fatal("admitted = false, want true (unfailable fixture)")
@@ -121,18 +125,18 @@ func TestAttemptTrainingCourseSuccessGrantsSkillAndSchoolName(t *testing.T) {
 }
 
 // TestAttemptTrainingCourseFailureBarsFurtherAttempts is the
-// unfailable-fixture fail case: Edu=0 makes the Tra-in-lieu Pass/Fail
-// target 0, below any possible 2D6 roll, so the course always fails once
-// enrolled. Confirms the failed attempt is still recorded (naming what
-// was attempted, same "names what was applied to" precedent
-// attendInstitution's own doc comment establishes) and that it
-// permanently bars a further course.
+// unfailable-fixture fail case: Int=20 guarantees enrollment, and Edu=0
+// makes the Tra-in-lieu Pass/Fail target 0, below any possible 2D6 roll,
+// so the course always fails once enrolled. Confirms the failed attempt
+// is still recorded (naming what was attempted, same "names what was
+// applied to" precedent attendInstitution's own doc comment establishes)
+// and that it permanently bars a further course.
 func TestAttemptTrainingCourseFailureBarsFurtherAttempts(t *testing.T) {
 	t.Parallel()
 
 	var edu Education
 
-	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(250, 0, 0), &edu)
+	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 0, 0), &edu)
 
 	if !admitted {
 		t.Fatal("admitted = false, want true (enrollment succeeds; only the Pass/Fail Check fails)")
@@ -184,10 +188,10 @@ func TestAttemptTrainingCourseModAccumulatesAcrossPriorAttempts(t *testing.T) {
 
 	edu := Education{TrainingCourses: prior}
 
-	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(250, 24, 0), &edu)
+	skills, admitted := attemptTrainingCourse(dice.New(rand.NewPCG(1, 1)), eduUPP(20, 24, 0), &edu)
 
 	if !admitted {
-		t.Fatal("admitted = false, want true (Int=250 enrolls unconditionally)")
+		t.Fatal("admitted = false, want true (Int=20 enrolls unconditionally)")
 	}
 
 	if skills != nil {
