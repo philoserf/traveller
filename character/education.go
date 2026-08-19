@@ -40,11 +40,19 @@ import (
 //     degree this step now produces (BA, MA, Honors BA), so they chain
 //     off it rather than sitting beside it.
 //   - Flight School gates on an Honors BA and grants a Branch.
-//   - Apprenticeship, Mentor and Training Course are the Tra path.
-//     p.59 puts Sophonts with Tra there and notes Humans may use
-//     Training Courses "using Edu/2 in lieu of Training"; GenerateUPP
-//     only produces Humans, whose C5 is always Edu, so none of the three
-//     has a caller yet.
+//   - Apprenticeship, Mentor and Training Course are the Tra path (#186,
+//     #185, #163 respectively). p.59 puts Sophonts with Tra there.
+//     Training Course's "Tra 5+" is reachable by a Human via p.59's own
+//     "Edu/2 in lieu of Training" fallback (ceiling division, p.52:
+//     Edu >= 9) — it is being built now (#163), as a second institution
+//     table tried by Later Education only once the academic path above
+//     has nothing left to offer. Apprenticeship's Pre-Requisite is
+//     "none" with an automatic apply, which under this package's own
+//     "toward the better outcome" convention would have every character
+//     attempt it — deferred pending a maintainer scope decision (#186).
+//     Mentor's "C5= Tra" is a species-identity gate the Edu/2 fallback
+//     doesn't open, since GenerateUPP only produces Humans, whose C5 is
+//     always Edu (#185).
 //
 // Also not here: the Major and Minor selected below do not yet resolve
 // the "Major"/"Minor" cells of the thirteen career skill tables
@@ -301,6 +309,13 @@ type Education struct {
 	// whichever the caller's career chain attempts first; see
 	// commissionAppliesTo in career_chain.go.
 	CommissionCareers []string
+	// TrainingCourses is p.59's own Training Institutions counterpart to
+	// this Educational Institutions pipeline (#163, training_course.go) —
+	// one entry per Training Course attempt, oldest first, kept as its
+	// own list rather than overwriting School/SchoolName above for the
+	// same "For Each School Attended" (p.72) plurality reason Graduate
+	// below already does.
+	TrainingCourses []TrainingCourse
 	// Graduate is a University graduate's own follow-on program (#113) —
 	// Masters, Medical School, or Law School — gated on the degree
 	// University just produced. Nil only for a non-University primary

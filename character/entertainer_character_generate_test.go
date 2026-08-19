@@ -156,8 +156,11 @@ func TestGenerateEntertainerCharacterProducesAHumanCharacter(t *testing.T) {
 // TestGenerateEntertainerCharacterElectsLaterEducation is #164's own
 // end-to-end regression test, mirroring the pilot's
 // TestGenerateRogueCharacterElectsLaterEducation (rogue_character_generate_test.go):
-// seed 1 confirmed by direct inspection to elect Later Education twice
-// (Service Academy, then University). Pins that the mechanism actually
+// seed 1 confirmed by direct inspection to elect Later Education five
+// times (Service Academy, then University, then — #163 — three Training
+// Courses at Edu=10, two passed and the third's escalating Mod finally
+// failing it — the same repeated-attempts-then-a-failure shape p.62's
+// own Barr Vech worked example follows). Pins that the mechanism actually
 // fires through the real standalone generator for a hand-rolled loop —
 // not just resolveCareerLoop's shared hook in isolation — and that Fame/
 // Talent are untouched by a Later Education term (no Risk/Reward or Flux
@@ -188,8 +191,8 @@ func TestGenerateEntertainerCharacterElectsLaterEducation(t *testing.T) {
 		skillsAwarded += len(term.SkillsAwarded)
 	}
 
-	if laterEdTerms != 2 {
-		t.Fatalf("laterEdTerms = %d, want 2", laterEdTerms)
+	if laterEdTerms != 5 {
+		t.Fatalf("laterEdTerms = %d, want 5", laterEdTerms)
 	}
 
 	if skillsAwarded == 0 {

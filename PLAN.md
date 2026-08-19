@@ -36,9 +36,29 @@ two Dukes each share a Soc.
 
 ## Remaining work
 
-- **#163** — the Tra path (Apprenticeship, Mentor, Training Course).
-  Needs non-Human generation, which doesn't exist anywhere in this
-  codebase; probably should not be built until it does.
+- **#163** — Training Course. Reachable by Humans via p.59's "Edu/2 in
+  lieu of Training" fallback (`Tra 5+` becomes `Edu >= 9`, ceiling
+  division per p.52). A second, structurally distinct institution table
+  — repeatable enroll-and-roll loop with a cross-attempt Mod and a
+  permanent bar on failure, not another `educationInstitutions` row.
+  Tried by `laterEducationHook` only when the existing academic Later
+  Education path has nothing to offer. In progress.
+- **#186** — Apprenticeship. Split from #163 2026-08-19: pre-career
+  (resolves before CharGen step C, not through Later Education), no
+  prerequisite, automatic apply. Under this repo's "toward the better
+  outcome" convention that means every character attempts it — needs an
+  explicit maintainer decision on scope before it's built, not a default
+  chosen inside a PR.
+- **#185** — Mentor. Its `C5= Tra` prerequisite is a species-identity
+  gate the Edu/2 substitution doesn't open for Humans. Needs non-Human
+  generation, which doesn't exist anywhere in this codebase and has no
+  tracking issue of its own yet; probably should not be built until it
+  does.
+- **#187** — `pickEducationSubject` hardcodes the College (C) skill pool
+  for every caller, including Trade School, which p.61's legend marks
+  School (S) instead. Flagged while scoping #163, not fixed there —
+  changing already-shipped Trade School behavior needs its own
+  before/after measurement.
 - **#96** — Land Grant scope deferrals: Preferred World, geodesic hex
   maps, Moot proxies and voting, and grant improvement. Independent of
   each other and of the items above. Preferred World and hex placement
