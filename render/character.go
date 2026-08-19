@@ -740,6 +740,23 @@ func writeEducation(b *strings.Builder, edu character.Education) {
 	for grad := edu.Graduate; grad != nil; grad = grad.Next {
 		writeGraduateProgram(b, *grad)
 	}
+
+	for _, tc := range edu.TrainingCourses {
+		writeTrainingCourse(b, tc)
+	}
+}
+
+// writeTrainingCourse renders one Training Course attempt (#163) — the
+// same "attended, even if it went nowhere" status writeGraduateProgram
+// already shows, since a failed attempt is still a recorded fact (and
+// permanently bars any further attempt, per trainingCourseBarred).
+func writeTrainingCourse(b *strings.Builder, tc character.TrainingCourse) {
+	status := "failed"
+	if tc.Passed {
+		status = "passed"
+	}
+
+	fmt.Fprintf(b, "**Training Course:** %s (%s)\n\n", tc.Subject, status)
 }
 
 // writeGraduateProgram renders one link of the Graduate chain — status

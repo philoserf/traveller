@@ -301,12 +301,15 @@ func TestGenerateCitizenCharacterManySeedsInvariants(t *testing.T) {
 // TestGenerateCitizenCharacterElectsLaterEducation is #164's own
 // end-to-end regression test, mirroring the pilot's
 // TestGenerateRogueCharacterElectsLaterEducation (rogue_character_generate_test.go):
-// seed 1 confirmed by direct inspection to elect Later Education three
-// times (Service Academy twice, then University). One of the three
-// attempts is admitted with zero skills awarded — a legitimate outcome,
-// not a fixture bug — so this asserts skills were awarded across the
-// Later Education terms as a whole rather than requiring every one to
-// individually award something.
+// seed 1 confirmed by direct inspection to elect Later Education four
+// times (Service Academy twice, then University, then — #163 — a
+// Training Course once the academic path had nothing left to offer at
+// Edu=11). Two of the four attempts are admitted with zero skills
+// awarded — a legitimate outcome, not a fixture bug (an admitted Service
+// Academy term that rolled no Provides skill that pass, and the Training
+// Course attempt failing its Pass/Fail Check) — so this asserts skills
+// were awarded across the Later Education terms as a whole rather than
+// requiring every one to individually award something.
 func TestGenerateCitizenCharacterElectsLaterEducation(t *testing.T) {
 	t.Parallel()
 
@@ -333,8 +336,8 @@ func TestGenerateCitizenCharacterElectsLaterEducation(t *testing.T) {
 		skillsAwarded += len(term.SkillsAwarded)
 	}
 
-	if laterEdTerms != 3 {
-		t.Fatalf("laterEdTerms = %d, want 3", laterEdTerms)
+	if laterEdTerms != 4 {
+		t.Fatalf("laterEdTerms = %d, want 4", laterEdTerms)
 	}
 
 	if skillsAwarded == 0 {

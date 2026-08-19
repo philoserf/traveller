@@ -254,6 +254,16 @@ func resolveCareerLoop(
 // runs after that on every iteration but the first); attendInstitution
 // then mutates *education in place, so the next call sees this term's
 // own attempt.
+//
+// Falls back to Training Course (#163, training_course.go) only once the
+// academic path has nothing to offer — the same "resolve toward the
+// better outcome" convention chooseInstitution already establishes:
+// College/University's own payoff (a degree, Major growth, a shot at
+// Masters/Medical/Law) always beats one Skill-2, so a character who still
+// qualifies academically is never offered Training Course instead. This
+// is also where Training Course earns its keep: a University graduate at
+// Edu=9 with nothing left to escalate to had no Later Education option at
+// all before this fell back to it.
 func laterEducationHook(education *Education) beforeTerm {
 	if education == nil {
 		return nil
@@ -261,27 +271,41 @@ func laterEducationHook(education *Education) beforeTerm {
 
 	return func(r *dice.Roller, upp UPP) (Term, UPP, bool) {
 		school, ok := shouldAttemptLaterEducation(upp, *education)
-		if !ok {
+		if ok {
+			updatedUPP, skills, admitted := attendInstitution(r, upp, school, education)
+
+			// p.59: "if accepted substitutes that process for the entire
+			// term." A rejected application does not consume the term —
+			// resolveCareerLoop falls through to the ordinary resolveTerm
+			// path for this iteration instead, the same as if Later
+			// Education had never been offered.
+			if !admitted {
+				return Term{}, updatedUPP, false
+			}
+
+			return Term{
+				Length:               4,
+				LaterEducation:       true,
+				LaterEducationSchool: school.Name,
+				SkillsAwarded:        skills,
+			}, updatedUPP, true
+		}
+
+		if !trainingCourseEligible(upp, *education) {
 			return Term{}, upp, false
 		}
 
-		updatedUPP, skills, admitted := attendInstitution(r, upp, school, education)
-
-		// p.59: "if accepted substitutes that process for the entire
-		// term." A rejected application does not consume the term —
-		// resolveCareerLoop falls through to the ordinary resolveTerm
-		// path for this iteration instead, the same as if Later
-		// Education had never been offered.
+		skills, admitted := attemptTrainingCourse(r, upp, education)
 		if !admitted {
-			return Term{}, updatedUPP, false
+			return Term{}, upp, false
 		}
 
 		return Term{
 			Length:               4,
 			LaterEducation:       true,
-			LaterEducationSchool: school.Name,
+			LaterEducationSchool: "Training Course",
 			SkillsAwarded:        skills,
-		}, updatedUPP, true
+		}, upp, true
 	}
 }
 
