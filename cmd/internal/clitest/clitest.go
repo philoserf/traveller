@@ -85,9 +85,7 @@ func Run(t *testing.T, args ...string) Result {
 	exitCode := 0
 
 	if err := cmd.Run(); err != nil {
-		var exitErr *exec.ExitError
-
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			exitCode = exitErr.ExitCode()
 		} else {
 			t.Fatalf("clitest: running subprocess: %v", err)

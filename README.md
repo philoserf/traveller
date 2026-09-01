@@ -1,5 +1,7 @@
 # traveller
 
+> **Archived.** This repository is no longer maintained. Traveller5 work continues in [philoserf/t5](https://github.com/philoserf/t5), which is the authoritative implementation of the rules the two repos both covered (see #178).
+
 [![CI](https://github.com/philoserf/traveller/actions/workflows/ci.yml/badge.svg)](https://github.com/philoserf/traveller/actions/workflows/ci.yml)
 
 A Go library implementation of the Traveller5 (T5) tabletop RPG rules.
