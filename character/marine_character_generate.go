@@ -44,7 +44,8 @@ func buildMarineCharacter(
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveMarineCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned, flightSchool)
-		}, ResolveMarineMusterOut, marineCareerFameAwards)
+		}, ResolveMarineMusterOut, marineCareerFameAwards,
+	)
 }
 
 // marineCareerFameAwards is Book 1 p.91's own Armed Forces Fame bracket

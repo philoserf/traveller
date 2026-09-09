@@ -113,7 +113,8 @@ func resolveCitizenCareerAndUPPWithBudget(
 			var jobSkill, hobbySkill string
 
 			term, jobSkill, hobbySkill = ResolveCitizenTerm(
-				r, upp, ccPos, citizenLifeSuccessCount(career.Terms), career.JobSkill, career.HobbySkill)
+				r, upp, ccPos, citizenLifeSuccessCount(career.Terms), career.JobSkill, career.HobbySkill,
+			)
 			career.JobSkill, career.HobbySkill = jobSkill, hobbySkill
 		}
 

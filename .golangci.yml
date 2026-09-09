@@ -9,6 +9,7 @@ linters:
   default: all
   disable:
     - exhaustruct # positional records / partial inits are intentional
+    - exhaustruct_v5 # same, under the name v2.13 added alongside it — `default: all` enables both
     - mnd # the codebase IS transcribed rulebook tables (magic numbers by nature)
     - goconst # domain vocabulary (skills/careers) is string map keys, not consts
     - varnamelen # terse dice vars (r, c, d6) are idiomatic here
@@ -33,7 +34,9 @@ linters:
     cyclop:
       max-complexity: 15
     funlen:
-      lines: 80
+      # 85, not 80: gofumpt's group-params puts a grouped call's closing paren on
+      # its own line, which lengthens a few term resolvers without adding a statement.
+      lines: 85
       statements: 60
     gocognit:
       min-complexity: 25
@@ -154,7 +157,8 @@ formatters:
     - golines
   settings:
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true # was extra-rules: true, renamed in golangci-lint v2.13
     goimports:
       local-prefixes:
         - github.com/philoserf/traveller

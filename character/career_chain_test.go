@@ -473,14 +473,16 @@ func TestCareerChainAgeTargetStopsBeforeFurtherProgression(t *testing.T) {
 
 	seed := seedFor(t, "a Scout-then-Spacer chain where both careers serve a term", func(seed uint64) bool {
 		c, ok, err := GenerateCareerChainCharacter(
-			dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, ageTarget)
+			dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, ageTarget,
+		)
 
 		return err == nil && ok && len(c.Careers) == 2 &&
 			len(c.Careers[0].Terms) > 0 && len(c.Careers[1].Terms) > 0
 	})
 
 	got, ok, err := GenerateCareerChainCharacter(
-		dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, ageTarget)
+		dice.New(rand.NewPCG(seed, seed)), []string{"scout", "spacer"}, ageTarget,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -762,13 +764,15 @@ func TestCareerChainTransfersToTerminalFunctionaryAfterAFullCareer(t *testing.T)
 
 	seed := seedFor(t, "a Scholar career followed by a served Functionary term", func(seed uint64) bool {
 		c, ok, err := GenerateCareerChainCharacter(
-			dice.New(rand.NewPCG(seed, seed)), []string{"scholar", "functionary"}, 0)
+			dice.New(rand.NewPCG(seed, seed)), []string{"scholar", "functionary"}, 0,
+		)
 
 		return err == nil && ok && len(c.Careers) == 2 && len(c.Careers[1].Terms) > 0
 	})
 
 	got, _, err := GenerateCareerChainCharacter(
-		dice.New(rand.NewPCG(seed, seed)), []string{"scholar", "functionary"}, 0)
+		dice.New(rand.NewPCG(seed, seed)), []string{"scholar", "functionary"}, 0,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -908,7 +912,8 @@ func TestCareerChainCraftsmanBeginFailsWithoutPriorSkills(t *testing.T) {
 	// rule working, not a failure, but it cannot exercise BeginCraftsman.
 	seed := seedFor(t, "a Citizen career short enough for Craftsman to be attempted", func(seed uint64) bool {
 		c, ok, err := GenerateCareerChainCharacter(
-			dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0)
+			dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0,
+		)
 
 		return err == nil && ok && len(c.Careers) == 2 && len(c.Careers[0].Terms) > 0
 	})
@@ -1046,13 +1051,15 @@ func TestCareerChainAgingDeathIsNotASuccessfulAttempt(t *testing.T) {
 
 			seed := seedFor(t, "an Aging death in "+career, func(seed uint64) bool {
 				c, _, err := GenerateCareerChainCharacter(
-					dice.New(rand.NewPCG(seed, seed)), []string{career}, 0)
+					dice.New(rand.NewPCG(seed, seed)), []string{career}, 0,
+				)
 
 				return err == nil && strings.Contains(c.Notes, "died of natural causes")
 			})
 
 			got, ok, err := GenerateCareerChainCharacter(
-				dice.New(rand.NewPCG(seed, seed)), []string{career}, 0)
+				dice.New(rand.NewPCG(seed, seed)), []string{career}, 0,
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1113,7 +1120,8 @@ func TestCareerChainAgingDeathGrantsNoMusterOut(t *testing.T) {
 	})
 
 	got, ok, err := GenerateCareerChainCharacter(
-		dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 1000)
+		dice.New(rand.NewPCG(seed, seed)), []string{"scout"}, 1000,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1155,7 +1163,8 @@ func TestCareerChainStopsWhenAFailedBeginIsFatal(t *testing.T) {
 		// character comfortably alive for the fallback to matter.
 		for seed := range uint64(50) {
 			got, ok, err := GenerateCareerChainCharacter(
-				dice.New(rand.NewPCG(seed+1, seed+1)), []string{"noble"}, 0)
+				dice.New(rand.NewPCG(seed+1, seed+1)), []string{"noble"}, 0,
+			)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -184,7 +184,8 @@ func ResolveSoldierTerm(
 	columns := eligibleSkillColumns(operations, soldierOperationsColumns)
 
 	term.SkillsAwarded = append(term.SkillsAwarded, armedForcesTermSkills(
-		r, upp, SoldierCareerName, soldierSkillTable, operations, columns, skillCount, exemptSkills)...)
+		r, upp, SoldierCareerName, soldierSkillTable, operations, columns, skillCount, exemptSkills,
+	)...)
 
 	return term, upp
 }

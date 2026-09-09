@@ -63,7 +63,8 @@ func resolveFunctionaryCareerWithBudget(
 	// grant (marine_loop.go).
 	if len(career.Terms) > 0 {
 		career.Terms[0].SkillsAwarded = append(
-			career.Terms[0].SkillsAwarded, skillLevel1(functionaryTierAutoSkills[0], Skill))
+			career.Terms[0].SkillsAwarded, skillLevel1(functionaryTierAutoSkills[0], Skill),
+		)
 	}
 
 	return career, finalUPP, tier

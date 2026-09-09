@@ -41,7 +41,8 @@ func buildSpacerCharacter(
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveSpacerCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned, flightSchool)
-		}, ResolveSpacerMusterOut, spacerCareerFameAwards)
+		}, ResolveSpacerMusterOut, spacerCareerFameAwards,
+	)
 }
 
 // spacerCareerFameAwards mirrors soldierCareerFameAwards's own formula exactly

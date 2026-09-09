@@ -245,7 +245,8 @@ func ResolveMarineTerm(
 	columns := eligibleSkillColumns(operations, marineOperationsColumns)
 
 	term.SkillsAwarded = append(term.SkillsAwarded, armedForcesTermSkills(
-		r, upp, MarineCareerName, marineSkillTable, operations, columns, skillCount, exemptSkills)...)
+		r, upp, MarineCareerName, marineSkillTable, operations, columns, skillCount, exemptSkills,
+	)...)
 
 	return term, upp
 }

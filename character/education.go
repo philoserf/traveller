@@ -1065,7 +1065,9 @@ func applyEducation(c Character, edu Education) Character {
 	c.Skills = aggregateSkills(
 		resolveCapitalSkills(
 			resolveMajorMinorSkills(c.Skills, effectiveMajorMinor(c, edu)),
-			c.LandGrants))
+			c.LandGrants,
+		),
+	)
 
 	return c
 }

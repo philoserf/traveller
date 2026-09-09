@@ -205,7 +205,8 @@ func buildScoutCharacter(r *dice.Roller, upp UPP, homeworld string, homeworldSki
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveScoutCareerWithBudget(r, upp, maxCareerTerms, aging)
-		}, ResolveScoutMusterOut, scoutDiscoveryFameAwards)
+		}, ResolveScoutMusterOut, scoutDiscoveryFameAwards,
+	)
 }
 
 // scoutDiscoveryFameAwards is Book 1 p.91's own "Scout: Discoveries x4" —

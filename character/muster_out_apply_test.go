@@ -227,7 +227,8 @@ func TestApplyKnighthood(t *testing.T) {
 		}
 
 		got, _ := ApplyMusteringOut(
-			dice.New(rand.NewPCG(1, 1)), career, UPP{Characteristics: [6]ehex.Value{0, 0, 0, 0, 0, soc}})
+			dice.New(rand.NewPCG(1, 1)), career, UPP{Characteristics: [6]ehex.Value{0, 0, 0, 0, 0, soc}},
+		)
 
 		return got.Characteristics[C6]
 	}

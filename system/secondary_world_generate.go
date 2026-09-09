@@ -56,7 +56,9 @@ func dmHydrographics(r *dice.Roller, size, atm ehex.Value, dm int) ehex.Value {
 func rollBigWorldSize(r *dice.Roller) ehex.Value {
 	return world.ClampEhex(r.TwoD6()+7, 0, int(ehex.Max))
 }
+
 func rollWorldletSize(r *dice.Roller) ehex.Value { return world.ClampEhex(r.D6()-3, 0, int(ehex.Max)) }
+
 func rollStormWorldSize(r *dice.Roller) ehex.Value {
 	return world.ClampEhex(r.TwoD6(), 0, int(ehex.Max))
 }

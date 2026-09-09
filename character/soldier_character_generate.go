@@ -40,7 +40,8 @@ func buildSoldierCharacter(
 	return buildRiskCareerCharacter(
 		r, upp, homeworld, homeworldSkills, func(r *dice.Roller, upp UPP, aging *agingSimulation) (Career, UPP) {
 			return resolveSoldierCareerWithBudget(r, upp, maxCareerTerms, aging, commissioned, flightSchool)
-		}, ResolveSoldierMusterOut, soldierCareerFameAwards)
+		}, ResolveSoldierMusterOut, soldierCareerFameAwards,
+	)
 }
 
 // soldierCareerFameAwards mirrors marineCareerFameAwards's own corrected formula

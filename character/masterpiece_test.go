@@ -471,7 +471,8 @@ func searchForAMasterpiece(seeds uint64) (Character, int, int) {
 
 	for seed := uint64(1); seed <= seeds; seed++ {
 		c, ok, err := GenerateCareerChainCharacter(
-			dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0)
+			dice.New(rand.NewPCG(seed, seed)), []string{"citizen", "craftsman"}, 0,
+		)
 		if err != nil || !ok {
 			continue
 		}

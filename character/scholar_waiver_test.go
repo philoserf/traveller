@@ -81,7 +81,8 @@ func TestEveryScholarHasAMajorAndMinor(t *testing.T) {
 
 		for seed := uint64(1); seed <= 300; seed++ {
 			c, ok, err := GenerateCareerChainCharacter(
-				dice.New(rand.NewPCG(seed, seed)), []string{"scholar"}, 0)
+				dice.New(rand.NewPCG(seed, seed)), []string{"scholar"}, 0,
+			)
 			if err != nil || !ok || len(c.Careers) == 0 || len(c.Careers[0].Terms) == 0 {
 				continue
 			}
@@ -120,13 +121,15 @@ func TestScholarWaiverRescuesEachOfThePrintedEvents(t *testing.T) {
 		allWaived := UPP{Characteristics: [6]ehex.Value{8, 8, 8, 8, 0, 20}}
 
 		career, _ := resolveScholarCareerWithBudget(
-			dice.New(rand.NewPCG(3, 3)), noWaiver, maxCareerTerms, &agingSimulation{}, Education{})
+			dice.New(rand.NewPCG(3, 3)), noWaiver, maxCareerTerms, &agingSimulation{}, Education{},
+		)
 		if len(career.Terms) != 0 {
 			t.Error("a Scholar with Edu 0 and Soc 0 qualified anyway")
 		}
 
 		career, _ = resolveScholarCareerWithBudget(
-			dice.New(rand.NewPCG(3, 3)), allWaived, maxCareerTerms, &agingSimulation{}, Education{})
+			dice.New(rand.NewPCG(3, 3)), allWaived, maxCareerTerms, &agingSimulation{}, Education{},
+		)
 		if len(career.Terms) == 0 {
 			t.Error("a failed Position was not waived at Soc 20")
 		}
@@ -140,13 +143,15 @@ func TestScholarWaiverRescuesEachOfThePrintedEvents(t *testing.T) {
 		allWaived := UPP{Characteristics: [6]ehex.Value{0, 8, 8, 8, 8, 20}}
 
 		term, _, _ := ResolveScholarTerm(
-			dice.New(rand.NewPCG(4, 4)), noWaiver, C1, 8, 1, nil, "Psychology", new(int))
+			dice.New(rand.NewPCG(4, 4)), noWaiver, C1, 8, 1, nil, "Psychology", new(int),
+		)
 		if term.RiskResult == Unharmed {
 			t.Error("Research succeeded against a Controlling Characteristic of 0")
 		}
 
 		term, _, _ = ResolveScholarTerm(
-			dice.New(rand.NewPCG(4, 4)), allWaived, C1, 8, 1, nil, "Psychology", new(int))
+			dice.New(rand.NewPCG(4, 4)), allWaived, C1, 8, 1, nil, "Psychology", new(int),
+		)
 		if term.RiskResult != Unharmed {
 			t.Errorf("RiskResult = %v, want a waived Research failure to leave the Scholar Unharmed",
 				term.RiskResult)
@@ -162,9 +167,11 @@ func TestScholarWaiverRescuesEachOfThePrintedEvents(t *testing.T) {
 		allWaived := UPP{Characteristics: [6]ehex.Value{20, 20, 20, 20, 0, 20}}
 
 		short, _ := resolveScholarCareerWithBudget(
-			dice.New(rand.NewPCG(5, 5)), noWaiver, maxCareerTerms, &agingSimulation{}, Education{})
+			dice.New(rand.NewPCG(5, 5)), noWaiver, maxCareerTerms, &agingSimulation{}, Education{},
+		)
 		long, _ := resolveScholarCareerWithBudget(
-			dice.New(rand.NewPCG(5, 5)), allWaived, maxCareerTerms, &agingSimulation{}, Education{})
+			dice.New(rand.NewPCG(5, 5)), allWaived, maxCareerTerms, &agingSimulation{}, Education{},
+		)
 
 		if len(long.Terms) <= len(short.Terms) {
 			t.Errorf("waived Continue served %d terms, unwaived %d — want the Waiver to extend the career",
@@ -230,7 +237,8 @@ func TestScholarMajorMinorCellsResolve(t *testing.T) {
 
 	for seed := uint64(1); seed <= 1500; seed++ {
 		c, ok, err := GenerateCareerChainCharacter(
-			dice.New(rand.NewPCG(seed, seed)), []string{"scholar"}, 0)
+			dice.New(rand.NewPCG(seed, seed)), []string{"scholar"}, 0,
+		)
 		if err != nil || !ok || len(c.Careers) == 0 || len(c.Careers[0].Terms) == 0 {
 			continue
 		}
@@ -276,7 +284,8 @@ func TestScholarRankRendersWithTheMajor(t *testing.T) {
 
 	seed := seedFor(t, "a promoted Scholar", func(seed uint64) bool {
 		c, ok, err := GenerateCareerChainCharacter(
-			dice.New(rand.NewPCG(seed, seed)), []string{"scholar"}, 0)
+			dice.New(rand.NewPCG(seed, seed)), []string{"scholar"}, 0,
+		)
 
 		return err == nil && ok && len(c.Careers) > 0 && lastTermRank(c.Careers[0].Terms) != "" &&
 			lastTermRank(c.Careers[0].Terms) != scholarRankNames[0]

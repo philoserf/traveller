@@ -406,7 +406,8 @@ func TestRerollDuplicateBenefit(t *testing.T) {
 		t.Parallel()
 
 		got := rerollDuplicateBenefit(
-			dice.New(rand.NewPCG(1, 1)), []string{"Knighthood"}, 0, table, "Knighthood")
+			dice.New(rand.NewPCG(1, 1)), []string{"Knighthood"}, 0, table, "Knighthood",
+		)
 		if got == "Knighthood" {
 			t.Error("got Knighthood again, want it rerolled to a different benefit")
 		}
@@ -417,7 +418,8 @@ func TestRerollDuplicateBenefit(t *testing.T) {
 
 		// Ship Shares accumulate toward ownership, so a repeat is wanted.
 		got := rerollDuplicateBenefit(
-			dice.New(rand.NewPCG(1, 1)), []string{"Ship Share", "Ship Share"}, 0, table, "Ship Share")
+			dice.New(rand.NewPCG(1, 1)), []string{"Ship Share", "Ship Share"}, 0, table, "Ship Share",
+		)
 		if got != "Ship Share" {
 			t.Errorf("got %q, want Ship Share kept — repeats of it are useful", got)
 		}
@@ -433,7 +435,8 @@ func TestRerollDuplicateBenefit(t *testing.T) {
 		only := []string{"Knighthood"}
 
 		got := rerollDuplicateBenefit(
-			dice.New(rand.NewPCG(1, 1)), []string{"Knighthood"}, 0, only, "Knighthood")
+			dice.New(rand.NewPCG(1, 1)), []string{"Knighthood"}, 0, only, "Knighthood",
+		)
 		if got != "Knighthood" {
 			t.Errorf("got %q, want the duplicate kept once no alternative exists", got)
 		}

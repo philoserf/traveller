@@ -194,7 +194,8 @@ func ResolveSpacerTerm(
 	columns := eligibleSkillColumns(operations, spacerOperationsColumns)
 
 	term.SkillsAwarded = append(term.SkillsAwarded, armedForcesTermSkills(
-		r, upp, SpacerCareerName, spacerSkillTable, operations, columns, skillCount, exemptSkills)...)
+		r, upp, SpacerCareerName, spacerSkillTable, operations, columns, skillCount, exemptSkills,
+	)...)
 
 	return term, upp
 }

@@ -90,7 +90,8 @@ func resolveMarineCareerWithBudget(
 			}
 
 			term, updatedUPP := ResolveMarineTerm(
-				r, upp, ccPos, branch, branchMod, priorTerms, entryCommissioned, operationsRolls)
+				r, upp, ccPos, branch, branchMod, priorTerms, entryCommissioned, operationsRolls,
+			)
 			term.SkillsAwarded = append(collegeSkills(), term.SkillsAwarded...)
 			priorTerms = append(priorTerms, term)
 

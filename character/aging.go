@@ -288,7 +288,8 @@ func (s *agingSimulation) checkpoint(r *dice.Roller, upp UPP, age int) UPP {
 	switch classifyAgingBatch(len(zeroed)) {
 	case agingSeverityMajor:
 		s.notes = append(s.notes, fmt.Sprintf(
-			"Age %d: major illness (two characteristics reduced to 0) — four weeks recuperation", age))
+			"Age %d: major illness (two characteristics reduced to 0) — four weeks recuperation", age,
+		))
 	case agingSeverityExtreme:
 		if agingExtremeIllnessIsFatal(s.extremeCount) {
 			s.notes = append(s.notes, fmt.Sprintf(
