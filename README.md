@@ -1,6 +1,6 @@
 # traveller
 
-> **Archived.** This repository is no longer maintained. Traveller5 work continues in [philoserf/t5](https://github.com/philoserf/t5), which is the authoritative implementation of the rules the two repos both covered (see #178).
+> **Archived.** This repository is no longer maintained, and neither is [philoserf/t5](https://github.com/philoserf/t5) — the fuller Traveller5 implementation this banner used to point to, which remains readable and reproducible at its `v0.1.0` tag. Character generation continues in [philoserf/t5chargen](https://github.com/philoserf/t5chargen).
 
 [![CI](https://github.com/philoserf/traveller/actions/workflows/ci.yml/badge.svg)](https://github.com/philoserf/traveller/actions/workflows/ci.yml)
 
