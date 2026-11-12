@@ -6,18 +6,25 @@
   // enableGitInfo, so fetch full history first (and fail if that fails). Hugo
   // keys git dates by the paths git log prints, which git quotes when they hold
   // non-ASCII characters, so turn quoting off in the clone's config. The
-  // validate pass renders drafts in memory, so a broken draft fails here.
+  // validate pass renders drafts and future-dated posts in memory, so one
+  // written ahead of time fails here rather than on the day it publishes.
   // rm -rf because Hugo never prunes public/.
   "build": {
     "command": "{ [ \"$(git rev-parse --is-shallow-repository)\" = false ] || git fetch --unshallow --quiet; } && git config core.quotepath false && hugo --buildFuture -D --renderToMemory --gc --panicOnWarning && rm -rf public && hugo --gc --minify --panicOnWarning",
   },
-  // Static assets only: no Worker script.
+  "main": "./worker.js",
   "assets": {
     "directory": "./public",
+    "binding": "ASSETS",
     "not_found_handling": "404-page",
   },
+  // Mondays 09:00 UTC (05:00 Eastern in summer, 04:00 in winter): rebuild so
+  // future-dated posts go live. DEPLOY_HOOK is a secret: see the README.
+  "triggers": { "crons": ["0 9 * * 1"] },
   // The custom domain is the only address: no workers.dev, no preview URLs.
   "workers_dev": false,
   "preview_urls": false,
+  // Workers Logs, free tier: keeps the Worker's errors, including a failed cron, for 3 days.
+  "observability": { "enabled": true },
   "routes": [{ "pattern": "traveller.philoserf.com", "custom_domain": true }],
 }

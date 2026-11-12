@@ -12,7 +12,9 @@ A Hugo site styled after the 1977 Little Black Books: the home page is the Book 
 
 ## Deployment
 
-A Cloudflare Worker serving `public/` as static assets, with no script, at the custom domain `traveller.philoserf.com`. `wrangler.jsonc` holds the Worker, its build, and its domain. Its `build.command` is the whole build, the same on a Mac (`task deploy`) and in Workers Builds.
+A Cloudflare Worker serving `public/` as static assets, with Hugo's `404.html` as the not-found page, at the custom domain `traveller.philoserf.com`. `wrangler.jsonc` holds the Worker, its build, and its domain. Its `build.command` is the whole build, the same on a Mac (`task deploy`) and in Workers Builds.
+
+A cron trigger in `wrangler.jsonc` runs `worker.js` every Monday at 09:00 UTC (05:00 Eastern in summer, 04:00 in winter). It POSTs the Worker's own deploy hook, so Workers Builds rebuilds the site and a future-dated post goes live within a week of its date. That script is the Worker's only code: requests are served from `public/`, and one matching no file is handed straight back to asset serving for the 404 page.
 
 ### Cloudflare settings
 
@@ -22,8 +24,9 @@ These live only in Cloudflare, so restore them by hand if the Worker is ever rec
 - **Production branch** `main`, deploy command `bunx wrangler deploy`.
 - **Non-production branches** on, deploy command `bunx wrangler versions upload`.
 - **Build variable** `HUGO_VERSION=latest` on both.
+- **Deploy hook** "Monday rebuild" on `main`. Its URL is the Worker secret `DEPLOY_HOOK`, which `worker.js` POSTs on the cron. To replace it, create a hook under Settings → Builds → Deploy Hooks, pipe its URL to `bunx wrangler secret put DEPLOY_HOOK`, and delete the old hook.
 
-On a fresh account, run `task deploy` once to create the Worker and attach the domain, then connect Builds. The domain attaches only when no other DNS record holds the hostname.
+On a fresh account, run `task deploy` once to create the Worker and attach the domain, then connect Builds and set `DEPLOY_HOOK`. Until the secret exists, the cron fails and nothing else does. The domain attaches only when no other DNS record holds the hostname.
 
 ## Disclaimer
 
