@@ -17,7 +17,7 @@
 
 {{ define "main" }}
   <article>
-    <header class="article-head">
+    <header>
       {{ with .Params.eyebrow }}<p class="eyebrow">{{ . }}</p>{{ end }}
       <h1>{{ .Title }}</h1>
       {{ with .Description }}<p class="deck">{{ . }}</p>{{ end }}

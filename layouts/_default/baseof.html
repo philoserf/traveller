@@ -27,8 +27,12 @@
   <meta name="twitter:description" content="{{ $description }}">
   <meta name="twitter:image" content="{{ $ogImage }}">
 
+  {{ if .IsHome }}
+  <meta name="theme-color" content="#000000">
+  {{ else }}
   <meta name="theme-color" content="{{ .Site.Params.themeColor.light }}" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="{{ .Site.Params.themeColor.dark }}" media="(prefers-color-scheme: dark)">
+  {{ end }}
 
   <link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">
@@ -39,24 +43,24 @@
 
   {{ block "head" . }}{{ end }}
 </head>
-<body>
+<body{{ if .IsHome }} class="cover-page"{{ end }}>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header>
-    <nav class="primary-nav">
-      <div class="nav-brand">
-        <a href="{{ "/" | relURL }}" class="wordmark" aria-label="{{ .Site.Title }} — home">{{ .Site.Title }}</a>
-      </div>
-      <div class="nav-links">
-        {{ range .Site.Menus.main }}
-        {{ $active := or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) }}
-        <a href="{{ .URL }}" class="nav-link{{ if $active }} active{{ end }}">{{ .Name }}</a>
-        {{ end }}
-      </div>
-    </nav>
-  </header>
-  <main id="main" class="{{ block "main-class" . }}prose{{ end }}">{{ block "main" . }}{{ end }}</main>
-  <footer>
-    <p>&copy; {{ with .Site.Params.since }}{{ . }}&ndash;{{ end }}{{ now.Format "2006" }} {{ .Site.Params.author }} &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="license">CC BY-NC-SA 4.0</a></p>
-  </footer>
+  {{ if .IsHome }}
+  {{ block "main" . }}{{ end }}
+  {{ else }}
+  <div class="page">
+    <header class="page-head">
+      <a href="{{ "/" | relURL }}" aria-label="{{ .Site.Title }} — home">{{ .Site.Title }}</a>
+      {{ with .Site.Menus.main }}
+      <nav>
+        {{ range . }}<a href="{{ .URL }}"{{ if or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) }} aria-current="page"{{ end }}>{{ .Name }}</a>{{ end }}
+      </nav>
+      {{ end }}
+    </header>
+    <main id="main" class="prose">{{ block "main" . }}{{ end }}</main>
+    {{/* The folio: an interior page is numbered by its place among the regular pages by weight, or sets its own (404.html does). */}}
+    <footer class="folio">&ndash;{{ block "folio" . }}{{ $n := 1 }}{{ range $i, $p := .Site.RegularPages.ByWeight }}{{ if eq $p $ }}{{ $n = add $i 1 }}{{ end }}{{ end }}{{ $n }}{{ end }}&ndash;</footer>
+  </div>
+  {{ end }}
 </body>
 </html>
