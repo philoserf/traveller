@@ -1,6 +1,6 @@
 ---
 title: Disclaimer
-description: "Mongoose Publishing’s fan-site notice, and how this unofficial site uses Traveller material."
+description: "Who owns Traveller, and how this site uses it."
 lastmod: 2026-11-12
 ---
 
