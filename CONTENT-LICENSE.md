@@ -3,7 +3,7 @@
 This section applies only to written content and media assets; it does not
 apply to source code, templates, or configuration files.
 
-© 2023–2026 Mark Ayers.
+© 2026 Mark Ayers.
 
 Licensed under
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/).

@@ -6,8 +6,7 @@ Author: {{ .Site.Params.author }}
 Base URL: {{ .Site.BaseURL }}
 
 ## Tools
-
-{{- range .Site.Params.home.tools }}
+{{ range .Site.Params.home.tools }}
 - [{{ .repo }}](https://github.com/philoserf/{{ .repo }}): {{ .edition }}. {{ .note }}
 {{- end }}
 
