@@ -14,7 +14,6 @@ All commands use Task (`Taskfile.yml`). `task check` is the gate: the two Hugo p
 - **Home page**: `layouts/index.html` renders `params.home.tools`, linking each `repo` to `github.com/philoserf/<repo>`. `layouts/index.llms.txt` renders the same list. Add a tool by adding an entry there.
 - **Pages**: a markdown file under `content/` renders with `layouts/_default/single.html`. Add a `menus.main` entry in `hugo.yaml` to put it in the nav.
 - **Theme colors**: `params.themeColor` must match `--background-color` in `assets/css/style.css`.
-- `style.css` still holds rules for home-page sections this site dropped (featured, recent, motto, archive); they are unused, not load-bearing.
 
 ## Deployment
 
