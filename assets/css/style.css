@@ -283,12 +283,20 @@ main.prose {
 }
 
 .cover {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
   min-height: 92vh;
   min-height: 92svh;
   padding: 0 0 3rem;
+}
+
+/* Book 1 sets its red rule 53% of the way down the cover. The title block
+   fills the screen down to that line and sits on it, so the rule lands in
+   the same place on any screen, and grows only if the title needs more. */
+.cover > .cover-inner:first-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 53vh;
+  min-height: 53svh;
 }
 
 .cover-inner,
