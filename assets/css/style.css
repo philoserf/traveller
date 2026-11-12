@@ -1,5 +1,5 @@
 /* ============================================================
-   Traveller tools — Little Black Book theme
+   A Referee’s Notebook — Little Black Book theme
    The home page is the 1977 Book 1 cover: black, white italic
    Optima, a full-width red rule, red TRAVELLER. Every other page is
    an interior page: white paper, Univers, justified text, bold
@@ -226,6 +226,44 @@ main.prose {
   border-top: 1px solid var(--rule);
 }
 
+/* The archive, set like the LBB contents page: title, dotted leader, date. */
+.prose .toc {
+  margin: 0;
+  list-style: none;
+}
+
+.prose .toc li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin: 0 0 0.35rem;
+}
+
+.toc a {
+  text-decoration: none;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
+.toc .leader {
+  flex: 1;
+  min-width: 1rem;
+  border-bottom: 2px dotted var(--ink);
+  transform: translateY(-0.25em);
+}
+
+.prose .toc time {
+  display: inline;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The folio: a centred page number, –3–. */
 .folio {
   padding: 1rem 0 0.5rem;
@@ -305,7 +343,7 @@ main.prose {
   line-height: 1.25;
 }
 
-/* The tool list, below the fold, in the cover's own type. */
+/* The newest posts, below the fold, in the cover's own type. */
 .contents {
   padding-top: 4rem;
   padding-bottom: 4rem;
@@ -325,8 +363,7 @@ main.prose {
 
 .contents li {
   display: grid;
-  grid-template-columns: minmax(9rem, 14rem) 1fr;
-  gap: 0.4rem 2rem;
+  gap: 0.5rem;
   padding: 1.4rem 0;
   border-bottom: 1px solid #333;
 }
@@ -355,7 +392,17 @@ main.prose {
 }
 
 .contents li p {
+  max-width: 42rem;
   color: #c8c8c8;
+}
+
+.contents-more {
+  margin-top: 1.5rem;
+  font-style: italic;
+}
+
+.contents-more a:hover {
+  color: var(--cover-red);
 }
 
 /* "Game Designers' Workshop", in red at the foot of the cover. */
@@ -377,10 +424,6 @@ main.prose {
   .cover-mark,
   .cover-tagline {
     margin-left: 12%;
-  }
-
-  .contents li {
-    grid-template-columns: 1fr;
   }
 }
 

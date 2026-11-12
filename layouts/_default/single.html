@@ -1,8 +1,9 @@
 {{ define "head" }}
+{{ $isPost := eq .Section "posts" }}
 {{ $desc := partial "description.html" . }}
 {{ $jsonld := dict
   "@context" "https://schema.org"
-  "@type" "WebPage"
+  "@type" (cond $isPost "BlogPosting" "WebPage")
   "headline" .Title
   "name" .Title
   "url" .Permalink
@@ -11,6 +12,7 @@
   "author" (dict "@type" "Person" "name" .Site.Params.author)
   "inLanguage" .Site.Language.Locale
 }}
+{{ if and $isPost (not .Date.IsZero) }}{{ $jsonld = merge $jsonld (dict "datePublished" (.Date.Format "2006-01-02")) }}{{ end }}
 {{ if not .Lastmod.IsZero }}{{ $jsonld = merge $jsonld (dict "dateModified" (.Lastmod.Format "2006-01-02")) }}{{ end }}
 <script type="application/ld+json">{{ $jsonld | jsonify (dict "indent" "  ") | safeJS }}</script>
 {{ end }}
@@ -21,7 +23,9 @@
       {{ with .Params.eyebrow }}<p class="eyebrow">{{ . }}</p>{{ end }}
       <h1>{{ .Title }}</h1>
       {{ with .Description }}<p class="deck">{{ . }}</p>{{ end }}
-      {{ if and .Params.showUpdated (not .Lastmod.IsZero) }}
+      {{ if eq .Section "posts" }}
+        <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 2, 2006" }}</time>
+      {{ else if and .Params.showUpdated (not .Lastmod.IsZero) }}
         <time datetime="{{ .Lastmod.Format "2006-01-02" }}">Updated {{ .Lastmod.Format "January 2, 2006" }}</time>
       {{ end }}
     </header>

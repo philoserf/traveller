@@ -5,13 +5,14 @@
 {{ end }}
 
 {{/* The 1977 Book 1 cover: two white lines, the red rule, red TRAVELLER and
-     its tagline, the publisher in red at the foot. The tool list sits below
+     its tagline, the publisher in red at the foot. The newest posts sit below
      the fold, between the cover and its foot. */}}
 {{ define "main" }}
+{{ $posts := (where .Site.RegularPages "Section" "posts").ByDate.Reverse }}
 <main id="main">
   <section class="cover">
     <div class="cover-inner">
-      <h1><span>{{ .Site.Title }}</span><span>{{ .Site.Params.home.headline }}</span></h1>
+      <h1><span>{{ .Site.Params.home.kicker }}</span><span>{{ .Site.Title }}</span></h1>
     </div>
     <hr class="cover-rule">
     <div class="cover-inner">
@@ -20,21 +21,24 @@
     </div>
   </section>
 
-  <section class="contents" aria-label="The tools">
+  <section class="contents" aria-label="Posts">
     <p>{{ .Site.Params.description }}</p>
+    {{ with $posts }}
     <ol>
-      {{ range .Site.Params.home.tools }}
+      {{ range first 10 . }}
       <li>
-        <h2><a href="https://github.com/philoserf/{{ .repo }}">{{ .repo }}</a><span class="edition">{{ .edition }}</span></h2>
-        <p>{{ .note }}</p>
+        <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a><time class="edition" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 2, 2006" }}</time></h2>
+        <p>{{ partial "description.html" . }}</p>
       </li>
       {{ end }}
     </ol>
+    {{ if gt (len .) 10 }}<p class="contents-more"><a href="{{ "posts/" | relURL }}">All posts</a></p>{{ end }}
+    {{ end }}
   </section>
 </main>
 
 <footer class="cover-foot">
   {{ .Site.Params.publisher }}
-  <small>&copy; {{ now.Format "2006" }} {{ .Site.Params.author }} &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="license">CC BY-NC-SA 4.0</a> &middot; Traveller is a registered trademark of Mongoose Publishing. Unofficial fan tools, not affiliated with or endorsed by Mongoose Publishing. <a href="{{ "disclaimer/" | relURL }}">Full disclaimer</a>.</small>
+  <small>&copy; {{ now.Format "2006" }} {{ .Site.Params.author }} &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="license">CC BY-NC-SA 4.0</a> &middot; <a href="{{ "index.xml" | relURL }}">RSS</a> &middot; Traveller is a registered trademark of Mongoose Publishing. An unofficial fan site, not affiliated with or endorsed by Mongoose Publishing. <a href="{{ "disclaimer/" | relURL }}">Full disclaimer</a>.</small>
 </footer>
 {{ end }}

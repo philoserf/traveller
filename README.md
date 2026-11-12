@@ -1,6 +1,6 @@
 # traveller
 
-The site at [traveller.philoserf.com](https://traveller.philoserf.com/): a home page for the philoserf Traveller tools ([t5chargen](https://github.com/philoserf/t5chargen), [ctchargen](https://github.com/philoserf/ctchargen), [ctworldgen](https://github.com/philoserf/ctworldgen), [cschargen](https://github.com/philoserf/cschargen)).
+The site at [traveller.philoserf.com](https://traveller.philoserf.com/): _A Referee’s Notebook_, campaigns and commentary for the 1977 Classic Traveller rules.
 
 A Hugo site styled after the 1977 Little Black Books: the home page is the Book 1 cover, and any other page is an interior page. Scaffolded from [philoserf/sandbox](https://github.com/philoserf/sandbox).
 
@@ -8,7 +8,7 @@ A Hugo site styled after the 1977 Little Black Books: the home page is the Book 
 
 `task setup` installs the toolchain from `Brewfile`. Then `task dev` serves locally, `task check` runs the strict build in memory, and `task deploy` builds and deploys by hand.
 
-The tool list is `params.home.tools` in `hugo.yaml`. Each entry's `repo` is a `philoserf` GitHub repo name.
+`task new:post -- <slug>` starts a post in `content/posts/`. Posts start as drafts; remove `draft: true` to publish.
 
 ## Deployment
 

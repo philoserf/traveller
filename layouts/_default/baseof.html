@@ -36,6 +36,7 @@
 
   <link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">
+  {{ with .Site.Home.OutputFormats.Get "RSS" }}<link rel="alternate" type="application/rss+xml" title="{{ $.Site.Title }}" href="{{ .Permalink }}">{{ end }}
   <link rel="manifest" href="{{ "site.webmanifest" | relURL }}">
 
   {{ $style := resources.Get "css/style.css" | minify | fingerprint }}
@@ -58,8 +59,15 @@
       {{ end }}
     </header>
     <main id="main" class="prose">{{ block "main" . }}{{ end }}</main>
-    {{/* The folio: an interior page is numbered by its place among the regular pages by weight, or sets its own (404.html does). */}}
-    <footer class="folio">&ndash;{{ block "folio" . }}{{ $n := 1 }}{{ range $i, $p := .Site.RegularPages.ByWeight }}{{ if eq $p $ }}{{ $n = add $i 1 }}{{ end }}{{ end }}{{ $n }}{{ end }}&ndash;</footer>
+    {{/* The folio, a centred page number. A post is numbered by its place among
+         the posts, oldest first, so its number never changes; another page
+         takes front matter folio, or has none. A template can override the
+         whole block, as 404.html and list.html do. */}}
+    {{ block "folio" . }}
+    {{ $n := .Params.folio }}
+    {{ if eq .Section "posts" }}{{ range $i, $p := (where .Site.RegularPages "Section" "posts").ByDate }}{{ if eq $p $ }}{{ $n = add $i 1 }}{{ end }}{{ end }}{{ end }}
+    {{ with $n }}<footer class="folio">&ndash;{{ . }}&ndash;</footer>{{ end }}
+    {{ end }}
   </div>
   {{ end }}
 </body>
