@@ -1,0 +1,3 @@
+{{- /* Renders DISCLAIMER.md from the repo root, so the notice has one copy.
+     Its "# Disclaimer" heading is dropped: the page title already says it. */ -}}
+{{- readFile "DISCLAIMER.md" | replaceRE `^# .*\n+` "" | .Page.RenderString (dict "display" "block") -}}

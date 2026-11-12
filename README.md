@@ -25,6 +25,10 @@ These live only in Cloudflare, so restore them by hand if the Worker is ever rec
 
 On a fresh account, run `task deploy` once to create the Worker and attach the domain, then connect Builds. The domain attaches only when no other DNS record holds the hostname.
 
+## Disclaimer
+
+Traveller is a registered trademark of Mongoose Publishing. This is an unofficial fan site, not affiliated with or endorsed by Mongoose Publishing. See [DISCLAIMER.md](./DISCLAIMER.md) for the full notice.
+
 ## License
 
 - **Code / config**: [MIT](./LICENSE).
