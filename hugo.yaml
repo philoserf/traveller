@@ -15,7 +15,6 @@ taxonomies: {} # intentionally empty to disable tags and categories
 
 params:
   author: "Mark Ayers"
-  publisher: "philoserf"
   description: "Campaigns and commentary for the 1977 Classic Traveller rules: the Little Black Books before the Official Traveller Universe, with some notes on what came after."
   # Interior paper hexes; must match --paper in assets/css/style.css
   themeColor:
@@ -23,10 +22,12 @@ params:
     dark: "#161616"
 
   # The cover: kicker and site title above the red rule, tagline below
-  # TRAVELLER, publisher at the foot.
+  # TRAVELLER, and at the foot the opening of the Free Trader Beowulf
+  # mayday, where Book 1 prints its publisher.
   home:
     kicker: "Supplement 0"
     tagline: "Campaigns and Commentary for the 1977 Rules"
+    signal: "This is Free Trader Beowulf, calling anyone… Mayday, Mayday…"
 
 mediaTypes:
   application/manifest+json:

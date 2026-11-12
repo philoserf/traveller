@@ -405,12 +405,19 @@ main.prose {
   color: var(--cover-red);
 }
 
-/* "Game Designers' Workshop", in red at the foot of the cover. */
+/* Where Book 1 prints "Game Designers' Workshop" in red: the Beowulf mayday. */
 .cover-foot {
   padding-top: 2rem;
   padding-bottom: 2.5rem;
+}
+
+.cover-signal {
+  max-width: 44rem;
+  text-wrap: balance;
   color: var(--cover-red);
   font-size: 1.25rem;
+  font-style: italic;
+  line-height: 1.35;
 }
 
 .cover-foot small {
