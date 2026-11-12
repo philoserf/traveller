@@ -1,0 +1,15 @@
+# Generated files by hugo
+/public/
+/resources/_gen/
+
+# Temporary lock file while building
+/.hugo_build.lock
+
+# Task incremental-build cache
+/.task/
+
+# lychee link-checker cache (written when running lychee locally)
+/.lycheecache
+
+# Wrangler local state
+/.wrangler/
