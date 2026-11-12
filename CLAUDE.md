@@ -15,7 +15,7 @@ All commands use Task (`Taskfile.yml`). `task check` is the gate: the two Hugo p
 - **Home page**: `layouts/index.html` is the cover. Its two white lines are `params.home.kicker` and the site title, its tagline `params.home.tagline`; the ten newest posts sit below the fold. `static/og-image.png` is a 1200×630 rendering of the cover lines, so redraw it when they change.
 - **Posts**: `task new:post -- <slug>` scaffolds `content/posts/<slug>.md` from `archetypes/posts.md` (`date` only, no `lastmod`; `enableGitInfo` backfills it). `layouts/_default/list.html` renders the archive like the LBB contents page, with dotted leaders.
 - **Pages**: a markdown file under `content/` renders with `layouts/_default/single.html`. Add a `menus.main` entry in `hugo.yaml` to put it in the nav.
-- **Disclaimer**: `content/disclaimer.md` holds the full Mongoose Publishing fan notice, worded as in ctchargen's README; the cover footer carries the short form and links to it.
+- **Disclaimer**: `DISCLAIMER.md` at the root is the one copy of the full Mongoose Publishing fan notice, worded as in ctchargen's README. `content/disclaimer.md` renders it through the `disclaimer` shortcode; the cover footer and `README.md` carry the short form.
 - **Theme colors**: `params.themeColor` must match `--paper` in `assets/css/style.css`; the home page's theme-color meta in `baseof.html` must match `--cover-black`.
 
 ## Deployment
