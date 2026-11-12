@@ -1,0 +1,58 @@
+baseURL: https://traveller.philoserf.com/
+locale: en-us
+title: Traveller tools
+enableGitInfo: true
+frontmatter:
+  lastmod: [lastmod, ":git", date, publishDate]
+enableRobotsTXT: true
+disableKinds: [rss, section, taxonomy, term]
+
+params:
+  author: "Mark Ayers"
+  description: "Rules-accurate generators for the Traveller role-playing game: command-line tools that roll characters and worlds by the book, seeded so every result can be replayed."
+  # Warm-paper background hexes; must match --background-color in assets/css/style.css
+  themeColor:
+    light: "#dfe7eb"
+    dark: "#1c272d"
+
+  home:
+    headline: "Traveller, by the book"
+    toolsIntro: "Each tool follows one edition's printed rules, cites the page it implements, and replays any result from its seed."
+    # Home-page cards, in display order. repo is the philoserf GitHub repo name.
+    tools:
+      - repo: t5chargen
+        edition: Traveller5
+        note: "Characters through the full v5.10 lifepath, with deterministic replay and a generation event log."
+      - repo: ctchargen
+        edition: Classic Traveller
+        note: "Characters from Books 1–3, following the 1977 text."
+      - repo: ctworldgen
+        edition: Classic Traveller
+        note: "Subsectors and sectors from Book 3's Worlds chapter, as a referee's Markdown listing or a printable PDF booklet with the hex map drawn."
+      - repo: cschargen
+        edition: Clement Sector
+        note: "Characters for the Clement Sector setting."
+
+mediaTypes:
+  application/manifest+json:
+    suffixes: [webmanifest]
+
+outputFormats:
+  llms:
+    name: llms
+    mediaType: text/plain
+    baseName: llms
+    isPlainText: true
+    notAlternative: true
+  manifest:
+    name: manifest
+    mediaType: application/manifest+json
+    baseName: site
+    isPlainText: true
+    notAlternative: true
+
+outputs:
+  home:
+    - html
+    - llms
+    - manifest

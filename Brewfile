@@ -1,0 +1,8 @@
+brew "hugo"
+brew "go-task"
+brew "bun"
+brew "gh"
+brew "imagemagick"
+brew "pngquant"
+brew "potrace"
+brew "lychee"

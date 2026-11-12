@@ -1,0 +1,15 @@
+# {{ .Site.Title }}
+
+> {{ .Site.Params.description }}
+
+Author: {{ .Site.Params.author }}
+Base URL: {{ .Site.BaseURL }}
+
+## Tools
+{{ range .Site.Params.home.tools }}
+- [{{ .repo }}](https://github.com/philoserf/{{ .repo }}): {{ .edition }}. {{ .note }}
+{{- end }}
+
+## Feeds
+
+- [Sitemap]({{ "sitemap.xml" | absURL }}): All URLs

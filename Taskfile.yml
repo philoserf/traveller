@@ -1,0 +1,87 @@
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task: help
+
+  help:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install required tools with Homebrew
+    # Up to date only when every Brewfile entry is installed; a checksum of the
+    # Brewfile would miss tools removed from the machine.
+    status:
+      - brew bundle check --file=Brewfile --no-upgrade
+    cmds:
+      - brew bundle
+    platforms: [darwin]
+
+  dev:
+    desc: Start development server with drafts
+    deps: [setup]
+    cmds:
+      - hugo server -D --disableFastRender --baseURL http://localhost:1313/
+
+  build:
+    desc: Build site for production
+    deps: [setup]
+    cmds:
+      # No sources/generates: the output also depends on git history (enableGitInfo).
+      # rm -rf because Hugo never prunes public/
+      - rm -rf public
+      - hugo --gc --minify --panicOnWarning
+
+  deploy:
+    desc: Build and deploy by hand (Workers Builds deploys every push to main once connected)
+    cmds:
+      # wrangler.jsonc's build.command validates and builds before uploading.
+      - |
+        if token=$(security find-generic-password -s cloudflare-api-token -w 2>/dev/null); then
+          export CLOUDFLARE_API_TOKEN="$token"
+        fi
+        bunx wrangler deploy
+
+  links:
+    desc: Check external links and anchors in public/ (run task build first)
+    cmds:
+      - lychee --cache --max-cache-age 2d --root-dir "$PWD/public" --include-fragments --no-progress 'public/**/*.html'
+
+  clean:
+    desc: Clean up generated files
+    cmds:
+      - rm -rf public resources
+
+  check:
+    desc: Run build.command's validate and strict passes in memory
+    deps: [setup]
+    cmds:
+      # The two Hugo passes of wrangler.jsonc's build.command, without writing public/.
+      - hugo --buildFuture -D --renderToMemory --gc --panicOnWarning
+      - hugo --gc --minify --renderToMemory --panicOnWarning
+
+  new:
+    desc: Create a new content file
+    deps: [setup]
+    cmds:
+      - hugo new {{.CLI_ARGS}}
+    silent: true
+
+  format:
+    desc: Format code with bun fmt (excluding Hugo templates)
+    cmds:
+      - bun fmt .
+
+  optimize-images:
+    desc: Optimize PNG and JPEG images in static/
+    deps: [setup]
+    cmds:
+      - |
+        echo "Optimizing PNG images..."
+        find static -name "*.png" -exec pngquant --force --ext .png --quality=65-80 {} \;
+        echo "Optimizing JPEG images..."
+        find static \( -name "*.jpg" -o -name "*.jpeg" \) -exec mogrify -strip -interlace Plane -quality 85 {} \;
+        echo "Image optimization complete."
