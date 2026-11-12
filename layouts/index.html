@@ -5,7 +5,8 @@
 {{ end }}
 
 {{/* The 1977 Book 1 cover: two white lines, the red rule, red TRAVELLER and
-     its tagline, the publisher in red at the foot. The newest posts sit below
+     its tagline. Where Book 1 prints its publisher, the foot carries the
+     opening of the Free Trader Beowulf mayday. The newest posts sit below
      the fold, between the cover and its foot. */}}
 {{ define "main" }}
 {{ $posts := (where .Site.RegularPages "Section" "posts").ByDate.Reverse }}
@@ -38,7 +39,7 @@
 </main>
 
 <footer class="cover-foot">
-  {{ .Site.Params.publisher }}
+  <p class="cover-signal">{{ .Site.Params.home.signal }}</p>
   <small>&copy; {{ now.Format "2006" }} {{ .Site.Params.author }} &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="license">CC BY-NC-SA 4.0</a> &middot; <a href="{{ "index.xml" | relURL }}">RSS</a> &middot; Traveller is a registered trademark of Mongoose Publishing. An unofficial fan site, not affiliated with or endorsed by Mongoose Publishing. <a href="{{ "disclaimer/" | relURL }}">Full disclaimer</a>.</small>
 </footer>
 {{ end }}
