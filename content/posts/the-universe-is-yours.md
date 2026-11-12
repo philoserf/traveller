@@ -31,7 +31,7 @@ TK: what was gained and what was lost.
 
 ## Other universes: the ATU conversation
 
-The community has its own vocabulary for this. The Traveller Wiki defines the OTU, the _Official Traveller Universe_, as "Traveller as published," and notes that because so many alternate timelines now exist, the term "now tends to refer to the original Third Imperium setting from the years (1100 to 1117)." An ATU, an _Alternate Traveller Universe_, is any setting that departs from it. GURPS Traveller is the best-known, branching from the official timeline shortly before 1116. And IMTU, _In My Traveller Universe_, names the oldest tradition of all: a referee's own customized setting and rules.
+The community has its own vocabulary for this. The Traveller Wiki defines the OTU, the _Official Traveller Universe_, as "Traveller as published," and notes that because so many alternate timelines now exist, the term "now tends to refer to the original Third Imperium setting from the years (1100 to 1117)." An ATU, an _Alternate Traveller Universe_, is any setting that departs from it. GURPS Traveller is the best-known, branching from the official timeline shortly before 1116. Some ATUs share no history with the Imperium at all. The Clement Sector, which John Watts and Matt Adams of Gypsy Knights Games (now Independence Games) first published for Mongoose's first edition and later moved to the Cepheus Engine, starts from Earth itself. In 2210 a wormhole is found leading to the far side of the galaxy; in 2331 it collapses, stranding the colonies; play begins in 2342. Its authors had called it simply their "Alternative Traveller Universe" before giving it a name. And IMTU, _In My Traveller Universe_, names the oldest tradition of all: a referee's own customized setting and rules.
 
 Seen from 1977, IMTU is not a deviation. It is where the game began.
 
@@ -59,4 +59,5 @@ TK: why Far Home matters to me.
 - Marc Miller, interviewed by Anders Blixt, _Fenix_ #1 (2004); English translation by Timothy Collinson, [_Freelance Traveller_](https://freelancetraveller.com/features/characters/fenixinterview.html), July/August 2022.
 - [Interview with Marc Miller](https://stargazersworld.com/?p=13772), Stargazer's World, May 15, 2017.
 - [Setting](https://wiki.travellerrpg.com/Setting) (OTU, ATU, IMTU) and [Foreven Sector/meta](https://wiki.travellerrpg.com/Foreven_Sector/meta), Traveller Wiki.
+- [Clement Sector](https://freelancetraveller.com/features/reviews/gypsyknights/clement.html), review, _Freelance Traveller_, June 2013; [Gypsy Knights Games](https://wiki.travellerrpg.com/Gypsy_Knights_Games), Traveller Wiki; dates from the publisher's [setting description](https://drosi.de/info/traveller-clement-sector-x78.html).
 - [Far Home Sector](https://wiki.travellerrpg.com/Far_Home_Sector) and [Last Armada](https://wiki.travellerrpg.com/Last_Armada), Traveller Wiki; sector coordinates from [Traveller Map](https://travellermap.com/).
