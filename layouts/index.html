@@ -4,27 +4,37 @@
 <script type="application/ld+json">{{ $website | jsonify (dict "indent" "  ") | safeJS }}</script>
 {{ end }}
 
-{{ define "main-class" }}home-main{{ end }}
-
+{{/* The 1977 Book 1 cover: two white lines, the red rule, red TRAVELLER and
+     its tagline, the publisher in red at the foot. The tool list sits below
+     the fold, between the cover and its foot. */}}
 {{ define "main" }}
-  <section class="hero">
-    <div class="hero-text">
-      <p class="eyebrow">Tools for referees and players</p>
-      <h1>{{ .Site.Params.home.headline }}</h1>
-      <p class="hero-copy">{{ .Site.Params.description }}</p>
+<main id="main">
+  <section class="cover">
+    <div class="cover-inner">
+      <h1><span>{{ .Site.Title }}</span><span>{{ .Site.Params.home.headline }}</span></h1>
     </div>
-    <img class="hero-logo" src="{{ "/favicon.svg" | relURL }}" alt="" width="200" height="200" aria-hidden="true">
+    <hr class="cover-rule">
+    <div class="cover-inner">
+      <p class="cover-mark" aria-hidden="true">Traveller</p>
+      <p class="cover-tagline">{{ .Site.Params.home.tagline }}</p>
+    </div>
   </section>
 
-  <section class="start-here">
-    <div class="start-intro">
-      <h2>The tools</h2>
-      <p>{{ .Site.Params.home.toolsIntro }}</p>
-    </div>
-    <div class="start-grid">
-      {{ range $index, $tool := .Site.Params.home.tools }}
-        <article><span>{{ printf "%02d" (add $index 1) }}</span><div><h3><a href="https://github.com/philoserf/{{ $tool.repo }}">{{ $tool.repo }}</a></h3><p><strong>{{ $tool.edition }}.</strong> {{ $tool.note }}</p></div></article>
+  <section class="contents" aria-label="The tools">
+    <p>{{ .Site.Params.description }}</p>
+    <ol>
+      {{ range .Site.Params.home.tools }}
+      <li>
+        <h2><a href="https://github.com/philoserf/{{ .repo }}">{{ .repo }}</a><span class="edition">{{ .edition }}</span></h2>
+        <p>{{ .note }}</p>
+      </li>
       {{ end }}
-    </div>
+    </ol>
   </section>
+</main>
+
+<footer class="cover-foot">
+  {{ .Site.Params.publisher }}
+  <small>&copy; {{ now.Format "2006" }} {{ .Site.Params.author }} &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="license">CC BY-NC-SA 4.0</a> &middot; Traveller is a trademark of Far Future Enterprises. Not affiliated.</small>
+</footer>
 {{ end }}

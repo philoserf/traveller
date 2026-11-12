@@ -1,56 +1,45 @@
 /* ============================================================
-   philoserf — Alpine theme
-   Base styles first, then page components (home, article).
-   The header wordmark is rendered by baseof.html from .Site.Title.
+   Traveller tools — Little Black Book theme
+   The home page is the 1977 Book 1 cover: black, white italic
+   Optima, a full-width red rule, red TRAVELLER. Every other page is
+   an interior page: white paper, Univers, justified text, bold
+   underlined caps for headings, a centred folio at the foot.
    ============================================================ */
 
 /* --- Tokens --- */
 
 :root {
-  /* Color — alpine: snow, slate, and denim. The background hexes are
-     mirrored outside CSS via params.themeColor in hugo.yaml (theme-color
-     metas, webmanifest) — keep them in sync when retinting. */
-  --primary-color: #455a76;
-  /* Hover shifts away from the resting link color: darker on the light
-     scheme, brighter on the dark one — named by role, not lightness */
-  --link-hover: #344458;
-  --text-color: #354a54;
-  --text-muted: #4f636c;
-  --background-color: #dfe7eb;
-  --surface-color: #d2dfe8;
-  --border-color: #bcd2e3;
+  /* Cover. The black is mirrored outside CSS in the home page's
+     theme-color meta (baseof.html) — keep them in sync. */
+  --cover-black: #000;
+  --cover-white: #fff;
+  --cover-red: #e8151b;
 
-  /* Font stacks — platform-native */
-  --font-sans:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  --font-serif:
-    ui-serif, "New York", "Iowan Old Style", Charter, Georgia, Cambria, serif;
+  /* Interior. --paper is mirrored via params.themeColor in hugo.yaml
+     (theme-color metas, webmanifest) — keep them in sync. */
+  --paper: #fff;
+  --ink: #111;
+  --ink-muted: #555;
+  --rule: #111;
+
+  /* Optima is on macOS and iOS; the rest are its nearest stand-ins. */
+  --font-cover:
+    Optima, Candara, "URW Classico", "Linux Biolinum O", "Segoe UI", sans-serif;
+  /* The LBB interiors are set in Univers. */
+  --font-interior:
+    Univers, "Univers LT Std", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono:
-    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Fluid type — small viewport → large viewport */
-  --fs-base: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem); /* 17 → 19 */
-  --fs-h1: clamp(1.75rem, 1.4rem + 1.5vw, 2.25rem); /* 28 → 36 */
-  --fs-h2: clamp(1.4rem, 1.25rem + 0.75vw, 1.75rem); /* 22 → 28 */
-  --fs-h3: clamp(1.2rem, 1.1rem + 0.5vw, 1.4rem); /* 19 → 22 */
-  --fs-h4: clamp(1.1rem, 1.05rem + 0.25vw, 1.2rem); /* 18 → 19 */
-  --fs-small: 0.85rem;
-
-  /* Page shell width; each <main> class sets its own measure */
-  --measure-shell: 70rem;
+  --measure: 40rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary-color: #88b2d8;
-    --link-hover: #acc9e4;
-    --text-color: #dfe7eb;
-    --text-muted: #a4adb2;
-    --background-color: #1c272d;
-    --surface-color: #27373f;
-    --border-color: #324750;
+    --paper: #161616;
+    --ink: #e6e6e6;
+    --ink-muted: #a0a0a0;
+    --rule: #e6e6e6;
   }
 }
 
@@ -63,45 +52,39 @@
 }
 
 html {
-  scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
-  font-family: var(--font-serif);
-  font-size: var(--fs-base);
-  line-height: 1.68;
-  color: var(--text-color);
-  background: var(--background-color);
-  max-width: var(--measure-shell);
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem 1.5rem;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
+  font-family: var(--font-interior);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (max-width: 640px) {
-  body {
-    padding: 1.5rem 1rem 1rem;
-  }
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
 }
 
-/* --- Skip link (keyboard a11y) --- */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
 
 .skip-link {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--primary-color);
-  color: #fff;
   padding: 0.75rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  text-decoration: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
   z-index: 100;
 }
 
@@ -110,523 +93,313 @@ body {
   top: 1rem;
 }
 
-/* --- Typography --- */
+/* ============================================================
+   Interior pages
+   ============================================================ */
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-serif);
-  line-height: 1.22;
-  font-weight: 600;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  color: var(--text-color);
-  text-wrap: balance;
-}
-
-h1 {
-  font-size: var(--fs-h1);
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-h2 {
-  font-size: var(--fs-h2);
-  margin-top: 2.2rem;
-  margin-bottom: 1rem;
-}
-
-h3 {
-  font-size: var(--fs-h3);
-  margin-top: 1.6rem;
-  margin-bottom: 0.75rem;
-}
-
-h4 {
-  font-size: var(--fs-h4);
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-p {
-  margin-bottom: 1.15rem;
-  text-wrap: pretty;
-}
-
-/* --- Links --- */
-
-a {
-  color: var(--primary-color);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.18em;
-  transition: color 0.2s;
-}
-
-a:hover {
-  color: var(--link-hover);
-}
-
-/* --- Header & nav (centered wordmark over small-caps nav) --- */
-
-header {
-  margin-bottom: 2.2rem;
-  padding: 0 0 1.4rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.primary-nav {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.nav-brand {
-  flex-shrink: 0;
-}
-
-/* Text wordmark (rendered in baseof.html) */
-.wordmark {
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text-color);
-  text-decoration: none;
-  /* ~51px tap target; negative margin cancels the padding so the
-     centered header layout is unchanged */
-  display: inline-block;
-  padding: 0.75rem 0.5rem;
-  margin: -0.75rem -0.5rem;
-}
-
-.wordmark:hover {
-  color: var(--primary-color);
-}
-
-.nav-links {
-  display: flex;
-  gap: 1.6rem;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.nav-link {
-  font-family: var(--font-sans);
-  color: var(--text-muted);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.8rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  position: relative;
-  padding: 0.75rem 0.25rem;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  transition: color 0.2s;
-}
-
-.nav-link::after {
-  content: "";
-  position: absolute;
-  bottom: 8px;
-  left: 0;
-  width: 0;
-  height: 1.5px;
-  background: var(--primary-color);
-  transition: width 0.3s ease;
-}
-
-.nav-link:hover::after,
-.nav-link.active::after {
-  width: 100%;
-}
-
-.nav-link:hover,
-.nav-link.active {
-  color: var(--primary-color);
-}
-
-/* --- Main (prose-width container) --- */
-
-main {
+.page {
+  max-width: calc(var(--measure) + 3rem);
   margin: 0 auto;
-  padding: 0.5rem 0;
-  min-height: calc(100vh - 320px);
+  padding: 2rem 1.5rem 1.5rem;
 }
 
-/* --- Code & blockquotes --- */
-
-code {
-  background: var(--surface-color);
-  padding: 0.15em 0.4em;
-  border-radius: 3px;
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-}
-
-pre {
-  background: var(--surface-color);
-  padding: 1.25rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin-bottom: 1.5rem;
-  border-left: 3px solid var(--primary-color);
-  font-size: 0.85rem;
-}
-
-pre code {
-  background: none;
-  padding: 0;
-  border-radius: 0;
-  font-size: 1em;
-}
-
-blockquote {
-  border-left: 3px solid var(--primary-color);
-  padding: 0.1rem 0 0.1rem 1.25rem;
-  margin: 0 0 1.15rem;
-  color: var(--text-muted);
-  font-size: 0.95em;
-}
-
-/* --- Lists & images --- */
-
-ul,
-ol {
-  margin-left: 1.4rem;
-  margin-bottom: 1.15rem;
-}
-
-li {
-  margin-bottom: 0.4rem;
-}
-
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 1.5rem 0;
-  border-radius: 6px;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid var(--border-color);
-  margin: 2rem 0;
-}
-
-/* --- Tables --- */
-
-.content table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.5rem 0;
-  font-size: var(--fs-small);
-  font-variant-numeric: tabular-nums;
-}
-
-.content th,
-.content td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: top;
-}
-
-.content th {
-  background: var(--surface-color);
-  font-weight: 600;
-}
-
-.content tbody tr:hover {
-  background: var(--surface-color);
-}
-
-@media (max-width: 640px) {
-  .content table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-/* --- Articles (single post) --- */
-
-article {
-  margin-bottom: 2rem;
-}
-
-/* --- Footer --- */
-
-footer {
-  margin-top: 3rem;
-  padding-top: 1.3rem;
-  padding-bottom: 1rem;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-  font-family: var(--font-sans);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-footer p {
-  margin-bottom: 0.5rem;
-}
-
-footer a {
-  color: var(--text-muted);
-}
-
-footer a:hover {
-  color: var(--primary-color);
-}
-
-/* --- Focus styles (keyboard) --- */
-
-:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-  border-radius: 3px;
-}
-
-/* --- Reduced motion --- */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* --- Print --- */
-
-@media print {
-  body {
-    max-width: 100%;
-    padding: 0;
-    font-size: 11pt;
-    background: #fff;
-    color: #000;
-  }
-
-  header,
-  footer,
-  nav {
-    display: none;
-  }
-
-  a {
-    color: inherit;
-  }
-
-  a[href]::after {
-    content: " (" attr(href) ")";
-  }
-
-  article {
-    background: none;
-    padding: 0;
-    box-shadow: none;
-  }
-}
-
-/* --- Editorial redesign --- */
-.home-main {
-  max-width: none;
-  padding-top: 0;
-}
-
-.eyebrow {
-  margin: 0 0 0.9rem;
-  color: var(--text-muted);
-  font-family: var(--font-sans);
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
   font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.hero {
-  display: flex;
-  align-items: center;
-  gap: 3rem;
-  max-width: 68rem;
-  padding: 4rem 0;
-}
-
-.hero-text {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.hero-logo {
-  flex: 0 0 auto;
-  width: clamp(9rem, 15vw, 12.5rem);
-  height: auto;
-}
-
-.hero h1 {
-  max-width: 52rem;
-  margin: 0;
-  font-size: clamp(2.5rem, 1.5rem + 3.5vw, 3.75rem); /* 40 → 60 */
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
-}
-
-.hero-copy {
-  max-width: 45rem;
-  margin: 2rem 0 0;
-  color: var(--text-muted);
-  font-size: 1.35rem;
-  line-height: 1.5;
-}
-
-/* Home-page tool list */
-.start-grid article {
-  display: grid;
-  margin-bottom: 0; /* cancel the article margin, which doubles the row gap */
-  padding: 1.2rem 0;
-  border-top: 1px solid var(--border-color);
-}
-
-.start-grid h3 a {
-  color: inherit;
+.page-head a {
   text-decoration: none;
 }
 
-.start-here {
-  display: grid;
-  grid-template-columns: minmax(14rem, 0.72fr) minmax(0, 1.55fr);
-  gap: 4.5rem;
-  padding: 4.8rem 0 5.8rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.start-intro h2 {
-  margin: 0 0 1.1rem;
-  font-size: 1.75rem;
-  font-weight: 500;
-}
-
-.start-intro > p:last-child,
-.start-grid p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.start-grid article {
-  grid-template-columns: 2.6rem 1fr;
-  gap: 1rem;
-}
-
-.start-grid article > span {
-  color: var(--text-muted);
-  font: 0.8rem var(--font-sans);
-  letter-spacing: 0.12em;
-}
-
-.start-grid h3 {
-  margin: 0 0 0.45rem;
-  font-size: 1.25rem;
-  font-weight: 500;
-}
-
-.start-grid p {
-  margin: 0;
+.page-head nav {
+  display: flex;
+  gap: 1.2rem;
 }
 
 main.prose {
-  max-width: 42rem;
-  padding: 2.5rem 0 4rem;
+  min-height: calc(100vh - 12rem);
+  padding: 3rem 0 2rem;
 }
 
-article > .article-head {
-  margin-bottom: 1.6rem;
-  padding-bottom: 1.8rem;
-  border-bottom: 1px solid var(--border-color);
+/* The light, right-aligned page title of the LBB contents page. */
+.prose h1 {
+  margin: 0 0 2.5rem;
+  font-size: clamp(2rem, 1.5rem + 2vw, 2.75rem);
+  font-weight: 300;
+  line-height: 1.1;
+  text-align: right;
 }
 
-.article-head h1 {
-  margin: 0;
-  font-size: clamp(2.125rem, 1.6rem + 1.6vw, 2.75rem); /* 34 → 44 */
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.15;
-}
-
-.article-head .deck {
-  margin: 1.1rem 0 1rem;
-  color: var(--text-muted);
-  font-size: 1.2rem;
-  line-height: 1.48;
-}
-
-.article-head time {
+.prose .deck,
+.prose time {
   display: block;
-  margin: 0 0 0.75rem;
-  color: var(--text-muted);
-  font-family: var(--font-sans);
+  margin: -1.5rem 0 2.5rem;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.prose time {
   font-size: 0.8rem;
-  letter-spacing: 0.1em;
+}
+
+/* Section heads: bold caps, underlined, as in THE REFEREE. */
+.prose h2,
+.prose h3 {
+  margin: 2rem 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
   text-transform: uppercase;
 }
 
-.content {
-  padding: 2rem 0;
-  font-size: clamp(1.08rem, 1rem + 0.25vw, 1.2rem);
-  line-height: 1.64;
+.prose h3 {
+  text-transform: none;
 }
 
-@media (max-width: 760px) {
-  .primary-nav {
-    align-items: flex-start;
+/* Running text: justified and hyphenated; paragraphs indent, not space. */
+.prose p {
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.prose p + p {
+  text-indent: 1.5em;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0.6rem 0 0.6rem 1.5rem;
+}
+
+.prose blockquote {
+  margin: 1rem 1.5rem;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.prose pre {
+  margin: 1rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  font-size: 0.85rem;
+}
+
+.prose table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.prose th,
+.prose td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  font-weight: 700;
+}
+
+.prose hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid var(--rule);
+}
+
+/* The folio: a centred page number, –3–. */
+.folio {
+  padding: 1rem 0 0.5rem;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* ============================================================
+   Cover (home page)
+   ============================================================ */
+
+.cover-page {
+  background: var(--cover-black);
+  color: var(--cover-white);
+  font-family: var(--font-cover);
+}
+
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 92vh;
+  min-height: 92svh;
+  padding: 0 0 3rem;
+}
+
+.cover-inner,
+.contents,
+.cover-foot {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+}
+
+/* "Book 1 / Characters and Combat": two white italic lines over the rule. */
+.cover h1 {
+  font-size: clamp(2.25rem, 1.4rem + 4.2vw, 4.5rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.12;
+}
+
+.cover h1 span {
+  display: block;
+}
+
+/* The red rule runs the full width of the cover, edge to edge. */
+.cover-rule {
+  height: clamp(0.4rem, 0.25rem + 0.6vw, 0.75rem);
+  margin: 0.6rem 0 0.4rem;
+  border: none;
+  background: var(--cover-red);
+}
+
+.cover-mark,
+.cover-tagline {
+  margin-left: 30%;
+}
+
+.cover-mark {
+  color: var(--cover-red);
+  font-size: clamp(3rem, 1.6rem + 7vw, 7.5rem);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cover-tagline {
+  max-width: 28rem;
+  margin-top: 0.3rem;
+  font-size: clamp(1.15rem, 0.9rem + 1.1vw, 1.75rem);
+  font-style: italic;
+  line-height: 1.25;
+}
+
+/* The tool list, below the fold, in the cover's own type. */
+.contents {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.contents > p {
+  max-width: 38rem;
+  margin-bottom: 3rem;
+  color: #c8c8c8;
+  font-size: 1.15rem;
+}
+
+.contents ol {
+  list-style: none;
+  border-top: 2px solid var(--cover-red);
+}
+
+.contents li {
+  display: grid;
+  grid-template-columns: minmax(9rem, 14rem) 1fr;
+  gap: 0.4rem 2rem;
+  padding: 1.4rem 0;
+  border-bottom: 1px solid #333;
+}
+
+.contents h2 {
+  font-size: 1.6rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.contents h2 a {
+  text-decoration: none;
+}
+
+.contents h2 a:hover {
+  color: var(--cover-red);
+}
+
+.contents .edition {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--cover-red);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.contents li p {
+  color: #c8c8c8;
+}
+
+/* "Game Designers' Workshop", in red at the foot of the cover. */
+.cover-foot {
+  padding-top: 2rem;
+  padding-bottom: 2.5rem;
+  color: var(--cover-red);
+  font-size: 1.25rem;
+}
+
+.cover-foot small {
+  display: block;
+  margin-top: 0.6rem;
+  color: #888;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .cover-mark,
+  .cover-tagline {
+    margin-left: 12%;
   }
-  .hero {
-    padding: 2rem 0 2.5rem;
+
+  .contents li {
+    grid-template-columns: 1fr;
   }
-  .hero-logo {
+}
+
+/* --- Reduced motion & print --- */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .page-head,
+  .skip-link {
     display: none;
   }
-  .start-here {
-    grid-template-columns: 1fr;
-    gap: 1.8rem;
-  }
-  main.prose {
-    padding: 1.5rem 0 3rem;
-  }
-  article > .article-head {
-    padding-bottom: 1.4rem;
-  }
-  .article-head .deck {
-    font-size: 1.08rem;
-  }
-  .content {
-    padding-top: 1.5rem;
-  }
-}
 
-@media (max-width: 480px) {
-  .primary-nav {
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-  .nav-links {
-    gap: 1rem;
+  body {
+    background: #fff;
+    color: #000;
   }
 }

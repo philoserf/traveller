@@ -2,7 +2,7 @@
 
 The site at [traveller.philoserf.com](https://traveller.philoserf.com/): a home page for the philoserf Traveller tools ([t5chargen](https://github.com/philoserf/t5chargen), [ctchargen](https://github.com/philoserf/ctchargen), [ctworldgen](https://github.com/philoserf/ctworldgen), [cschargen](https://github.com/philoserf/cschargen)).
 
-A Hugo site with hand-rolled layouts, scaffolded from [philoserf/sandbox](https://github.com/philoserf/sandbox) and trimmed to a single page: no posts, RSS, vCard, motto, math, Mermaid, or callouts.
+A Hugo site styled after the 1977 Little Black Books: the home page is the Book 1 cover, and any other page is an interior page. Scaffolded from [philoserf/sandbox](https://github.com/philoserf/sandbox).
 
 ## Usage
 
