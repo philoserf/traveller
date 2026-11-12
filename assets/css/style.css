@@ -1,6 +1,6 @@
 /* ============================================================
    philoserf — Alpine theme
-   Base styles first, then page components (home, archive, article).
+   Base styles first, then page components (home, article).
    The header wordmark is rendered by baseof.html from .Site.Title.
    ============================================================ */
 
@@ -366,21 +366,6 @@ article {
   margin-bottom: 2rem;
 }
 
-/* --- Utilities --- */
-
-.latin-motto {
-  font-family: var(--font-serif);
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin: 2.4rem 0;
-}
-
-.latin-motto p {
-  letter-spacing: 0.05em;
-  margin-bottom: 0;
-}
-
 /* --- Footer --- */
 
 footer {
@@ -494,10 +479,6 @@ footer a:hover {
   height: auto;
 }
 
-.motto-logo {
-  display: none;
-}
-
 .hero h1 {
   max-width: 52rem;
   margin: 0;
@@ -515,119 +496,17 @@ footer a:hover {
   line-height: 1.5;
 }
 
-.front-grid {
+/* Home-page tool list */
+.start-grid article {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-  gap: 4.6rem;
-  padding: 3.6rem 0 5.6rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.featured-stack {
-  display: grid;
-  gap: 2rem;
-  align-self: start;
-}
-
-.featured-stack .featured {
-  margin-bottom: 0; /* cancel the single-post article margin, which doubles the stack gap */
-}
-
-.featured {
-  padding: 2.6rem;
-  background: var(--surface-color);
-  border-top: 4px solid var(--text-color);
-}
-
-.featured-stack .featured:nth-child(n + 2) {
-  border-top-width: 1px;
-  border-top-color: var(--border-color);
-}
-
-.featured-stack .featured:nth-child(n + 2) h2 {
-  font-size: clamp(1.35rem, 1.2rem + 0.8vw, 1.6rem);
-}
-
-.featured h2 {
-  margin: 0 0 1.5rem;
-  font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem);
-  font-weight: 500;
-  letter-spacing: -0.015em;
-}
-
-.featured h2 a,
-.post-row h3 a,
-.start-grid h3 a,
-.archive-row h3 a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.featured > p:not(.eyebrow) {
-  font-size: 1.1rem;
-}
-
-.meta {
-  display: flex;
-  gap: 1.1rem;
-  margin-top: 2.1rem;
-  color: var(--text-muted);
-  font: 0.8rem var(--font-sans);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  margin-bottom: 1rem;
-}
-
-.section-heading h2 {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 500;
-}
-
-.section-heading > a,
-.continue > a {
-  color: var(--primary-color);
-  font: 0.75rem var(--font-sans);
-}
-
-/* Shared list-row rhythm (homepage recent, start-here, archive) */
-.post-row,
-.start-grid article,
-.archive-row {
-  display: grid;
-  margin-bottom: 0; /* cancel the single-post article margin, which doubles the row gap */
+  margin-bottom: 0; /* cancel the article margin, which doubles the row gap */
   padding: 1.2rem 0;
   border-top: 1px solid var(--border-color);
 }
 
-.post-row {
-  grid-template-columns: 1fr auto;
-  gap: 0.2rem 1rem;
-}
-
-.post-row h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.post-row time {
-  color: var(--text-muted);
-  font: 0.8rem var(--font-sans);
-}
-
-.post-row p {
-  grid-column: 1 / -1;
-  margin: 0.3rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  line-height: 1.48;
+.start-grid h3 a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .start-here {
@@ -640,7 +519,7 @@ footer a:hover {
 
 .start-intro h2 {
   margin: 0 0 1.1rem;
-  font-size: 1.75rem; /* matches .section-heading h2 */
+  font-size: 1.75rem;
   font-weight: 500;
 }
 
@@ -670,107 +549,6 @@ footer a:hover {
 
 .start-grid p {
   margin: 0;
-}
-
-.motto {
-  padding: 3.4rem 0;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-  color: var(--text-muted);
-}
-
-.motto p {
-  margin: 0;
-  letter-spacing: 0.15em;
-  font-size: 0.9rem;
-}
-
-.archive {
-  max-width: 58rem;
-  margin: auto;
-  padding: 2.5rem 0 4rem;
-}
-
-.archive > h1 {
-  margin: 0;
-  font-size: clamp(
-    2.125rem,
-    1.6rem + 1.6vw,
-    2.75rem
-  ); /* 34 → 44, matches .article-head h1 */
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.15;
-}
-
-.archive-intro {
-  max-width: 42rem;
-  margin: 1.2rem 0 3rem;
-  color: var(--text-muted);
-  font-size: 1.2rem;
-}
-
-.archive-nav {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0 0 4.5rem;
-  padding: 1rem 0;
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  font: 0.8rem var(--font-sans);
-  letter-spacing: 0.08em;
-}
-
-.archive-nav strong:not(:first-child) {
-  margin-left: 1.5rem;
-}
-
-.archive-nav a {
-  min-width: 2.4rem;
-  padding: 0.3rem 0.5rem;
-  text-align: center;
-  border: 1px solid var(--border-color);
-  text-decoration: none;
-}
-
-.month {
-  display: grid;
-  grid-template-columns: 7.8rem 1fr;
-  gap: 1.8rem;
-  margin-top: 4.5rem;
-  scroll-margin-top: 2rem;
-}
-
-.month > h2 {
-  margin: 0;
-  color: var(--text-muted);
-  font: 0.85rem var(--font-sans);
-  letter-spacing: 0.08em;
-}
-
-.archive-row {
-  grid-template-columns: 2rem 1fr;
-  gap: 0.25rem 1.1rem;
-}
-
-.archive-row h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-}
-
-.archive-row time {
-  padding-top: 0.25rem;
-  color: var(--text-muted);
-  font: 0.8rem var(--font-sans);
-}
-
-.archive-row p {
-  margin: 0.3rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.85rem;
 }
 
 main.prose {
@@ -815,12 +593,6 @@ article > .article-head {
   line-height: 1.64;
 }
 
-.continue {
-  margin-top: 1rem;
-  padding: 1.8rem 0;
-  border-top: 1px solid var(--border-color);
-}
-
 @media (max-width: 760px) {
   .primary-nav {
     align-items: flex-start;
@@ -831,30 +603,9 @@ article > .article-head {
   .hero-logo {
     display: none;
   }
-  .motto-logo {
-    display: block;
-    width: clamp(6rem, 22vw, 8rem);
-    height: auto;
-    margin: 2rem auto 0;
-  }
-  .front-grid {
-    grid-template-columns: 1fr;
-    gap: 3rem;
-    padding: 2.6rem 0 3.8rem;
-  }
-  .featured {
-    padding: 1.8rem;
-  }
   .start-here {
     grid-template-columns: 1fr;
     gap: 1.8rem;
-  }
-  .archive {
-    padding: 1.5rem 0 3rem;
-  }
-  .month {
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
   }
   main.prose {
     padding: 1.5rem 0 3rem;
@@ -877,17 +628,5 @@ article > .article-head {
   }
   .nav-links {
     gap: 1rem;
-  }
-  .post-row {
-    grid-template-columns: 1fr;
-  }
-  .post-row p {
-    grid-column: 1;
-  }
-  .archive-nav strong:not(:first-child) {
-    margin-left: 0.5rem;
-  }
-  .archive-row {
-    grid-template-columns: 1.6rem 1fr;
   }
 }
