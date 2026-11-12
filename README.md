@@ -8,7 +8,7 @@ A Hugo site styled after the 1977 Little Black Books: the home page is the Book 
 
 `task setup` installs the toolchain from `Brewfile`. Then `task dev` serves locally, `task check` runs the strict build in memory, and `task deploy` builds and deploys by hand.
 
-`task new:post -- <slug>` starts a post in `content/posts/`. Posts start as drafts; remove `draft: true` to publish.
+`task new:post -- <slug>` starts a post in `content/posts/`. Posts start as drafts; remove `draft: true` to publish. Drafts double as the list of articles in progress: `hugo list drafts` shows them, and `task dev` renders them locally.
 
 ## Deployment
 
