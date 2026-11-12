@@ -1,40 +1,32 @@
 baseURL: https://traveller.philoserf.com/
 locale: en-us
-title: Traveller Tools
+title: A Referee’s Notebook
+# Date-only front matter is midnight here, not UTC, so a post goes live on
+# its own date rather than the evening before.
+timeZone: America/Detroit
 enableGitInfo: true
+# A hand-set lastmod beats the git date: pages set lastmod when their content
+# changes, while posts omit it and fall back to the last commit.
 frontmatter:
   lastmod: [lastmod, ":git", date, publishDate]
 enableRobotsTXT: true
-disableKinds: [rss, section, taxonomy, term]
+disableKinds: [taxonomy, term]
+taxonomies: {} # intentionally empty to disable tags and categories
 
 params:
   author: "Mark Ayers"
   publisher: "philoserf"
-  description: "Rules-accurate generators for the Traveller role-playing game: command-line tools that roll characters and worlds by the book, seeded so every result can be replayed."
+  description: "Campaigns and commentary for the 1977 Classic Traveller rules: the Little Black Books before the Official Traveller Universe, with some notes on what came after."
   # Interior paper hexes; must match --paper in assets/css/style.css
   themeColor:
     light: "#ffffff"
     dark: "#161616"
 
+  # The cover: kicker and site title above the red rule, tagline below
+  # TRAVELLER, publisher at the foot.
   home:
-    # The cover: site title and headline above the red rule, tagline below
-    # TRAVELLER, publisher at the foot.
-    headline: "By the Book"
-    tagline: "Rules-Accurate Generators for Adventure in the Far Future"
-    # Home-page cards, in display order. repo is the philoserf GitHub repo name.
-    tools:
-      - repo: t5chargen
-        edition: Traveller5
-        note: "Characters through the full v5.10 lifepath, with deterministic replay and a generation event log."
-      - repo: ctchargen
-        edition: Classic Traveller
-        note: "Characters from Books 1–3, following the 1977 text."
-      - repo: ctworldgen
-        edition: Classic Traveller
-        note: "Subsectors and sectors from Book 3's Worlds chapter, as a referee's Markdown listing or a printable PDF booklet with the hex map drawn."
-      - repo: cschargen
-        edition: Clement Sector
-        note: "Characters for the Clement Sector setting."
+    kicker: "Supplement 0"
+    tagline: "Campaigns and Commentary for the 1977 Rules"
 
 mediaTypes:
   application/manifest+json:
@@ -57,5 +49,14 @@ outputFormats:
 outputs:
   home:
     - html
+    - rss
     - llms
     - manifest
+  section:
+    - html
+
+menus:
+  main:
+    - name: Posts
+      pageRef: /posts
+      weight: 10

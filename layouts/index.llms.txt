@@ -5,11 +5,16 @@
 Author: {{ .Site.Params.author }}
 Base URL: {{ .Site.BaseURL }}
 
-## Tools
-{{ range .Site.Params.home.tools }}
-- [{{ .repo }}](https://github.com/philoserf/{{ .repo }}): {{ .edition }}. {{ .note }}
+## Posts
+{{ range (where .Site.RegularPages "Section" "posts").ByDate.Reverse }}
+- [{{ .Title }}]({{ .Permalink }}) — {{ .Date.Format "2006-01-02" }}
 {{- end }}
+
+## Pages
+
+- [Disclaimer]({{ "disclaimer/" | absURL }}): Mongoose Publishing's fan-site notice
 
 ## Feeds
 
+- [RSS]({{ "index.xml" | absURL }}): Posts
 - [Sitemap]({{ "sitemap.xml" | absURL }}): All URLs

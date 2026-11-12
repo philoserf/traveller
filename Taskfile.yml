@@ -70,6 +70,13 @@ tasks:
       - hugo new {{.CLI_ARGS}}
     silent: true
 
+  new:post:
+    desc: Create a new post
+    deps: [setup]
+    cmds:
+      - hugo new posts/{{.CLI_ARGS}}.md
+    silent: true
+
   format:
     desc: Format code with bun fmt (excluding Hugo templates)
     cmds:

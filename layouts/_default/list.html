@@ -1,0 +1,16 @@
+{{/* The posts archive, set like the LBB contents page: titles on the left,
+     dates on the right, joined by a dotted leader. */}}
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+  {{ with .Pages.ByDate.Reverse }}
+  <ol class="toc">
+    {{ range . }}
+    <li><a href="{{ .RelPermalink }}">{{ .Title }}</a><span class="leader" aria-hidden="true"></span><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time></li>
+    {{ end }}
+  </ol>
+  {{ else }}
+  <p>Nothing here yet.</p>
+  {{ end }}
+{{ end }}
+
+{{ define "folio" }}{{ end }}
