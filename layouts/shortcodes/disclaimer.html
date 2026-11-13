@@ -1,3 +1,5 @@
 {{- /* Renders DISCLAIMER.md from the repo root, so the notice has one copy.
-     Its "# Disclaimer" heading is dropped: the page title already says it. */ -}}
-{{- readFile "DISCLAIMER.md" | replaceRE `^# .*\n+` "" | .Page.RenderString (dict "display" "block") -}}
+     Its "# Disclaimer" heading is dropped: the page title already says it.
+     The copyright range ends at the build's year, so it stays current even
+     when the file's own year (what GitHub shows) is a year behind. */ -}}
+{{- readFile "DISCLAIMER.md" | replaceRE `^# .*\n+` "" | replaceRE `Copyright 1977–\d{4}` (printf "Copyright 1977–%s" (now.Format "2006")) | .Page.RenderString (dict "display" "block") -}}
