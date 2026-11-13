@@ -31,9 +31,7 @@ tasks:
     deps: [setup]
     cmds:
       # No sources/generates: the output also depends on git history (enableGitInfo).
-      # rm -rf because Hugo never prunes public/
-      - rm -rf public
-      - hugo --gc --minify --panicOnWarning
+      - bash build.sh
 
   deploy:
     desc: Build and deploy by hand (Workers Builds deploys every push to main once connected)
@@ -56,12 +54,10 @@ tasks:
       - rm -rf public resources
 
   check:
-    desc: Run build.command's validate and strict passes in memory
+    desc: Run the build's validate and strict passes in memory
     deps: [setup]
     cmds:
-      # The two Hugo passes of wrangler.jsonc's build.command, without writing public/.
-      - hugo --buildFuture -D --renderToMemory --gc --panicOnWarning
-      - hugo --gc --minify --renderToMemory --panicOnWarning
+      - bash build.sh check
 
   new:
     desc: Create a new content file

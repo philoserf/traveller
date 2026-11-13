@@ -6,7 +6,7 @@ The site at `traveller.philoserf.com`, "A Referee’s Notebook": dated posts on 
 
 ## Commands
 
-All commands use Task (`Taskfile.yml`). `task check` is the gate: the two Hugo passes of `wrangler.jsonc`'s `build.command`, in memory, with `--panicOnWarning`. There is no other test. Its first pass renders drafts and future-dated posts, so every draft must build cleanly too. `task dev` serves with drafts; `task links` runs lychee over `public/` after `task build`; `task format` runs `bun fmt`, which `.prettierignore` keeps out of `layouts/` and `archetypes/` (it can't parse Hugo templates).
+All commands use Task (`Taskfile.yml`). `task check` is the gate: `build.sh check`, the deploy build's passes in memory, with `--panicOnWarning`. There is no other test. Its first pass renders drafts and future-dated posts, so every draft must build cleanly too. `task dev` serves with drafts; `task links` runs lychee over `public/` after `task build`; `task format` runs `bun fmt`, which `.prettierignore` keeps out of `layouts/` and `archetypes/` (it can't parse Hugo templates).
 
 ## Architecture
 
@@ -20,4 +20,4 @@ All commands use Task (`Taskfile.yml`). `task check` is the gate: the two Hugo p
 
 ## Deployment
 
-A Cloudflare Worker at the custom domain `traveller.philoserf.com`, serving `public/` as static assets; `README.md` lists the settings that live only in Cloudflare. `task deploy` builds and deploys by hand. `build.command` is the whole build, on a Mac or in Workers Builds: it unshallows the clone and turns off `core.quotepath` so `enableGitInfo` dates are right, and `task check` copies its two Hugo passes, so change both together. Workers Builds deploys every push to `main` once the Builds connection exists. A Monday cron trigger runs `worker.js`, the Worker's only code, which POSTs the Worker's deploy hook (the secret `DEPLOY_HOOK`) so future-dated posts go live; its `fetch` handler only hands requests back to asset serving.
+A Cloudflare Worker at the custom domain `traveller.philoserf.com`, serving `public/` as static assets; `README.md` lists the settings that live only in Cloudflare. `task deploy` builds and deploys by hand. `build.sh` is the whole build, run by `wrangler.jsonc`'s `build.command` on a Mac or in Workers Builds, by `task build`, and in memory by `task check`: it unshallows the clone and turns off `core.quotepath` so `enableGitInfo` dates are right, then runs the drafts pass and the strict build. Workers Builds deploys every push to `main` once the Builds connection exists. A Monday cron trigger runs `worker.js`, the Worker's only code, which POSTs the Worker's deploy hook (the secret `DEPLOY_HOOK`) so future-dated posts go live; its `fetch` handler only hands requests back to asset serving.
