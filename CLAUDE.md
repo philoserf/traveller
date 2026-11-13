@@ -16,7 +16,7 @@ All commands use Task (`Taskfile.yml`). `task check` is the gate: `build.sh chec
 - **Posts**: `task new:post -- <slug>` scaffolds `content/posts/<slug>.md` from `archetypes/posts.md` (`date` only, no `lastmod`; `enableGitInfo` backfills it). `layouts/_default/list.html` renders the archive like the LBB contents page, with dotted leaders. Drafts are the backlog: nearly every post is a `draft: true` stub with `TK` placeholders under fixed `##` headings, grouped by slug prefix (`gdw-book-*`, `gdw-supplement-*`, `gdw-adventure-*`, `edition-*`, …); `hugo list drafts` lists them. Each post sets `description` (`partials/description.html` falls back to the summary, then the site description). Since the folio counts published posts by date, publish a draft with its real go-live `date`; an earlier date would renumber every post after it.
 - **Pages**: a markdown file under `content/` renders with `layouts/_default/single.html`. Add a `menus.main` entry in `hugo.yaml` to put it in the nav.
 - **Disclaimer**: `DISCLAIMER.md` at the root is the one copy of the full Mongoose Publishing fan notice, worded as in ctchargen's README. `content/disclaimer.md` renders it through the `disclaimer` shortcode; the cover footer and `README.md` carry the short form.
-- **Theme colors**: `params.themeColor` must match `--paper` in `assets/css/style.css`; the home page's theme-color meta in `baseof.html` must match `--cover-black`.
+- **Theme colors**: `params.themeColor` (`light`, `dark`, `cover`) is the one copy of the colors the browser shows: `baseof.html` sets `--paper` and `--cover-black` from it in an inline `:root` block, and the theme-color metas and webmanifest read it too. The rest of the palette lives in `assets/css/style.css`.
 
 ## Deployment
 
