@@ -16,10 +16,13 @@ taxonomies: {} # intentionally empty to disable tags and categories
 params:
   author: "Mark Ayers"
   description: "Campaigns and commentary for the 1977 Classic Traveller rules: the Little Black Books before the Official Traveller Universe, with some notes on what came after."
-  # Interior paper hexes; must match --paper in assets/css/style.css
+  # The page colors the browser shows around the site: interior paper in
+  # light and dark, and the cover black. baseof.html sets --paper and
+  # --cover-black from these, so this is their only copy.
   themeColor:
     light: "#ffffff"
     dark: "#161616"
+    cover: "#000000"
 
   # The cover: kicker and site title above the red rule, tagline below
   # TRAVELLER, and at the foot the opening of the Free Trader Beowulf

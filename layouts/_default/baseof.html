@@ -28,7 +28,7 @@
   <meta name="twitter:image" content="{{ $ogImage }}">
 
   {{ if .IsHome }}
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="{{ .Site.Params.themeColor.cover }}">
   {{ else }}
   <meta name="theme-color" content="{{ .Site.Params.themeColor.light }}" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="{{ .Site.Params.themeColor.dark }}" media="(prefers-color-scheme: dark)">
@@ -39,6 +39,14 @@
   {{ with .Site.Home.OutputFormats.Get "RSS" }}<link rel="alternate" type="application/rss+xml" title="{{ $.Site.Title }}" href="{{ .Permalink }}">{{ end }}
   <link rel="manifest" href="{{ "site.webmanifest" | relURL }}">
 
+  {{/* The colors style.css shares with the theme-color metas and the
+       webmanifest, from their one copy in params.themeColor. */}}
+  {{ with .Site.Params.themeColor }}
+  <style>
+    :root { --paper: {{ .light }}; --cover-black: {{ .cover }}; }
+    @media (prefers-color-scheme: dark) { :root { --paper: {{ .dark }}; } }
+  </style>
+  {{ end }}
   {{ $style := resources.Get "css/style.css" | minify | fingerprint }}
   <link rel="stylesheet" href="{{ $style.RelPermalink }}" integrity="{{ $style.Data.Integrity }}">
 

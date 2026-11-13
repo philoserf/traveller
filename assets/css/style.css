@@ -9,15 +9,13 @@
 /* --- Tokens --- */
 
 :root {
-  /* Cover. The black is mirrored outside CSS in the home page's
-     theme-color meta (baseof.html) — keep them in sync. */
-  --cover-black: #000;
+  /* Cover. --cover-black is set from params.themeColor.cover in
+     baseof.html, which also gives it to the theme-color meta. */
   --cover-white: #fff;
   --cover-red: #e8151b;
 
-  /* Interior. --paper is mirrored via params.themeColor in hugo.yaml
-     (theme-color metas, webmanifest) — keep them in sync. */
-  --paper: #fff;
+  /* Interior. --paper is set in baseof.html from params.themeColor.light
+     and .dark, which the theme-color metas and webmanifest also read. */
   --ink: #111;
   --ink-muted: #555;
   --rule: #111;
@@ -36,7 +34,6 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #161616;
     --ink: #e6e6e6;
     --ink-muted: #a0a0a0;
     --rule: #e6e6e6;
