@@ -30,7 +30,7 @@ On a fresh account, run `task deploy` once to create the Worker and attach the d
 
 ## Disclaimer
 
-An unofficial fan site for GDW's 1977 Classic Traveller. Traveller is a registered trademark of Mongoose Publishing; this site is not affiliated with or endorsed by them. See [DISCLAIMER.md](./DISCLAIMER.md) for the full notice.
+See [DISCLAIMER.md](./DISCLAIMER.md) for Mongoose Publishing's notice and this site's terms.
 
 ## License
 
