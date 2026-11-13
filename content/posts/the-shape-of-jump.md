@@ -1,7 +1,7 @@
 ---
 title: 'The Shape of Jump'
 description: "How Book 2's jump drive, a week in the void per jump, sets the pace of a 1977 campaign."
-date: 2026-11-12
+date: 2027-03-15
 draft: true
 ---
 

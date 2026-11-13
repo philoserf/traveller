@@ -1,7 +1,7 @@
 ---
 title: "Book 0: Introduction to Traveller"
 description: "The GDW library: Book 0, Introduction to Traveller, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-11-15
 draft: true
 ---
 

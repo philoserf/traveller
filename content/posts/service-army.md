@@ -1,7 +1,7 @@
 ---
 title: "Services: Army"
 description: "The services series: the Army as Book 1 draws it, and what that career brings to the table."
-date: 2026-11-12
+date: 2027-01-25
 draft: true
 ---
 

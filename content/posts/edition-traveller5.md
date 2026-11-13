@@ -1,7 +1,7 @@
 ---
 title: "Editions: Traveller5 (2013)"
 description: "The editions series: what Traveller5 kept from 1977, and what it changed."
-date: 2026-11-12
+date: 2027-06-28
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Adventure 11: Murder on Arcturus Station"
 description: "The GDW library: Adventure 11, Murder on Arcturus Station, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2028-05-01
 draft: true
 ---
 

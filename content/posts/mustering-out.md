@@ -1,7 +1,7 @@
 ---
 title: 'Mustering Out'
 description: "What a career leaves a character with, and why it is so often a low passage, a blade or a gun."
-date: 2026-11-12
+date: 2027-02-22
 draft: true
 ---
 

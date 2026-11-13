@@ -1,7 +1,7 @@
 ---
 title: "The Trove Beneath the Bridge"
 description: "Digest Group Publications, who holds the rights to its work now, and why the quality of that work makes the question matter."
-date: 2026-11-12
+date: 2027-04-19
 draft: true
 ---
 

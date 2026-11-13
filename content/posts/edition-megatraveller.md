@@ -1,7 +1,7 @@
 ---
 title: "Editions: MegaTraveller (1987)"
 description: "The editions series: what MegaTraveller kept from 1977, and what it changed."
-date: 2026-11-12
+date: 2027-05-17
 draft: true
 ---
 

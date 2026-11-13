@@ -1,7 +1,7 @@
 ---
 title: "Adventure 6: Expedition to Zhodane"
 description: "The GDW library: Adventure 6, Expedition to Zhodane, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-12-20
 draft: true
 ---
 

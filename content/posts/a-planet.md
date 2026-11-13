@@ -1,7 +1,7 @@
 ---
 title: "A Planet"
 description: "One world, rolled by Book 3 and written up for play."
-date: 2026-11-12
+date: 2027-03-29
 draft: true
 ---
 

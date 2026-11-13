@@ -1,7 +1,7 @@
 ---
 title: "Special Supplement 2: Exotic Atmospheres"
 description: "The GDW library: Special Supplement 2, Exotic Atmospheres, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2028-04-10
 draft: true
 ---
 

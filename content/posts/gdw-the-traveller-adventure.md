@@ -1,7 +1,7 @@
 ---
 title: "The Traveller Adventure"
 description: "The GDW library: The Traveller Adventure, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2028-04-17
 draft: true
 ---
 

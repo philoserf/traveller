@@ -1,7 +1,7 @@
 ---
 title: "Editions: Traveller: The New Era (1993)"
 description: "The editions series: what The New Era kept from 1977, and what it changed."
-date: 2026-11-12
+date: 2027-05-24
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Book 3: Worlds and Adventures"
 description: "The GDW library: Book 3, Worlds and Adventures, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-07-26
 draft: true
 ---
 

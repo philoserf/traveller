@@ -1,7 +1,7 @@
 ---
 title: "Adventure 3: Twilight’s Peak"
 description: "The GDW library: Adventure 3, Twilight’s Peak, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-10-18
 draft: true
 ---
 
