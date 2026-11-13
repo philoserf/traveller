@@ -2,7 +2,7 @@
 no publish date, and Hugo's date falls back to lastmod, so each edit to the
 disclaimer would otherwise enter the feed as a new item. Author email and
 copyright branches dropped; this site sets neither. */ -}}
-{{- $pages := where .Site.RegularPages "Section" "posts" }}
+{{- $pages := partialCached "posts.html" . }}
 {{- $limit := .Site.Config.Services.RSS.Limit }}
 {{- if ge $limit 1 }}
 	{{- $pages = $pages | first $limit }}

@@ -1,0 +1,11 @@
+{{- /* A page's folio, its centred page number, or nothing. A post is numbered
+     by its place among the posts, oldest first, so its number never changes;
+     another page takes front matter folio, or has none. */ -}}
+{{- $n := .Params.folio -}}
+{{- if eq .Section "posts" -}}
+  {{- $posts := partialCached "posts.html" . -}}
+  {{- range $i, $p := $posts -}}
+    {{- if eq $p $ }}{{ $n = sub (len $posts) $i }}{{ end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $n -}}

@@ -1,0 +1,4 @@
+{{- /* The posts, newest first: what the cover, the feed, llms.txt and the
+     folio count as posts. Call it with partialCached; the list is the same
+     for every page in a build. */ -}}
+{{- return (where site.RegularPages "Section" "posts").ByDate.Reverse -}}

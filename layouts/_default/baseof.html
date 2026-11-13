@@ -67,14 +67,10 @@
       {{ end }}
     </header>
     <main id="main" class="prose">{{ block "main" . }}{{ end }}</main>
-    {{/* The folio, a centred page number. A post is numbered by its place among
-         the posts, oldest first, so its number never changes; another page
-         takes front matter folio, or has none. A template can override the
+    {{/* partials/folio.html decides the number; a template can override the
          whole block, as 404.html and list.html do. */}}
     {{ block "folio" . }}
-    {{ $n := .Params.folio }}
-    {{ if eq .Section "posts" }}{{ range $i, $p := (where .Site.RegularPages "Section" "posts").ByDate }}{{ if eq $p $ }}{{ $n = add $i 1 }}{{ end }}{{ end }}{{ end }}
-    {{ with $n }}<footer class="folio">&ndash;{{ . }}&ndash;</footer>{{ end }}
+    {{ with partial "folio.html" . }}<footer class="folio">&ndash;{{ . }}&ndash;</footer>{{ end }}
     {{ end }}
   </div>
   {{ end }}
