@@ -1,7 +1,7 @@
 ---
 title: "The Torch Bearers of Our Time"
 description: "Who keeps Classic Traveller alive today, and how they carry it forward."
-date: 2026-11-12
+date: 2027-05-03
 draft: true
 ---
 

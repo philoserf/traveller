@@ -1,7 +1,7 @@
 ---
 title: "Understanding Traveller"
 description: "The GDW library: Understanding Traveller, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2028-01-17
 draft: true
 ---
 

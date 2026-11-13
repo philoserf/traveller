@@ -1,7 +1,7 @@
 ---
 title: "Cardboard and Hexagons"
 description: "Before Traveller: GDW, Afrika Korps, cardboard counters and hex maps."
-date: 2026-11-12
+date: 2026-11-23
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Lead on the Table"
 description: "Tabletop gaming in the age of lead miniatures."
-date: 2026-11-12
+date: 2026-12-07
 draft: true
 ---
 

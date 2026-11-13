@@ -1,7 +1,7 @@
 ---
 title: "Book 4: Mercenary"
 description: "The GDW library: Book 4, Mercenary, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-08-02
 draft: true
 ---
 

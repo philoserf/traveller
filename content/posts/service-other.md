@@ -1,7 +1,7 @@
 ---
 title: "Services: Other"
 description: "The services series: Other, Book 1's catch-all service as Book 1 draws it, and what that career brings to the table."
-date: 2026-11-12
+date: 2027-02-15
 draft: true
 ---
 

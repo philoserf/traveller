@@ -1,7 +1,7 @@
 ---
 title: "Supplement 5: Lightning Class Cruisers"
 description: "The GDW library: Supplement 5, Lightning Class Cruisers, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-09-20
 draft: true
 ---
 

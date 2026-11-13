@@ -1,7 +1,7 @@
 ---
 title: "Heroes of Early Internet Fandom"
 description: "The people who built Traveller's first home online, around the mailing list."
-date: 2026-11-12
+date: 2027-04-26
 draft: true
 ---
 

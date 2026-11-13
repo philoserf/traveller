@@ -1,7 +1,7 @@
 ---
 title: "Services: Scouts"
 description: "The services series: the Scouts as Book 1 draws it, and what that career brings to the table."
-date: 2026-11-12
+date: 2027-02-01
 draft: true
 ---
 

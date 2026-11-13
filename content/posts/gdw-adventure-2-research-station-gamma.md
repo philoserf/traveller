@@ -1,7 +1,7 @@
 ---
 title: "Adventure 2: Research Station Gamma"
 description: "The GDW library: Adventure 2, Research Station Gamma, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-10-11
 draft: true
 ---
 

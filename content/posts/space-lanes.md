@@ -1,7 +1,7 @@
 ---
 title: "Space Lanes: Trade and Communication"
 description: "Book 3's jump routes, the commercial space lanes between worlds, and how trade and news move along them."
-date: 2026-11-12
+date: 2027-04-05
 draft: true
 ---
 

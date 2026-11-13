@@ -1,7 +1,7 @@
 ---
 title: "Adventure 7: Broadsword"
 description: "The GDW library: Adventure 7, Broadsword, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2028-02-21
 draft: true
 ---
 

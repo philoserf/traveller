@@ -1,7 +1,7 @@
 ---
 title: "Supplement 2: Animal Encounters"
 description: "The GDW library: Supplement 2, Animal Encounters, and what it brings to a Classic Traveller table."
-date: 2026-11-12
+date: 2027-08-16
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "The Universe Is Yours"
 description: "Books 1–3 ship with no setting: the referee builds the universe, and that is the game's first rule."
-date: 2026-11-12
+date: 2026-11-16
 draft: true
 ---
 
