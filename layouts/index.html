@@ -9,7 +9,7 @@
      opening of the Free Trader Beowulf mayday. The newest posts sit below
      the fold, between the cover and its foot. */}}
 {{ define "main" }}
-{{ $posts := (where .Site.RegularPages "Section" "posts").ByDate.Reverse }}
+{{ $posts := partialCached "posts.html" . }}
 <main id="main">
   <section class="cover">
     <div class="cover-inner">

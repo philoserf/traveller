@@ -6,7 +6,7 @@ Author: {{ .Site.Params.author }}
 Base URL: {{ .Site.BaseURL }}
 
 ## Posts
-{{ range (where .Site.RegularPages "Section" "posts").ByDate.Reverse }}
+{{ range partialCached "posts.html" . }}
 - [{{ .Title }}]({{ .Permalink }}) — {{ .Date.Format "2006-01-02" }}
 {{- end }}
 
