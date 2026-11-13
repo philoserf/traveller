@@ -16,5 +16,5 @@ Base URL: {{ .Site.BaseURL }}
 
 ## Feeds
 
-- [RSS]({{ "index.xml" | absURL }}): Posts
+- [RSS]({{ "posts/index.xml" | absURL }}): Posts
 - [Sitemap]({{ "sitemap.xml" | absURL }}): All URLs
