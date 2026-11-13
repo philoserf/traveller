@@ -53,11 +53,13 @@ outputFormats:
 outputs:
   home:
     - html
-    - rss
     - llms
     - manifest
+  # The posts section's feed is the site's only feed: Hugo's own template
+  # lists a section's pages, so the disclaimer stays out of it.
   section:
     - html
+    - rss
 
 menus:
   main:

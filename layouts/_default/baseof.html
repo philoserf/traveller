@@ -36,7 +36,7 @@
 
   <link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">
-  {{ with .Site.Home.OutputFormats.Get "RSS" }}<link rel="alternate" type="application/rss+xml" title="{{ $.Site.Title }}" href="{{ .Permalink }}">{{ end }}
+  {{ with site.GetPage "/posts" }}{{ with .OutputFormats.Get "RSS" }}<link rel="alternate" type="application/rss+xml" title="{{ $.Site.Title }}" href="{{ .Permalink }}">{{ end }}{{ end }}
   <link rel="manifest" href="{{ "site.webmanifest" | relURL }}">
 
   {{/* The colors style.css shares with the theme-color metas and the
