@@ -26,6 +26,12 @@ tasks:
     cmds:
       - hugo server -D --disableFastRender --baseURL http://localhost:1313/
 
+  serve:
+    desc: Start development server with drafts and future-dated posts
+    deps: [setup]
+    cmds:
+      - hugo server -D -F --disableFastRender --baseURL http://localhost:1313/
+
   build:
     desc: Build site for production
     deps: [setup]
