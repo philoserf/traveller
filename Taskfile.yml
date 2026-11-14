@@ -33,8 +33,42 @@ tasks:
       # No sources/generates: the output also depends on git history (enableGitInfo).
       - bash build.sh
 
+  ship:
+    desc: 'Commit every change, open a PR and merge it (task ship -- "Commit title")'
+    silent: true
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: 'Give a commit title: task ship -- "Commit title"'
+      - sh: test "$(git branch --show-current)" = main
+        msg: Run ship from main
+      - sh: test -n "$(git status --porcelain)"
+        msg: Nothing to ship
+    cmds:
+      # CLI_ARGS arrives shell-quoted, so it is used unquoted.
+      # Running ship is the review: it records the branch head as reviewed
+      # before pr-cycle gates, opens and merges it.
+      - |
+        set -e
+        branch="ship-$(date +%Y%m%d-%H%M%S)"
+        body="$(mktemp)"
+        git stash push -q --include-untracked
+        ~/.claude/bin/pr-cycle start "$branch"
+        git stash pop -q
+        git add -u
+        git add content
+        git commit -q -m {{.CLI_ARGS}}
+        git diff --stat main..HEAD > "$body"
+        ~/.claude/bin/pr-cycle reviewed "$branch"
+        ~/.claude/bin/pr-cycle ship "$branch" {{.CLI_ARGS}} "$body"
+        rm -f "$body"
+
   deploy:
     desc: Build and deploy by hand (Workers Builds deploys every push to main once connected)
+    preconditions:
+      - sh: test -z "$(git status --porcelain)"
+        msg: Uncommitted changes; run task ship first
+      - sh: git fetch -q origin main && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+        msg: HEAD is not origin/main; ship and pull main before deploying
     cmds:
       # wrangler.jsonc's build.command validates and builds before uploading.
       - |
