@@ -1,7 +1,7 @@
 ---
 title: "House Rules"
 description: "The rules I play by that the books don't print, and why each one earned its place."
-date: 2027-04-12
+date: 2027-04-19
 draft: true
 ---
 

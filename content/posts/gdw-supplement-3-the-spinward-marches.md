@@ -1,7 +1,7 @@
 ---
 title: "Supplement 3: The Spinward Marches"
 description: "The GDW library: Supplement 3, The Spinward Marches, and what it brings to a Classic Traveller table."
-date: 2027-08-23
+date: 2027-08-30
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Services: Marines"
 description: "The services series: the Marines as Book 1 draws it, and what that career brings to the table."
-date: 2027-01-18
+date: 2027-01-25
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Supplement 4: Citizens of the Imperium"
 description: "The GDW library: Supplement 4, Citizens of the Imperium, and what it brings to a Classic Traveller table."
-date: 2027-08-30
+date: 2027-09-06
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Book 7: Merchant Prince"
 description: "The GDW library: Book 7, Merchant Prince, and what it brings to a Classic Traveller table."
-date: 2028-05-29
+date: 2028-06-05
 draft: true
 ---
 

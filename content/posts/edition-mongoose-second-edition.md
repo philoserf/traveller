@@ -1,7 +1,7 @@
 ---
 title: "Editions: Mongoose Traveller, Second Edition (2016)"
 description: "The editions series: what Mongoose Traveller's second edition kept from 1977, and what it changed."
-date: 2027-07-05
+date: 2027-07-12
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Double Adventure 3: Death Station / Argon Gambit"
 description: "The GDW library: Double Adventure 3, Death Station and Argon Gambit, and what it brings to a Classic Traveller table."
-date: 2027-12-27
+date: 2028-01-03
 draft: true
 ---
 

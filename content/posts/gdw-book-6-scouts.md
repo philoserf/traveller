@@ -1,7 +1,7 @@
 ---
 title: "Book 6: Scouts"
 description: "The GDW library: Book 6, Scouts, and what it brings to a Classic Traveller table."
-date: 2028-03-13
+date: 2028-03-20
 draft: true
 ---
 

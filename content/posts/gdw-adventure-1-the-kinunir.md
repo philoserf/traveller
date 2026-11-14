@@ -1,7 +1,7 @@
 ---
 title: "Adventure 1: The Kinunir"
 description: "The GDW library: Adventure 1, The Kinunir, and what it brings to a Classic Traveller table."
-date: 2027-09-06
+date: 2027-09-13
 draft: true
 ---
 

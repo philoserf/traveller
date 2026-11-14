@@ -1,7 +1,7 @@
 ---
 title: "Services: Merchants"
 description: "The services series: the Merchants as Book 1 draws it, and what that career brings to the table."
-date: 2027-02-08
+date: 2027-02-15
 draft: true
 ---
 

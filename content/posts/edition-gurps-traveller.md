@@ -1,7 +1,7 @@
 ---
 title: "Editions: GURPS Traveller (1998)"
 description: "The editions series: what GURPS Traveller kept from 1977, and what it changed."
-date: 2027-06-07
+date: 2027-06-14
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: 'A Subsector from Book 3'
 description: "Rolling a subsector by the 1977 Worlds chapter, hex by hex, and reading what the dice made."
-date: 2027-03-22
+date: 2027-03-29
 draft: true
 ---
 

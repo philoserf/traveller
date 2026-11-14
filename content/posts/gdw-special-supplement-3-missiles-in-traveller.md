@@ -1,7 +1,7 @@
 ---
 title: "Special Supplement 3: Missiles in Traveller"
 description: "The GDW library: Special Supplement 3, Missiles in Traveller, and what it brings to a Classic Traveller table."
-date: 2028-05-08
+date: 2028-05-15
 draft: true
 ---
 

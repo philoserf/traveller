@@ -1,7 +1,7 @@
 ---
 title: "Adventure 8: Prison Planet"
 description: "The GDW library: Adventure 8, Prison Planet, and what it brings to a Classic Traveller table."
-date: 2028-02-28
+date: 2028-03-06
 draft: true
 ---
 

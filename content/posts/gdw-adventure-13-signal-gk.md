@@ -1,7 +1,7 @@
 ---
 title: "Adventure 13: Signal GK"
 description: "The GDW library: Adventure 13, Signal GK, and what it brings to a Classic Traveller table."
-date: 2028-06-05
+date: 2028-06-12
 draft: true
 ---
 

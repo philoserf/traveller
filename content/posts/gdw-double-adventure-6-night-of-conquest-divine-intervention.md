@@ -1,7 +1,7 @@
 ---
 title: "Double Adventure 6: Night of Conquest / Divine Intervention"
 description: "The GDW library: Double Adventure 6, Night of Conquest and Divine Intervention, and what it brings to a Classic Traveller table."
-date: 2028-03-06
+date: 2028-03-13
 draft: true
 ---
 
