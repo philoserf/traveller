@@ -1,9 +1,10 @@
 {{- /* Hugo's relref, plus the rule that a published page links only to what
-     is live by its own date: no drafts, and from a post nothing dated after
-     it. The deploy build leaves out drafts and future posts, so such a link
-     would fail the build on the day its page goes live; build.sh's drafts
-     pass, which renders everything, fails it now instead. A draft's links
-     are checked once it is published. */ -}}
+     is live whenever it is: no drafts, and from a post nothing dated after
+     both it and today. The deploy build leaves out drafts and future posts,
+     so such a link would fail the build on the day its page goes live;
+     build.sh's drafts pass, which renders everything, fails it now instead.
+     A link ahead to a post already live passes. A draft's links are checked
+     once it is published. */ -}}
 {{- $ref := .Get 0 -}}
 {{- $path := index (split $ref "#") 0 -}}
 {{- $target := .Page -}}
@@ -15,7 +16,7 @@
   {{- if $target.Draft -}}
     {{- errorf "%s: relref %q is a draft" .Position $ref -}}
   {{- end -}}
-  {{- if and (eq .Page.Section "posts") ($target.Date.After .Page.Date) -}}
+  {{- if and (eq .Page.Section "posts") ($target.Date.After .Page.Date) ($target.Date.After now) -}}
     {{- errorf "%s: relref %q is dated %s, after this post's %s" .Position $ref ($target.Date.Format "2006-01-02") (.Page.Date.Format "2006-01-02") -}}
   {{- end -}}
 {{- end -}}
