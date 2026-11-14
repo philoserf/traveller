@@ -41,6 +41,8 @@ Its tie to the official universe is distant in both space and time. Traveller Ma
 
 So a single thread ties Far Home to the OTU: the same Terra, the same Vilani, one war that ends the other way. Everything else is new, built hex by hex the way Book 3 says a referee should build.
 
+---
+
 That is the stage. The next post walks it as one referee: the three books as I met them in 1977, the Official Traveller Universe, my own attempts at an ATU, and the Clement Sector and Far Home.
 
 ## Sources
