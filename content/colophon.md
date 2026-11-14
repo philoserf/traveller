@@ -16,10 +16,6 @@ The cover asks for Optima and the interior for Univers, the faces of the origina
 
 The pages are built with [Hugo](https://gohugo.io/), with [Task](https://taskfile.dev/) running the build and checks and [Bun](https://bun.com/)’s formatter tidying the source. A [Cloudflare Worker](https://workers.cloudflare.com/) serves the built site. The source is on [GitHub](https://github.com/philoserf/traveller).
 
-## Credits
-
-All the art on the site, the cover image and the icons, is original to it.
-
 ## Notices
 
 The [disclaimer]({{< relref "disclaimer" >}}) carries Mongoose Publishing’s notice for Traveller and the Creative Commons terms (CC BY-NC-SA 4.0) for the site’s own writing.
