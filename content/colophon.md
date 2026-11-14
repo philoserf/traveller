@@ -18,7 +18,7 @@ The pages are built with [Hugo](https://gohugo.io/), with [Task](https://taskfil
 
 ## Credits
 
-All the art on the site, the cover lines and the icons, is original to it.
+All the art on the site, the cover image and the icons, is original to it.
 
 ## Notices
 
