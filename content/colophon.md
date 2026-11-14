@@ -18,4 +18,4 @@ The pages are built with [Hugo](https://gohugo.io/), with [Task](https://taskfil
 
 ## Notices
 
-The [disclaimer]({{< relref "disclaimer" >}}) carries Mongoose Publishing’s notice for Traveller and the Creative Commons terms (CC BY-NC-SA 4.0) for the site’s own writing.
+The [disclaimer]({{< relref "disclaimer" >}}) carries Mongoose Publishing’s notice for Traveller and the Creative Commons terms (CC BY-NC-SA 4.0) for the site’s own writing. As that notice requires, Mongoose Publishing was notified of the site on November 14, 2026.
