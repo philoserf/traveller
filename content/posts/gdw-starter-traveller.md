@@ -1,7 +1,7 @@
 ---
 title: "Starter Traveller"
 description: "The GDW library: Starter Traveller, and what it brings to a Classic Traveller table."
-date: 2028-03-20
+date: 2028-03-27
 draft: true
 ---
 

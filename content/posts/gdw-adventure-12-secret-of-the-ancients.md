@@ -1,7 +1,7 @@
 ---
 title: "Adventure 12: Secret of the Ancients"
 description: "The GDW library: Adventure 12, Secret of the Ancients, and what it brings to a Classic Traveller table."
-date: 2028-05-22
+date: 2028-05-29
 draft: true
 ---
 

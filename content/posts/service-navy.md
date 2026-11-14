@@ -1,7 +1,7 @@
 ---
 title: "Services: Navy"
 description: "The services series: the Navy as Book 1 draws it, and what that career brings to the table."
-date: 2027-01-11
+date: 2027-01-18
 draft: true
 ---
 

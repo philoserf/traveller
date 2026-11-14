@@ -1,7 +1,7 @@
 ---
 title: "A Realistic Income Model, 1996"
 description: "My 1996 Traveller Mailing List proposal for working out what a character earns, read again thirty years on."
-date: 2026-12-21
+date: 2026-12-28
 draft: true
 ---
 

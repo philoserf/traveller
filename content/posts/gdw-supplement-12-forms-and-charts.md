@@ -1,7 +1,7 @@
 ---
 title: "Supplement 12: Forms & Charts"
 description: "The GDW library: Supplement 12, Forms & Charts, and what it brings to a Classic Traveller table."
-date: 2028-03-27
+date: 2028-04-03
 draft: true
 ---
 

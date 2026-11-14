@@ -1,7 +1,7 @@
 ---
 title: "Supplement 7: Traders & Gunboats"
 description: "The GDW library: Supplement 7, Traders & Gunboats, and what it brings to a Classic Traveller table."
-date: 2027-10-04
+date: 2027-10-11
 draft: true
 ---
 

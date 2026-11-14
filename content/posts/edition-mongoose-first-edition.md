@@ -1,7 +1,7 @@
 ---
 title: "Editions: Mongoose Traveller, First Edition (2008)"
 description: "The editions series: what Mongoose Traveller's first edition kept from 1977, and what it changed."
-date: 2027-06-21
+date: 2027-06-28
 draft: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Supplement 13: Veterans"
 description: "The GDW library: Supplement 13, Veterans, and what it brings to a Classic Traveller table."
-date: 2028-04-03
+date: 2028-04-10
 draft: true
 ---
 

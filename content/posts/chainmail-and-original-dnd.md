@@ -1,7 +1,7 @@
 ---
 title: "Chainmail and the Little Brown Books"
 description: "A very short, very enjoyable time with Chainmail and original Dungeons & Dragons."
-date: 2026-11-30
+date: 2026-12-07
 draft: true
 ---
 

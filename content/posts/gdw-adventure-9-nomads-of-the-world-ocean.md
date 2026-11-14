@@ -1,7 +1,7 @@
 ---
 title: "Adventure 9: Nomads of the World Ocean"
 description: "The GDW library: Adventure 9, Nomads of the World Ocean, and what it brings to a Classic Traveller table."
-date: 2028-04-24
+date: 2028-05-01
 draft: true
 ---
 

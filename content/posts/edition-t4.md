@@ -1,7 +1,7 @@
 ---
 title: "Editions: Marc Miller’s Traveller (T4, 1996)"
 description: "The editions series: what T4 kept from 1977, and what it changed."
-date: 2027-05-31
+date: 2027-06-07
 draft: true
 ---
 

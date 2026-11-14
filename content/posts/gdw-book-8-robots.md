@@ -1,7 +1,7 @@
 ---
 title: "Book 8: Robots"
 description: "The GDW library: Book 8, Robots, and what it brings to a Classic Traveller table."
-date: 2028-06-12
+date: 2028-06-19
 draft: true
 ---
 

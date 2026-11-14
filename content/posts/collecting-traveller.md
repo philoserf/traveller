@@ -1,7 +1,7 @@
 ---
 title: "Collecting Traveller"
 description: "Building a collection of the books, boxes and supplements, and what to look for."
-date: 2026-12-14
+date: 2026-12-21
 draft: true
 ---
 
