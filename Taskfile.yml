@@ -24,7 +24,7 @@ tasks:
     desc: Start development server with drafts and future posts
     deps: [setup]
     cmds:
-      - hugo server -D --buildFuture --disableFastRender --baseURL http://localhost:1313/
+      - hugo server --buildDrafts --buildFuture --disableFastRender --baseURL http://localhost:1313/
 
   build:
     desc: Build site for production
@@ -48,15 +48,15 @@ tasks:
       # Running ship is the review: it records the branch head as reviewed
       # before pr-cycle gates, opens and merges it.
       - |
-        set -e
+        set -o errexit
         branch="ship-$(date +%Y%m%d-%H%M%S)"
         body="$(mktemp)"
-        git stash push -q --include-untracked
+        git stash push --quiet --include-untracked
         ~/.claude/bin/pr-cycle start "$branch"
-        git stash pop -q
-        git add -u
+        git stash pop --quiet
+        git add --update
         git add content
-        git commit -q -m {{.CLI_ARGS}}
+        git commit --quiet --message {{.CLI_ARGS}}
         git diff --stat main..HEAD > "$body"
         ~/.claude/bin/pr-cycle reviewed "$branch"
         ~/.claude/bin/pr-cycle ship "$branch" {{.CLI_ARGS}} "$body"
@@ -67,7 +67,7 @@ tasks:
     preconditions:
       - sh: test -z "$(git status --porcelain)"
         msg: Uncommitted changes; run task ship first
-      - sh: git fetch -q origin main && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+      - sh: git fetch --quiet origin main && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
         msg: HEAD is not origin/main; ship and pull main before deploying
     cmds:
       # wrangler.jsonc's build.command validates and builds before uploading.
