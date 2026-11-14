@@ -1,0 +1,7 @@
+[fmt]
+# Leave fenced code in Markdown alone: a quoted snippet is a quotation, and
+# formatting it would change what it says.
+embeddedLanguageFormatting = "off"
+# layouts/ and archetypes/ are Hugo templates, which bun fmt cannot parse;
+# they are hand-formatted.
+ignorePatterns = ["layouts/**", "archetypes/**"]
