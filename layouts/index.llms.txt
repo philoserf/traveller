@@ -13,6 +13,8 @@ Base URL: {{ .Site.BaseURL }}
 ## Pages
 
 - [Disclaimer]({{ "disclaimer/" | absURL }}): Mongoose Publishing's fan-site notice
+- [About]({{ "about/" | absURL }}): what the notebook covers, who keeps it, and how to make contact
+- [Colophon]({{ "colophon/" | absURL }}): design, typefaces, tools and credits
 
 ## Feeds
 
