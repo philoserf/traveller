@@ -2,10 +2,8 @@
 title: "The Universe Is Yours"
 description: "Books 1–3 ship with no setting: the referee builds the universe, and that is the game's first rule."
 date: 2026-11-16
-draft: true
+draft: false
 ---
-
-TK: opening in my own voice: first reading of the three books, and what the empty map felt like.
 
 ## What the 1977 books leave out
 
@@ -21,21 +19,15 @@ And then it says how: "the referee creates a star map and generates the specific
 
 Marc Miller has said the same in his own words, more than once. In a 2004 interview with Anders Blixt for the Swedish magazine _Fenix_: "My basic idea was that anyone could play any kind of science fiction with Traveller," and "the original concept was a generic system that could handle everything." In 2017, to Stargazer's World, he described it as "a universal science-fiction role-playing system that anyone could play against any existing SF texts. It could be Asimov's Foundation, or Anderson's Terra."
 
-TK: what this means to me as a referee.
-
 ## What changed when the Imperium arrived
 
 The setting came after, and Miller describes it growing out of play and publication rather than being planned: "every time I supplied a detail, it needed a background," and "the answers became the Third Imperium." The supplements and adventures that followed placed Traveller in the Imperium's Spinward Marches, and what began as one referee's answers became the game's default universe, the one the community came to call the Official Traveller Universe.
-
-TK: what was gained and what was lost.
 
 ## Other universes: the ATU conversation
 
 The community has its own vocabulary for this. The Traveller Wiki defines the OTU, the _Official Traveller Universe_, as "Traveller as published," and notes that because so many alternate timelines now exist, the term "now tends to refer to the original Third Imperium setting from the years (1100 to 1117)." An ATU, an _Alternate Traveller Universe_, is any setting that departs from it. GURPS Traveller is the best-known, branching from the official timeline shortly before 1116. Some ATUs share no history with the Imperium at all. The Clement Sector, which John Watts and Matt Adams of Gypsy Knights Games (now Independence Games) first published for Mongoose's first edition and later moved to the Cepheus Engine, starts from Earth itself. In 2210 a wormhole is found leading to the far side of the galaxy; in 2331 it collapses, stranding the colonies; play begins in 2342. Its authors had called it simply their "Alternative Traveller Universe" before giving it a name. And IMTU, _In My Traveller Universe_, names the oldest tradition of all: a referee's own customized setting and rules.
 
 Seen from 1977, IMTU is not a deviation. It is where the game began.
-
-TK: my view of the ATU conversation.
 
 ## Foreven, set aside
 
@@ -50,8 +42,6 @@ Far Home is an Alternate Traveller Universe sector at the other extreme, and the
 Its tie to the official universe is very long range, in both space and time. Traveller Map places Far Home 54 sectors trailing and 28 sectors rimward of the Imperial Core, roughly two thousand parsecs away, well beyond anything the Imperium charted. And its history branches from the official one some three and a half thousand years before the classic era. In the official timeline Terra wins the Interstellar Wars and founds the Rule of Man. In the Distant Fringe's, the Vilani bombard Terra in late 2147 AD, and a covert fleet called the Last Armada flees. It crosses the Empty Stars to the far end of the Orion Spur and makes its first settlement, on Tal Varisa, in 2255 AD.
 
 So Far Home is connected to the OTU by a single thread: the same Terra, the same Vilani, one war that ends the other way. Everything else is new, built hex by hex the way Book 3 says a referee should build.
-
-TK: why Far Home matters to me.
 
 ## Sources
 
