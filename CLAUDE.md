@@ -6,7 +6,7 @@ The site at `traveller.philoserf.com`, "A Referee’s Notebook": dated posts on 
 
 ## Commands
 
-All commands use Task (`Taskfile.yml`). `task check` is the gate: `build.sh check`, the deploy build's passes in memory, with `--panicOnWarning`. There is no other test. Its first pass renders drafts and future-dated posts, so every draft must build cleanly too. `task dev` serves with drafts and future-dated posts; `task links` runs lychee over `public/` after `task build`; `task format` runs `bun fmt`, which `.prettierignore` keeps out of `layouts/` and `archetypes/` (it can't parse Hugo templates).
+All commands use Task (`Taskfile.yml`). `task check` is the gate: `build.sh check`, the deploy build's passes in memory, with `--panicOnWarning`. There is no other test. Its first pass renders drafts and future-dated posts, so every draft must build cleanly too. `task dev` serves with drafts and future-dated posts; `task links` runs lychee over `public/` after `task build`; `task format` runs `bun fmt`, which `bunfig.toml` keeps out of `layouts/` and `archetypes/` (it can’t parse Hugo templates).
 
 ## Architecture
 

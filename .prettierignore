@@ -1,7 +1,0 @@
-# Build output
-/public/
-/resources/
-
-# Hugo templates — the formatter doesn't handle Hugo template syntax
-/layouts/
-/archetypes/
