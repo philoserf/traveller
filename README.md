@@ -14,7 +14,7 @@ A Hugo site styled after the 1977 Little Black Books: the home page is the Book 
 
 A Cloudflare Worker serving `public/` as static assets, with Hugo's `404.html` as the not-found page, at the custom domain `traveller.philoserf.com`. `wrangler.jsonc` holds the Worker, its build, and its domain. Its `build.command` runs `build.sh`, the whole build, the same on a Mac (`task deploy`, `task build`) and in Workers Builds.
 
-A cron trigger in `wrangler.jsonc` runs `worker.js` every Monday at 09:00 UTC (05:00 Eastern in summer, 04:00 in winter). It POSTs the Worker's own deploy hook, so Workers Builds rebuilds the site and a future-dated post goes live within a week of its date. That script is the Worker's only code: requests are served from `public/`, and one matching no file is handed straight back to asset serving for the 404 page.
+A cron trigger in `wrangler.jsonc` runs `worker.js` every Monday at 10:00 UTC (05:00 Eastern in winter, 06:00 in summer; Cloudflare reads weekday `1` as Sunday, so the day is written `MON`). It POSTs the Worker's own deploy hook, so Workers Builds rebuilds the site and a future-dated post goes live within a week of its date. That script is the Worker's only code: requests are served from `public/`, and one matching no file is handed straight back to asset serving for the 404 page.
 
 ### Cloudflare settings
 
