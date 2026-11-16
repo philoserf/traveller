@@ -12,9 +12,9 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
   },
-  // Mondays 09:00 UTC (05:00 Eastern in summer, 04:00 in winter): rebuild so
+  // Mondays 10:00 UTC (05:00 Eastern in winter, 06:00 in summer): rebuild so
   // future-dated posts go live. DEPLOY_HOOK is a secret: see the README.
-  "triggers": { "crons": ["0 9 * * 1"] },
+  "triggers": { "crons": ["0 10 * * MON"] },
   // The custom domain is the only address: no workers.dev, no preview URLs.
   "workers_dev": false,
   "preview_urls": false,
