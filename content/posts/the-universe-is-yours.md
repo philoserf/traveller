@@ -43,7 +43,7 @@ So a single thread ties Far Home to the OTU: the same Terra, the same Vilani, on
 
 ---
 
-That is the stage. The next post walks it as one referee: the three books as I met them in 1977, the Official Traveller Universe, my own attempts at an ATU, and the Clement Sector and Far Home.
+That is the stage. The next post walks it as one referee: the three books as I met them in 1978, the Official Traveller Universe, my own attempts at an ATU, and the Clement Sector and Far Home.
 
 ## Sources
 
