@@ -1,0 +1,86 @@
+# Backlog
+
+The posts planned for the site, in order. A post becomes real only when drafting begins: `task new:post -- <slug>` with the slug given here, and its box is ticked. It gets its date when it is ready to go live, and its line comes out once it is live.
+
+- [ ] **Cardboard and Hexagons** (`cardboard-and-hexagons`): Before Traveller: GDW, Afrika Korps, cardboard counters and hex maps.
+- [ ] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with Chainmail and original Dungeons & Dragons.
+- [ ] **Lead on the Table** (`lead-on-the-table`): Tabletop gaming in the age of lead miniatures.
+- [ ] **Collecting Traveller** (`collecting-traveller`): Building a collection of the books, boxes and supplements, and what to look for.
+- [x] **A Realistic Income Model, 1996** (`a-realistic-income-model-1996`): My 1996 Traveller Mailing List proposal for working out what a character earns, read again thirty years on.
+- [ ] **Traveller for the Mid-Twenty-First Century** (`traveller-for-the-mid-twenty-first-century`): Reimagining Traveller's 1977 assumptions from where we stand now.
+- [ ] **Death in Character Generation** (`death-in-character-generation`): Why the 1977 rules can kill a character before play begins, and what that does to the table.
+- [ ] **Services: Navy** (`service-navy`): The services series: the Navy as Book 1 draws it, and what that career brings to the table.
+- [ ] **Services: Marines** (`service-marines`): The services series: the Marines as Book 1 draws it, and what that career brings to the table.
+- [ ] **Services: Army** (`service-army`): The services series: the Army as Book 1 draws it, and what that career brings to the table.
+- [ ] **Services: Scouts** (`service-scouts`): The services series: the Scouts as Book 1 draws it, and what that career brings to the table.
+- [ ] **Services: Merchants** (`service-merchants`): The services series: the Merchants as Book 1 draws it, and what that career brings to the table.
+- [ ] **Services: Other** (`service-other`): The services series: Other, Book 1's catch-all service as Book 1 draws it, and what that career brings to the table.
+- [ ] **Mustering Out** (`mustering-out`): What a career leaves a character with, and why it is so often a low passage, a blade or a gun.
+- [ ] **Non-Player Characters** (`non-player-characters`): Book 1 gives non-player characters a short section and a warning about loyalty; what a referee does with them.
+- [ ] **Players and Crews** (`players-and-crews`): Who sits at the table and who sits at the controls: making a crew from a group of players.
+- [ ] **The Shape of Jump** (`the-shape-of-jump`): How Book 2's jump drive, a week in the void per jump, sets the pace of a 1977 campaign.
+- [ ] **A Subsector from Book 3** (`a-subsector-from-book-3`): Rolling a subsector by the 1977 Worlds chapter, hex by hex, and reading what the dice made.
+- [ ] **A Planet** (`a-planet`): One world, rolled by Book 3 and written up for play.
+- [ ] **Space Lanes: Trade and Communication** (`space-lanes`): Book 3's jump routes, the commercial space lanes between worlds, and how trade and news move along them.
+- [ ] **House Rules** (`house-rules`): The rules I play by that the books don't print, and why each one earned its place.
+- [x] **The Trove Beneath the Bridge** (`the-trove-beneath-the-bridge`): Digest Group Publications, who holds the rights to its work now, and why the quality of that work makes the question matter.
+- [ ] **Heroes of Early Internet Fandom** (`heroes-of-early-internet-fandom`): The people who built Traveller's first home online, around the mailing list.
+- [ ] **The Torch Bearers of Our Time** (`the-torch-bearers-of-our-time`): Who keeps Classic Traveller alive today, and how they carry it forward.
+- [ ] **Editions: Classic Traveller (1977)** (`edition-classic-traveller`): The editions series: what Classic Traveller kept from 1977, and what it changed.
+- [ ] **Editions: MegaTraveller (1987)** (`edition-megatraveller`): The editions series: what MegaTraveller kept from 1977, and what it changed.
+- [ ] **Editions: Traveller: The New Era (1993)** (`edition-the-new-era`): The editions series: what The New Era kept from 1977, and what it changed.
+- [ ] **Editions: Marc Miller’s Traveller (T4, 1996)** (`edition-t4`): The editions series: what T4 kept from 1977, and what it changed.
+- [ ] **Editions: GURPS Traveller (1998)** (`edition-gurps-traveller`): The editions series: what GURPS Traveller kept from 1977, and what it changed.
+- [ ] **Editions: Traveller20 (2002)** (`edition-traveller20`): The editions series: what Traveller20 kept from 1977, and what it changed.
+- [ ] **Editions: Mongoose Traveller, First Edition (2008)** (`edition-mongoose-first-edition`): The editions series: what Mongoose Traveller's first edition kept from 1977, and what it changed.
+- [ ] **Editions: Traveller5 (2013)** (`edition-traveller5`): The editions series: what Traveller5 kept from 1977, and what it changed.
+- [ ] **Editions: Mongoose Traveller, Second Edition (2016)** (`edition-mongoose-second-edition`): The editions series: what Mongoose Traveller's second edition kept from 1977, and what it changed.
+- [ ] **Book 1: Characters and Combat** (`gdw-book-1-characters-and-combat`): The GDW library: Book 1, Characters and Combat, and what it brings to a Classic Traveller table.
+- [ ] **Book 2: Starships** (`gdw-book-2-starships`): The GDW library: Book 2, Starships, and what it brings to a Classic Traveller table.
+- [ ] **Book 3: Worlds and Adventures** (`gdw-book-3-worlds-and-adventures`): The GDW library: Book 3, Worlds and Adventures, and what it brings to a Classic Traveller table.
+- [ ] **Book 4: Mercenary** (`gdw-book-4-mercenary`): The GDW library: Book 4, Mercenary, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 1: 1001 Characters** (`gdw-supplement-1-1001-characters`): The GDW library: Supplement 1, 1001 Characters, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 2: Animal Encounters** (`gdw-supplement-2-animal-encounters`): The GDW library: Supplement 2, Animal Encounters, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 3: The Spinward Marches** (`gdw-supplement-3-the-spinward-marches`): The GDW library: Supplement 3, The Spinward Marches, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 4: Citizens of the Imperium** (`gdw-supplement-4-citizens-of-the-imperium`): The GDW library: Supplement 4, Citizens of the Imperium, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 1: The Kinunir** (`gdw-adventure-1-the-kinunir`): The GDW library: Adventure 1, The Kinunir, and what it brings to a Classic Traveller table.
+- [ ] **Book 5: High Guard** (`gdw-book-5-high-guard`): The GDW library: Book 5, High Guard, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 5: Lightning Class Cruisers** (`gdw-supplement-5-lightning-class-cruisers`): The GDW library: Supplement 5, Lightning Class Cruisers, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 6: 76 Patrons** (`gdw-supplement-6-76-patrons`): The GDW library: Supplement 6, 76 Patrons, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 7: Traders & Gunboats** (`gdw-supplement-7-traders-and-gunboats`): The GDW library: Supplement 7, Traders & Gunboats, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 2: Research Station Gamma** (`gdw-adventure-2-research-station-gamma`): The GDW library: Adventure 2, Research Station Gamma, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 3: Twilight’s Peak** (`gdw-adventure-3-twilights-peak`): The GDW library: Adventure 3, Twilight’s Peak, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 4: Leviathan** (`gdw-adventure-4-leviathan`): The GDW library: Adventure 4, Leviathan, and what it brings to a Classic Traveller table.
+- [ ] **Double Adventure 1: Shadows / Annic Nova** (`gdw-double-adventure-1-shadows-annic-nova`): The GDW library: Double Adventure 1, Shadows and Annic Nova, and what it brings to a Classic Traveller table.
+- [ ] **Double Adventure 2: Mission on Mithril / Across the Bright Face** (`gdw-double-adventure-2-mission-on-mithril-across-the-bright-face`): The GDW library: Double Adventure 2, Mission on Mithril and Across the Bright Face, and what it brings to a Classic Traveller table.
+- [ ] **Book 0: Introduction to Traveller** (`gdw-book-0-introduction-to-traveller`): The GDW library: Book 0, Introduction to Traveller, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 8: Library Data (A–M)** (`gdw-supplement-8-library-data-a-m`): The GDW library: Supplement 8, Library Data (A–M), and what it brings to a Classic Traveller table.
+- [ ] **Supplement 9: Fighting Ships** (`gdw-supplement-9-fighting-ships`): The GDW library: Supplement 9, Fighting Ships, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 0: The Imperial Fringe** (`gdw-adventure-0-the-imperial-fringe`): The GDW library: Adventure 0, The Imperial Fringe, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 5: Trillion Credit Squadron** (`gdw-adventure-5-trillion-credit-squadron`): The GDW library: Adventure 5, Trillion Credit Squadron, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 6: Expedition to Zhodane** (`gdw-adventure-6-expedition-to-zhodane`): The GDW library: Adventure 6, Expedition to Zhodane, and what it brings to a Classic Traveller table.
+- [ ] **Double Adventure 3: Death Station / Argon Gambit** (`gdw-double-adventure-3-death-station-argon-gambit`): The GDW library: Double Adventure 3, Death Station and Argon Gambit, and what it brings to a Classic Traveller table.
+- [ ] **Double Adventure 4: Marooned / Marooned Alone** (`gdw-double-adventure-4-marooned-marooned-alone`): The GDW library: Double Adventure 4, Marooned and Marooned Alone, and what it brings to a Classic Traveller table.
+- [ ] **Double Adventure 5: Chamax Plague / Horde** (`gdw-double-adventure-5-chamax-plague-horde`): The GDW library: Double Adventure 5, Chamax Plague and Horde, and what it brings to a Classic Traveller table.
+- [ ] **Understanding Traveller** (`gdw-understanding-traveller`): The GDW library: Understanding Traveller, and what it brings to a Classic Traveller table.
+- [ ] **The Traveller Book** (`gdw-the-traveller-book`): The GDW library: The Traveller Book, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 10: The Solomani Rim** (`gdw-supplement-10-the-solomani-rim`): The GDW library: Supplement 10, The Solomani Rim, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 11: Library Data (N–Z)** (`gdw-supplement-11-library-data-n-z`): The GDW library: Supplement 11, Library Data (N–Z), and what it brings to a Classic Traveller table.
+- [ ] **Special Supplement 1: Merchant Prince** (`gdw-special-supplement-1-merchant-prince`): The GDW library: Special Supplement 1, Merchant Prince, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 7: Broadsword** (`gdw-adventure-7-broadsword`): The GDW library: Adventure 7, Broadsword, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 8: Prison Planet** (`gdw-adventure-8-prison-planet`): The GDW library: Adventure 8, Prison Planet, and what it brings to a Classic Traveller table.
+- [ ] **Double Adventure 6: Night of Conquest / Divine Intervention** (`gdw-double-adventure-6-night-of-conquest-divine-intervention`): The GDW library: Double Adventure 6, Night of Conquest and Divine Intervention, and what it brings to a Classic Traveller table.
+- [ ] **Book 6: Scouts** (`gdw-book-6-scouts`): The GDW library: Book 6, Scouts, and what it brings to a Classic Traveller table.
+- [ ] **Starter Traveller** (`gdw-starter-traveller`): The GDW library: Starter Traveller, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 12: Forms & Charts** (`gdw-supplement-12-forms-and-charts`): The GDW library: Supplement 12, Forms & Charts, and what it brings to a Classic Traveller table.
+- [ ] **Supplement 13: Veterans** (`gdw-supplement-13-veterans`): The GDW library: Supplement 13, Veterans, and what it brings to a Classic Traveller table.
+- [ ] **Special Supplement 2: Exotic Atmospheres** (`gdw-special-supplement-2-exotic-atmospheres`): The GDW library: Special Supplement 2, Exotic Atmospheres, and what it brings to a Classic Traveller table.
+- [ ] **The Traveller Adventure** (`gdw-the-traveller-adventure`): The GDW library: The Traveller Adventure, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 9: Nomads of the World Ocean** (`gdw-adventure-9-nomads-of-the-world-ocean`): The GDW library: Adventure 9, Nomads of the World Ocean, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 11: Murder on Arcturus Station** (`gdw-adventure-11-murder-on-arcturus-station`): The GDW library: Adventure 11, Murder on Arcturus Station, and what it brings to a Classic Traveller table.
+- [ ] **Special Supplement 3: Missiles in Traveller** (`gdw-special-supplement-3-missiles-in-traveller`): The GDW library: Special Supplement 3, Missiles in Traveller, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 10: Safari Ship** (`gdw-adventure-10-safari-ship`): The GDW library: Adventure 10, Safari Ship, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 12: Secret of the Ancients** (`gdw-adventure-12-secret-of-the-ancients`): The GDW library: Adventure 12, Secret of the Ancients, and what it brings to a Classic Traveller table.
+- [ ] **Book 7: Merchant Prince** (`gdw-book-7-merchant-prince`): The GDW library: Book 7, Merchant Prince, and what it brings to a Classic Traveller table.
+- [ ] **Adventure 13: Signal GK** (`gdw-adventure-13-signal-gk`): The GDW library: Adventure 13, Signal GK, and what it brings to a Classic Traveller table.
+- [ ] **Book 8: Robots** (`gdw-book-8-robots`): The GDW library: Book 8, Robots, and what it brings to a Classic Traveller table.
