@@ -6,7 +6,6 @@ The posts planned for the site, in order. A post becomes real only when drafting
 - [ ] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with Chainmail and original Dungeons & Dragons.
 - [ ] **Lead on the Table** (`lead-on-the-table`): Tabletop gaming in the age of lead miniatures.
 - [ ] **Collecting Traveller** (`collecting-traveller`): Building a collection of the books, boxes and supplements, and what to look for.
-- [x] **A Realistic Income Model, 1996** (`a-realistic-income-model-1996`): My 1996 Traveller Mailing List proposal for working out what a character earns, read again thirty years on.
 - [ ] **Traveller for the Mid-Twenty-First Century** (`traveller-for-the-mid-twenty-first-century`): Reimagining Traveller's 1977 assumptions from where we stand now.
 - [ ] **Death in Character Generation** (`death-in-character-generation`): Why the 1977 rules can kill a character before play begins, and what that does to the table.
 - [ ] **Services: Navy** (`service-navy`): The services series: the Navy as Book 1 draws it, and what that career brings to the table.
