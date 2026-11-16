@@ -279,9 +279,11 @@ main.prose {
   font-family: var(--font-cover);
 }
 
+/* The cover fills the screen, so the posts start below the fold on every
+   device. vh is the large viewport on mobile Safari, so the posts stay
+   hidden whether its toolbars are showing or not. */
 .cover {
-  min-height: 92vh;
-  min-height: 92svh;
+  min-height: 100vh;
   padding: 0 0 3rem;
 }
 
