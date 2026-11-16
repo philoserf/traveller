@@ -19,9 +19,13 @@ My first attempts at an alternate Traveller universe were hard going, because in
 
 Some time as an editor on the Traveller wiki led me to Far Home and the Distant Fringe. The work was thrilling and freeing, and it gave me a fresh way to consider what could be. We only ever admired Far Home.
 
+---
+
+Admiring it is where the next work begins. Next week, _Cardboard and Hexagons_ goes back to the hex-and-counter wargames Traveller grew up beside, and to one of my own, where no news travels faster than a ship. In the new year, _Traveller for the Mid-Twenty-First Century_ takes the 1977 worldview apart: what still holds the universe up, and what someone building it today would change. In between, the notes I keep start finding their way onto these pages.
+
 ## Sources
 
 - _Book 4: Mercenary_, Game Designers' Workshop, 1978. The Imperium passage is paraphrased from its introduction as quoted in [Retrospective: Beyond](https://grognardia.blogspot.com/2022/09/retrospective-beyond.html), Grognardia, September 2022, and [Mercy, Mercenary, Me](https://rockymountainnavy.com/2022/02/08/travellerrpg-tuesday-mercy-mercenary-me-travellerrpg-mercenary-book-4-gdw-1978/), Rocky Mountain Navy, February 8, 2022.
 - _Adventure 1: The Kinunir_ and _Supplement 3: The Spinward Marches_, Game Designers' Workshop, 1979; publication months from [Mayday: Announcing FTB Origins](https://www.designers-and-dragons.com/2026/05/01/mayday-announcing-ftb-origins/), Designers & Dragons, May 1, 2026.
-- [Traveller: The New Era (book)](https://wiki.travellerrpg.com/Traveller:The_New_Era_(book)) and [Pocket Empire](https://wiki.travellerrpg.com/Pocket_Empire), Traveller Wiki.
+- [Traveller: The New Era (book)](<https://wiki.travellerrpg.com/Traveller:The_New_Era_(book)>) and [Pocket Empire](https://wiki.travellerrpg.com/Pocket_Empire), Traveller Wiki.
 - [Far Home Sector](https://wiki.travellerrpg.com/Far_Home_Sector), Traveller Wiki.
