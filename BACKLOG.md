@@ -2,7 +2,7 @@
 
 The posts planned for the site, in order. A post becomes real only when drafting begins: `task new:post -- <slug>` with the slug given here, and its box is ticked. It gets its date when it is ready to go live, and its line comes out once it is live.
 
-- [ ] **Cardboard and Hexagons** (`cardboard-and-hexagons`): Before Traveller: GDW, Afrika Korps, cardboard counters and hex maps.
+- [x] **Cardboard and Hexagons** (`cardboard-and-hexagons`): Before Traveller: GDW, Afrika Korps, cardboard counters and hex maps.
 - [ ] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with Chainmail and original Dungeons & Dragons.
 - [ ] **Lead on the Table** (`lead-on-the-table`): Tabletop gaming in the age of lead miniatures.
 - [ ] **Collecting Traveller** (`collecting-traveller`): Building a collection of the books, boxes and supplements, and what to look for.
