@@ -21,7 +21,7 @@ Some time as an editor on the Traveller wiki led me to Far Home and the Distant 
 
 ---
 
-Admiring it is where the next work begins. Next week, _Cardboard and Hexagons_ goes back to the hex-and-counter wargames Traveller grew up beside, and to one of my own, where no news travels faster than a ship. In the new year, _Traveller for the Mid-Twenty-First Century_ takes the 1977 worldview apart: what still holds the universe up, and what someone building it today would change. In between, the notes I keep start finding their way onto these pages.
+Next week, _Cardboard and Hexagons_ goes back to the hex-and-counter wargames Traveller grew up beside. Later I sketch a wargame of my own, where no news travels faster than a ship. _Traveller for the Mid-Twenty-First Century_ takes the 1977 worldview apart: what still holds the universe up, and what someone building it today would change. In between, I post from my notebook.
 
 ## Sources
 
