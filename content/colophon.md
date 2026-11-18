@@ -6,11 +6,11 @@ lastmod: 2026-11-14
 
 ## Design
 
-The site copies the Little Black Books of 1977. The home page is the cover of Book 1: black, with white italic lines above a red rule and TRAVELLER in red. Every other page is an interior page: white paper, a sans-serif text face, justified paragraphs, bold underlined capitals for headings and a centred folio at the foot.
+The site copies the Little Black Books of 1977. The home page is the cover of Book 1: black, with white italic lines above a red rule and TRAVELLER in red. Every other page is an interior page: white paper, a sans-serif text face, justified paragraphs, bold underlined capitals for headings, and a centred folio at the foot.
 
 ## Typefaces
 
-The cover asks for Optima and the interior for Univers, the faces of the original books. Where a device lacks them, the cover falls back to Candara, URW Classico, Linux Biolinum or Segoe UI, and the interior to Helvetica Neue, Helvetica or Arial. No webfonts are served: what you see is set in fonts already installed on your device, so there are no font licences to list.
+The cover asks for Optima and the interior for Univers, the faces of the original books. Where a device lacks them, the cover falls back to Candara, URW Classico, Linux Biolinum, or Segoe UI, and the interior to Helvetica Neue, Helvetica, or Arial. No webfonts are served: what you see is set in fonts already installed on your device, so there are no font licences to list.
 
 ## Tools
 

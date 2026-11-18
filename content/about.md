@@ -10,7 +10,7 @@ A Referee’s Notebook is a set of dated posts on 1977 Classic Traveller: the Li
 
 ## Who keeps it
 
-{{< param author >}} writes the notebook. Corrections, questions and replies are welcome by email to [mark@philoserf.com](mailto:mark@philoserf.com).
+{{< param author >}} writes the notebook. Corrections, questions, and replies are welcome by email to [mark@philoserf.com](mailto:mark@philoserf.com).
 
 ## Status
 
@@ -22,4 +22,4 @@ There is no standing call for submissions. If you have an article you’d like t
 
 ## How it’s made
 
-The [colophon]({{< relref "colophon" >}}) covers the design, the typefaces, the tools and the credits.
+The [colophon]({{< relref "colophon" >}}) covers the design, the typefaces, the tools, and the credits.
