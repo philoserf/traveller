@@ -34,6 +34,7 @@
   <meta name="theme-color" content="{{ .Site.Params.themeColor.dark }}" media="(prefers-color-scheme: dark)">
   {{ end }}
 
+  <link rel="icon" href="{{ "favicon.ico" | relURL }}" sizes="any">
   <link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">
   {{ with site.GetPage "/posts" }}{{ with .OutputFormats.Get "RSS" }}<link rel="alternate" type="application/rss+xml" title="{{ $.Site.Title }}" href="{{ .Permalink }}">{{ end }}{{ end }}
