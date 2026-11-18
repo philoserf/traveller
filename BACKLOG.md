@@ -2,10 +2,10 @@
 
 The posts planned for the site, in order. A post becomes real only when drafting begins: `task new:post -- <slug>` with the slug given here, and its box is ticked. It gets its date when it is ready to go live, and its line comes out once it is live.
 
-- [x] **Cardboard and Hexagons** (`cardboard-and-hexagons`): Before Traveller: GDW, Afrika Korps, cardboard counters and hex maps.
-- [ ] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with Chainmail and original Dungeons & Dragons.
+- [x] **Cardboard and Hexagons** (`cardboard-and-hexagons`): Afrika Korps in 1976, the Avalon Hill and GDW wargames that followed, and why Traveller is the one that stuck.
+- [ ] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with Chainmail, GDW’s En Garde!, and original Dungeons & Dragons.
 - [ ] **Lead on the Table** (`lead-on-the-table`): Tabletop gaming in the age of lead miniatures.
-- [ ] **Collecting Traveller** (`collecting-traveller`): Building a collection of the books, boxes and supplements, and what to look for.
+- [ ] **Collecting Traveller** (`collecting-traveller`): Building a collection of the books, boxes, and supplements, and what to look for.
 - [ ] **Traveller for the Mid-Twenty-First Century** (`traveller-for-the-mid-twenty-first-century`): Reimagining Traveller's 1977 assumptions from where we stand now.
 - [ ] **Death in Character Generation** (`death-in-character-generation`): Why the 1977 rules can kill a character before play begins, and what that does to the table.
 - [ ] **Services: Navy** (`service-navy`): The services series: the Navy as Book 1 draws it, and what that career brings to the table.
@@ -14,7 +14,7 @@ The posts planned for the site, in order. A post becomes real only when drafting
 - [ ] **Services: Scouts** (`service-scouts`): The services series: the Scouts as Book 1 draws it, and what that career brings to the table.
 - [ ] **Services: Merchants** (`service-merchants`): The services series: the Merchants as Book 1 draws it, and what that career brings to the table.
 - [ ] **Services: Other** (`service-other`): The services series: Other, Book 1's catch-all service as Book 1 draws it, and what that career brings to the table.
-- [ ] **Mustering Out** (`mustering-out`): What a career leaves a character with, and why it is so often a low passage, a blade or a gun.
+- [ ] **Mustering Out** (`mustering-out`): What a career leaves a character with, and why it is so often a low passage, a blade, or a gun.
 - [ ] **Non-Player Characters** (`non-player-characters`): Book 1 gives non-player characters a short section and a warning about loyalty; what a referee does with them.
 - [ ] **Players and Crews** (`players-and-crews`): Who sits at the table and who sits at the controls: making a crew from a group of players.
 - [ ] **The Shape of Jump** (`the-shape-of-jump`): How Book 2's jump drive, a week in the void per jump, sets the pace of a 1977 campaign.
@@ -22,7 +22,7 @@ The posts planned for the site, in order. A post becomes real only when drafting
 - [ ] **A Planet** (`a-planet`): One world, rolled by Book 3 and written up for play.
 - [ ] **Space Lanes: Trade and Communication** (`space-lanes`): Book 3's jump routes, the commercial space lanes between worlds, and how trade and news move along them.
 - [ ] **House Rules** (`house-rules`): The rules I play by that the books don't print, and why each one earned its place.
-- [x] **The Trove Beneath the Bridge** (`the-trove-beneath-the-bridge`): Digest Group Publications, who holds the rights to its work now, and why the quality of that work makes the question matter.
+- [ ] **The Trove Beneath the Bridge** (`the-trove-beneath-the-bridge`): Digest Group Publications, who holds the rights to its work now, and why the quality of that work makes the question matter. Sources: _Joe Fugate’s Answers About DGP and Traveller_ (Reference folder), p. 36 on how Roger Sanger got the rights, p. 44 on who owns the artwork.
 - [ ] **Heroes of Early Internet Fandom** (`heroes-of-early-internet-fandom`): The people who built Traveller's first home online, around the mailing list.
 - [ ] **The Torch Bearers of Our Time** (`the-torch-bearers-of-our-time`): Who keeps Classic Traveller alive today, and how they carry it forward.
 - [ ] **Editions: Classic Traveller (1977)** (`edition-classic-traveller`): The editions series: what Classic Traveller kept from 1977, and what it changed.
