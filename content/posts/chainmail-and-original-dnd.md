@@ -12,11 +12,11 @@ TK: the miniatures rules (Gygax and Perren, 1971) and their fantasy supplement; 
 
 ## The Little Brown Books
 
-TK: the 1974 boxed set, three digest booklets (_Men & Magic_, _Monsters & Treasure_, _The Underworld & Wilderness Adventures_), the first-level warrior and the map that grows from his village, and _Outdoor Survival_'s hex map for the wilderness.
+TK: the 1974 boxed set, three digest booklets (_Men & Magic_, _Monsters & Treasure_, _The Underworld & Wilderness Adventures_), the Fighting-Man (my first-level warrior, and the map I grew from his village, is memory, not the booklets’ procedure), and _Outdoor Survival_’s hex map for the wilderness.
 
 ## En Garde!
 
-TK: GDW's 1975 game of swordplay in seventeenth-century Paris, half role-playing game and half tactical duel. How it came to the table, and what it showed of GDW before Traveller.
+TK: GDW’s 1975 game of swordplay in seventeenth-century Paris, half role-playing game and half tactical duel. How it came to the table, and what it showed of GDW before Traveller.
 
 ## Why it was short
 
@@ -28,7 +28,7 @@ TK: the brown digest booklets beside the Little Black Books of 1977; what Travel
 
 ---
 
-TK: next week.
+TK: next week, _Lead on the Table_.
 
 ## Sources
 
