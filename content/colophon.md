@@ -1,6 +1,6 @@
 ---
 title: Colophon
-description: "How this notebook is designed, set and built."
+description: "How this notebook is designed, set, and built."
 lastmod: 2026-11-14
 ---
 
