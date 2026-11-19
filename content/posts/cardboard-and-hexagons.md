@@ -5,7 +5,7 @@ date: 2026-11-30
 draft: false
 ---
 
-Two years before I played _Dungeons & Dragons_, there was _Afrika Korps_. In 1976 I sat down to Avalon Hill’s game of Rommel’s desert war: a mounted hex map of North Africa, a sheet of cardboard counters for the Axis and Allied units, and a rule that no attack went forward without supply.
+Before I played _Dungeons & Dragons_, there was _Afrika Korps_. In 1976 I sat down to Avalon Hill’s game of Rommel’s desert war: a mounted hex map of North Africa, a sheet of cardboard counters for the Axis and Allied units, and a rule that no attack went forward without supply.
 
 My grandfather had been part of the Allied effort across Africa, Italy, and France, though I knew little of what he went through. He had died two years earlier, of injuries he sustained in that war. I don’t know how I found the game, but I enjoyed the challenge and the history.
 
