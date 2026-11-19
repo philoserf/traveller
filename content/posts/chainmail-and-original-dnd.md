@@ -1,35 +1,29 @@
 ---
 title: "Chainmail and the Little Brown Books"
-description: "A very short, very enjoyable time with Chainmail, GDW’s En Garde!, and original Dungeons & Dragons."
+description: "A very short, very enjoyable time with original Dungeons & Dragons, Chainmail and borrowed lead armies, and GDW’s En Garde!"
 draft: true
 ---
 
-TK: 1978, two years after _Afrika Korps_. How the brown books and _Chainmail_ reached the table, and who sat at it.
+In 1976 my family moved near the end of my sophomore year, and I had to find new friends. New friends brought new games, played in their homes.
 
-## Chainmail
+The first was _Dungeons & Dragons_ in its three digest booklets, the Little Brown Books: _Men & Magic_, _Monsters & Treasure_, and _The Underworld & Wilderness Adventures_. My first-level warrior began there, and so did the map that grew from his village, as I told in [In My Traveller Universe]({{< relref "in-my-traveller-universe" >}}).
 
-TK: the miniatures rules (Gygax and Perren, 1971) and their fantasy supplement; the combat _D&D_ first pointed back to. What playing it was like after hex-and-counter wargames.
+The booklets assumed you already owned _Chainmail_, Gary Gygax and Jeff Perren’s rules for medieval miniatures, so it came next. Its fantasy supplement brought heroes, wizards, and dragons, and lead figures to fight them. The figures were never my own.
 
-## The Little Brown Books
+_En Garde!_, GDW’s 1975 game of swordplay and society in seventeenth-century Paris, was an interlude. A fan of Dumas, I was thrilled to meet it, and played it a few times.
 
-TK: the 1974 boxed set, three digest booklets (_Men & Magic_, _Monsters & Treasure_, _The Underworld & Wilderness Adventures_), the Fighting-Man (my first-level warrior, and the map I grew from his village, is memory, not the booklets’ procedure), and _Outdoor Survival_’s hex map for the wilderness.
+Then an adult we played with brought out a massive Roman-era army in lead, and we fought the battles of that era across the table.
 
-## En Garde!
+The armies were grand, but the group storytelling of role-playing won, and by 1978, Traveller had taken the place of them all.
 
-TK: GDW’s 1975 game of swordplay in seventeenth-century Paris, half role-playing game and half tactical duel. How it came to the table, and what it showed of GDW before Traveller.
-
-## Why it was short
-
-TK: why the time with these games was brief and still enjoyable, and what took their place.
-
-## From brown to black
-
-TK: the brown digest booklets beside the Little Black Books of 1977; what Traveller kept from them and what it left behind.
+The Little Black Books kept the brown ones’ digest size and their referee building a world of their own, and went back to the six-sided dice I knew from the wargames. They left behind levels and classes. A Traveller arrives at the table with a career already behind them, and the game is what they do next.
 
 ---
 
-TK: next week, _Lead on the Table_.
+Next week, _Collecting Traveller_: building a collection of the books, boxes, and supplements, and what to look for.
 
 ## Sources
 
-TK
+- [Chainmail (game)](<https://en.wikipedia.org/wiki/Chainmail_(game)>), Wikipedia: Gygax and Perren, Guidon Games, 1971, and its fantasy supplement.
+- [Dungeons & Dragons (1974)](<https://en.wikipedia.org/wiki/Dungeons_%26_Dragons_(1974)>), Wikipedia: Gygax and Arneson, Tactical Studies Rules, 1974; the three digest-sized booklets, and rules that assume _Chainmail_.
+- [En Garde! (role-playing game)](<https://en.wikipedia.org/wiki/En_Garde!_(role-playing_game)>), Wikipedia: GDW, 1975; a hybrid of role-playing and tactical dueling in seventeenth-century Paris.

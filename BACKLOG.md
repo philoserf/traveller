@@ -3,8 +3,7 @@
 The posts planned for the site, in order. A post becomes real only when drafting begins: `task new:post -- <slug>` with the slug given here, and its box is ticked. It gets its date when it is ready to go live, and its line comes out once it is live.
 
 - [x] **Cardboard and Hexagons** (`cardboard-and-hexagons`): Afrika Korps in 1976, the Avalon Hill and GDW wargames that followed, and why Traveller is the one that stuck.
-- [x] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with Chainmail, GDW’s En Garde!, and original Dungeons & Dragons.
-- [ ] **Lead on the Table** (`lead-on-the-table`): Tabletop gaming in the age of lead miniatures.
+- [x] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with original Dungeons & Dragons, Chainmail and borrowed lead armies, and GDW’s En Garde!
 - [ ] **Collecting Traveller** (`collecting-traveller`): Building a collection of the books, boxes, and supplements, and what to look for.
 - [ ] **Traveller for the Mid-Twenty-First Century** (`traveller-for-the-mid-twenty-first-century`): Reimagining Traveller's 1977 assumptions from where we stand now.
 - [ ] **Death in Character Generation** (`death-in-character-generation`): Why the 1977 rules can kill a character before play begins, and what that does to the table.

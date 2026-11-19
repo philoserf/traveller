@@ -5,7 +5,7 @@ date: 2026-11-23
 draft: false
 ---
 
-I started in 1978, with _Dungeons & Dragons_. A first-level warrior leaves his home village knowing the way to the market town and the roads to the next villages. He knows the general direction of the great places beyond, but nothing of how far off they are or what lies between them. So the map grows outward from the village, one road at a time, and it is his own.
+I started in 1976, with _Dungeons & Dragons_. A first-level warrior leaves his home village knowing the way to the market town and the roads to the next villages. He knows the general direction of the great places beyond, but nothing of how far off they are or what lies between them. So the map grows outward from the village, one road at a time, and it is his own.
 
 A group of Travellers starts out knowing more. They are merchants, scouts, marines, and the rest, with years of service behind them. They know their homeworlds and the worlds they have touched, and they carry stories from those years and from the people they met. Beyond that, they have a sense of distance, and data systems to look up whatever they might need.
 
