@@ -1,7 +1,8 @@
 ---
 title: "Chainmail and the Little Brown Books"
 description: "A very short, very enjoyable time with original Dungeons & Dragons, Chainmail and borrowed lead armies, and GDW’s En Garde!"
-draft: true
+date: 2026-12-07
+draft: false
 ---
 
 In 1976 my family moved near the end of my sophomore year, and I had to find new friends. New friends brought new games, played in their homes.
