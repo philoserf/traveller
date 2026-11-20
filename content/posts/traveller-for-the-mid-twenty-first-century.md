@@ -179,6 +179,10 @@ Four questions stay open. Is the update a setting with its own subsectors, or a 
 
 The work starts with the judgment calls, AI first, since most of the others follow from it. Then comes an inventory of the remaining concepts in the three books by category (technology, polity, society, biology, astrography, economy), each sorted into keep, change, or judgment call. The test is one subsector: roll it with Book 3, then write a few worlds through the new lenses.
 
+---
+
+[In My Traveller Universe]({{< relref "in-my-traveller-universe" >}}) told how one referee's universe grew; this post asks what that universe would look like built today. Next week, _Death in Character Generation_ takes up the keep list's signature item: why the 1977 rules can kill a character before play begins, and what that does to the table.
+
 ## Sources
 
 - [Clement Sector review (Freelance Traveller, second review)](https://freelancetraveller.com/features/reviews/gypsyknights/clement-jz.html)
