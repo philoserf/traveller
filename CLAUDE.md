@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-The site at `traveller.philoserf.com`, "A Referee’s Notebook": dated posts on 1977 Classic Traveller, the Little Black Books before the Official Traveller Universe, with some commentary on what came after. Classic Traveller is the subject: later editions (the `edition-*` posts) and other settings (Clement Sector, in `the-universe-is-yours.md`) appear only as commentary on what came after, never as the subject of a post's rules or play, since the site carries only Mongoose Publishing’s notice. It was scaffolded from `philoserf/sandbox` and does not track it; diverge freely.
+The site at `traveller.philoserf.com`, "A Referee’s Notebook": dated posts on 1977 Classic Traveller, the Little Black Books before the Official Traveller Universe, with some commentary on what came after. Classic Traveller is the subject of the site. Later editions (the `edition-*` posts) and other settings, ATUs among them (Clement Sector, in `the-universe-is-yours.md`), may be the subject of a post, never of the site. It was scaffolded from `philoserf/sandbox` and does not track it; diverge freely.
 
 ## Commands
 
