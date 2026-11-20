@@ -171,14 +171,6 @@ The price is small. Jump-space decoherence is one invented physical fact, and ev
 
 Every item on the "keep" list survives untouched, and the decoherence rule _strengthens_ two of them: crews matter, and the information lag now applies to minds as well as messages. A 1977 player would recognize the rules and the referee's subsector. A 2026 player would recognize the worlds.
 
-## Open questions
-
-Four questions stay open. Is the update a setting with its own subsectors, or a set of lenses any referee applies to a subsector rolled from Book 3? Do the three books alone set the canon, or do the next few years—_Mercenary_, _High Guard_, the early adventures—count too? Are there aliens, and if so, many small peoples or a few great powers? And is the output for play at the table, for fiction, or for an essay about how science fiction ages?
-
-## Next steps
-
-The work starts with the judgment calls, AI first, since most of the others follow from it. Then comes an inventory of the remaining concepts in the three books by category (technology, polity, society, biology, astrography, economy), each sorted into keep, change, or judgment call. The test is one subsector: roll it with Book 3, then write a few worlds through the new lenses.
-
 ---
 
 [In My Traveller Universe]({{< relref "in-my-traveller-universe" >}}) told how one referee's universe grew; this post asks what that universe would look like built today. Next week, _Death in Character Generation_ takes up the keep list's signature item: why the 1977 rules can kill a character before play begins, and what that does to the table.
