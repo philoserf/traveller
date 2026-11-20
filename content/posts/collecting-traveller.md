@@ -2,7 +2,6 @@
 title: "Collecting Traveller"
 description: "How I came to own a Traveller collection without meaning to, and the times I tried to let it go."
 date: 2026-12-14
-draft: false
 ---
 
 When we moved back to the Midwest and downsized, I sorted my bookshelves and saw what a collection looked like. I had never meant to have one.
