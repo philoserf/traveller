@@ -2,7 +2,6 @@
 title: "Cardboard and Hexagons"
 description: "Afrika Korps in 1976, the Avalon Hill and GDW wargames that followed, and why Traveller is the one that stuck."
 date: 2026-11-30
-draft: false
 ---
 
 Before I played _Dungeons & Dragons_, there was _Afrika Korps_. In 1976 I sat down to Avalon Hill’s game of Rommel’s desert war: a mounted hex map of North Africa, a sheet of cardboard counters for the Axis and Allied units, and a rule that no attack went forward without supply.

@@ -2,7 +2,6 @@
 title: "In My Traveller Universe"
 description: "From a first-level warrior’s map to the Little Black Books, the Imperium, the Bottom of the Hole, and the Distant Fringe: how one referee’s Traveller universe grew."
 date: 2026-11-23
-draft: false
 ---
 
 I started in 1976, with _Dungeons & Dragons_. A first-level warrior leaves his home village knowing the way to the market town and the roads to the next villages. He knows the general direction of the great places beyond, but nothing of how far off they are or what lies between them. So the map grows outward from the village, one road at a time, and it is his own.
