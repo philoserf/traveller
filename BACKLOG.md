@@ -6,7 +6,7 @@ The posts planned for the site, in order. A post becomes real only when drafting
 - [x] **Chainmail and the Little Brown Books** (`chainmail-and-original-dnd`): A very short, very enjoyable time with original Dungeons & Dragons, Chainmail and borrowed lead armies, and GDW’s En Garde!
 - [x] **Collecting Traveller** (`collecting-traveller`): How I came to own a Traveller collection without meaning to, and the times I tried to let it go.
 - [x] **Traveller for the Mid-Twenty-First Century** (`traveller-for-the-mid-twenty-first-century`): Reimagining Traveller's 1977 assumptions from where we stand now.
-- [ ] **Death in Character Generation** (`death-in-character-generation`): Why the 1977 rules can kill a character before play begins, and what that does to the table.
+- [x] **Death in Character Generation** (`death-in-character-generation`): The 1977 rules can kill a character before play begins; what we do with that at the table.
 - [ ] **Services: Navy** (`service-navy`): The services series: the Navy as Book 1 draws it, and what that career brings to the table.
 - [ ] **Services: Marines** (`service-marines`): The services series: the Marines as Book 1 draws it, and what that career brings to the table.
 - [ ] **Services: Army** (`service-army`): The services series: the Army as Book 1 draws it, and what that career brings to the table.
