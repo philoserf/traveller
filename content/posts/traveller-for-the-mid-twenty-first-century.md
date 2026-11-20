@@ -1,7 +1,8 @@
 ---
 title: "Traveller for the Mid-Twenty-First Century"
 description: "Reimagining Traveller’s 1977 assumptions from where we stand now."
-draft: true
+date: 2026-12-21
+draft: false
 ---
 
 Classic Traveller shipped in 1977, in the Little Black Books: _Characters and Combat_, _Starships_, and _Worlds and Adventures_. It drew on the science fiction its author grew up reading: Dumarest, Flandry, Piper’s _Space Viking_, the Dorsai, _Foundation_. Its future came from what a Cold War, pre-internet, pre-genomics moment could imagine. It came with almost no setting, only the tools for a referee to build one. The Third Imperium came later, in supplements and adventures. This post sets the Imperium aside and goes back to the three books: what the 1977 rules assume, read from today.
