@@ -15,12 +15,15 @@ The posts planned for the site, in order. A post becomes real only when drafting
 - [ ] **Services: Other** (`service-other`): The services series: Other, Book 1's catch-all service as Book 1 draws it, and what that career brings to the table.
 - [ ] **Mustering Out** (`mustering-out`): What a career leaves a character with, and why it is so often a low passage, a blade, or a gun.
 - [ ] **Non-Player Characters** (`non-player-characters`): Book 1 gives non-player characters a short section and a warning about loyalty; what a referee does with them.
+- [ ] **Rolling the Adventure** (`rolling-the-adventure`): Books 2 and 3 print no adventures, only tables: patrons, rumors, legal and animal encounters, ships met in space; how the dice set the scene and the referee improvises the rest.
 - [ ] **Players and Crews** (`players-and-crews`): Who sits at the table and who sits at the controls: making a crew from a group of players.
 - [ ] **The Shape of Jump** (`the-shape-of-jump`): How Book 2's jump drive, a week in the void per jump, sets the pace of a 1977 campaign.
 - [ ] **A Subsector from Book 3** (`a-subsector-from-book-3`): Rolling a subsector by the 1977 Worlds chapter, hex by hex, and reading what the dice made.
 - [ ] **A Planet** (`a-planet`): One world, rolled by Book 3 and written up for play.
 - [ ] **Space Lanes: Trade and Communication** (`space-lanes`): Book 3's jump routes, the commercial space lanes between worlds, and how trade and news move along them.
 - [ ] **House Rules** (`house-rules`): The rules I play by that the books don't print, and why each one earned its place.
+- [ ] **From Tables to Scripts** (`from-tables-to-scripts`): From 1979 on, the Imperium's supplements and adventures moved the referee's preparation onto the printed page, from _The Kinunir_ and _76 Patrons_ to _The Traveller Adventure_; what each step gained and what it cost the improvising referee.
+- [ ] **Amber Zones** (`amber-zones`): The _Journal of the Travellers' Aid Society_'s short scenarios: a page of situation and a handful of outcomes, halfway between the dice and a script.
 - [ ] **The Trove Beneath the Bridge** (`the-trove-beneath-the-bridge`): Digest Group Publications, who holds the rights to its work now, and why the quality of that work makes the question matter. Sources: _Joe Fugate’s Answers About DGP and Traveller_ (Reference folder), p. 36 on how Roger Sanger got the rights, p. 44 on who owns the artwork.
 - [ ] **Heroes of Early Internet Fandom** (`heroes-of-early-internet-fandom`): The people who built Traveller's first home online, around the mailing list.
 - [ ] **The Torch Bearers of Our Time** (`the-torch-bearers-of-our-time`): Who keeps Classic Traveller alive today, and how they carry it forward.
